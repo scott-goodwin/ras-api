@@ -11,6 +11,8 @@ object MicroServiceBuild extends Build with MicroService {
 
   override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
+  private val apiPlatformlibVersion = "1.3.0"
+
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0",
     ws,
@@ -18,9 +20,11 @@ object MicroServiceBuild extends Build with MicroService {
     "uk.gov.hmrc" %% "play-authorisation" % "4.3.0",
     "uk.gov.hmrc" %% "play-health" % "2.1.0",
     "uk.gov.hmrc" %% "play-url-binders" % "2.1.0",
-    "uk.gov.hmrc" %% "play-config" % "4.1.0",
+    "uk.gov.hmrc" %% "play-config" % "4.2.0",
+//    "uk.gov.hmrc" %% "play-config" % "3.0.0",
     "uk.gov.hmrc" %% "logback-json-logger" % "3.1.0",
-    "uk.gov.hmrc" %% "domain" % "4.1.0"
+    "uk.gov.hmrc" %% "domain" % "4.1.0",
+    "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion
   )
 
   def test(scope: String = "test,it") = Seq(
