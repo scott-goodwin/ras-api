@@ -26,8 +26,6 @@ import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
-import uk.gov.hmrc.play.http.HeaderCarrier
-
 
 
 object ControllerConfiguration extends ControllerConfig {
@@ -62,5 +60,5 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Mi
 
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
-  override val authFilter = Some(MicroserviceAuthFilter)
+  override val authFilter = None
 }
