@@ -1,0 +1,106 @@
+#%RAML 1.0
+---
+
+title: Relief-At-Source
+version: 1.0
+protocols: [ HTTPS ]
+baseUri: http://api.service.hmrc.gov.uk
+
+documentation:
+  - title: Overview
+    content: !include documentation/overview.md
+  - title: Versioning
+    content: !include https://developer.service.hmrc.gov.uk/api-documentation/assets/common/docs/versioning.md
+  - title: Errors
+    content: !include https://developer.service.hmrc.gov.uk/api-documentation/assets/common/docs/errors.md
+
+uses:
+  sec: https://developer.service.hmrc.gov.uk/api-documentation/assets/common/modules/securitySchemes.raml
+  headers: https://developer.service.hmrc.gov.uk/api-documentation/assets/common/modules/headers.raml
+  annotations: https://developer.service.hmrc.gov.uk/api-documentation/assets/common/modules/annotations.raml
+
+mediaType: [ application/json, application/hal+json ]
+
+
+/customer:
+      /match:
+            post:
+              is: [headers.acceptHeader, headers.contentHeader]
+              displayName: Check Customer records
+              description: !include documentation/customer.match
+              (annotations.scope): "write:hmrcmatch"
+              securedBy: [ sec.oauth_2_0: { scopes: [ "write:hmrc" ] } ]
+              body:
+                application/json:
+                  example: !include examples/match.ex.json
+                  type: !include schemas/match.schema.json
+              responses:
+                200:
+                  description: The customer information provided has matched with HMRC records.
+                  headers:
+                    Location:
+                      description: Relative URI to the mathced customer resource.
+                      type: string
+                      example: /match/ras/status/0987654321
+                  body:
+                    application/json:
+                      example: !include examples/match.post.response.json
+
+                400:
+                  body:
+                    application/json:
+                      type: !include schemas/ErrorCodes.schema.json
+                      examples:
+                        notOpenStatus:
+                          description: Bad Request
+                          value: |
+                            {
+                              "code" : "BAD_REQUEST",
+                              "message" : "Bad Request"
+                            }
+                403:
+                  body:
+                    application/json:
+                      description: The customer details provided did not match with HMRC’s records.
+                      type: !include schemas/ErrorCodes.schema.json
+                      example: |
+                        {
+                          "code": "MATCHING_FAILED",
+                          "message": "The customer details provided did not match with HMRC’s records."
+                        }
+                404:
+                  body:
+                    application/json:
+                      type: !include schemas/ErrorCodes.schema.json
+                      examples:
+                        ResourceNotFound:
+                          description: Resource Not Found
+                          value: |
+                            {
+                              "code" : "NOT_FOUND",
+                              "message" : "Resource Not Found"
+                            }
+                406:
+                  body:
+                    application/json:
+                      type: !include schemas/ErrorCodes.schema.json
+                      examples:
+                        headerInvalid:
+                          description: Accept header invalid
+                          value: |
+                            {
+                              "code" : "ACCEPT_HEADER_INVALID",
+                              "message" : "Accept header invalid"
+                            }
+                500:
+                  body:
+                    application/json:
+                      type: !include schemas/ErrorCodes.schema.json
+                      examples:
+                       internalServerError :
+                          description: Internal Server Error
+                          value: |
+                            {
+                              "code" : "INTERNAL_SERVER_ERROR",
+                              "message" : "Internal Server Error"
+                            }

@@ -46,8 +46,9 @@ trait MicroService {
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
       routesGenerator := StaticRoutesGenerator
-    )
-    .configs(IntegrationTest)
+    ).settings(
+    unmanagedResourceDirectories in Compile += baseDirectory.value / "resources"
+  ).configs(IntegrationTest)
     .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
     .settings(
       Keys.fork in IntegrationTest := false,

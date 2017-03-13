@@ -52,6 +52,7 @@
     <logger name="connector" level="TRACE">
         <appender-ref ref="STDOUT"/>
     </logger>
+    <logger name="org.asynchttpclient.netty.channel" level="WARN"/>
 
     <root level="DEBUG">
         <appender-ref ref="FILE"/>

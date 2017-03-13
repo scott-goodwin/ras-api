@@ -1,0 +1,21 @@
+@(context : String)
+{
+  "scopes": [
+    {
+      "key": "read:ras",
+      "name": "Relief At Source TODO",
+      "description": "Access to Relief At Source API's TODO"
+    }
+  ],
+  "api": {
+    "name": "RAS",
+    "description": "RAS Description TODO",
+    "context": "@context",
+    "versions": [
+      {
+        "version": "1.0",
+        "status": "PROTOTYPED"
+      }
+    ]
+  }
+}
