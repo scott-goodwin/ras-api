@@ -29,7 +29,7 @@ mediaType: [ application/json, application/hal+json ]
               displayName: Check Customer records
               description: !include documentation/customer.match
               (annotations.scope): "write:hmrcmatch"
-              securedBy: [ sec.oauth_2_0: { scopes: [ "write:hmrc" ] } ]
+              securedBy: [ sec.oauth_2_0: { scopes: [ "write:hmrcmatch" ] } ]
               body:
                 application/json:
                   example: !include examples/match.ex.json
