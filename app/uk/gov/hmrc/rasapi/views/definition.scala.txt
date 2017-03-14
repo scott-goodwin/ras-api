@@ -2,13 +2,13 @@
 {
   "scopes": [
     {
-      "key": "read:ras",
+      "key": "write:hmrcmatch",
       "name": "Relief At Source TODO",
       "description": "Access to Relief At Source API's TODO"
     }
   ],
   "api": {
-    "name": "RAS",
+    "name": "Relief At Source",
     "description": "RAS Description TODO",
     "context": "@context",
     "versions": [
