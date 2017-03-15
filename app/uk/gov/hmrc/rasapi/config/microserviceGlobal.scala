@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rasapi
 
 import com.typesafe.config.Config
-import play.api.{Application, Configuration, Play}
+import play.api._
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -26,7 +26,24 @@ import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
+import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 
+
+trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
+
+  val registrationEnabled: Boolean
+  val slConnector: ServiceLocatorConnector
+  implicit val hc: HeaderCarrier
+
+  override def onStart(app: Application): Unit = {
+    super.onStart(app)
+    registrationEnabled match {
+      case true => {Logger.info("Starting Registration"); slConnector.register}
+      case false => Logger.warn("Registration in Service Locator is disabled")
+    }
+  }
+}
 
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
