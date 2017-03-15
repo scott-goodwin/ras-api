@@ -18,8 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
 import uk.gov.hmrc.api.domain.Registration
-import uk.gov.hmrc.rasapi.WSHttp
-import uk.gov.hmrc.rasapi.config.AppContext
+import uk.gov.hmrc.rasapi.config.{WSHttp, AppContext}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
 
 import scala.concurrent.ExecutionContext.Implicits.global
