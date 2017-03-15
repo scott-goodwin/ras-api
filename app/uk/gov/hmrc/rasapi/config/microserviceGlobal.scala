@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rasapi
+package uk.gov.hmrc.rasapi.config
 
 import com.typesafe.config.Config
 import play.api._
@@ -27,6 +27,7 @@ import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 
 
@@ -68,14 +69,21 @@ object MicroserviceAuthFilter extends AuthorisationFilter with MicroserviceFilte
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport {
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport with ServiceLocatorRegistration  {
   override val auditConnector = MicroserviceAuditConnector
 
-  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
+  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"metrics")
 
   override val loggingFilter = MicroserviceLoggingFilter
 
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = None
+
+  override val slConnector: ServiceLocatorConnector = ServiceLocatorConnector
+
+  override implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  override lazy val registrationEnabled = AppContext.registrationEnabled
+
 }
