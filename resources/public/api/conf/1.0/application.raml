@@ -21,6 +21,16 @@ uses:
 
 mediaType: [ application/json, application/hal+json ]
 
+types:
+  UUID:
+    type: string
+    pattern: "^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$"
+    example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
+  FinancialYearType :
+    type : string
+    pattern : "^\\d{4}-\\d{2}$"
+    example : "2016-17"
+
 
 /customer:
       /match:
@@ -35,13 +45,16 @@ mediaType: [ application/json, application/hal+json ]
                   example: !include examples/match.ex.json
                   type: !include schemas/match.schema.json
               responses:
-                200:
+                303:
                   description: The customer information provided has matched with HMRC records.
                   headers:
                     Location:
-                      description: Relative URI to the mathced customer resource.
+                      description:  URL of temporary location of the HAL home endpoint for the matched customer.
+                                    A GET performed on the relative URL retruned in the Location header is valid
+                                    for a short period of time.  After that period it will fail with a 403 error
+                                     code and the match POST will have to be repeated.
                       type: string
-                      example: /match/ras/status/0987654321
+                      example: "/customer/matched/08aa2149-5e6c-4f3d-8769-4b025db6ba42"
                   body:
                     application/json:
                       example: !include examples/match.post.response.json
@@ -104,3 +117,69 @@ mediaType: [ application/json, application/hal+json ]
                               "code" : "INTERNAL_SERVER_ERROR",
                               "message" : "Internal Server Error"
                             }
+      /matched:
+            /{customer-uuid}:
+              description: |
+                Used as a temporary URL to access via GET, the root data for
+                a matched customer.  The URL is returned only from a matching action
+                using the POST to the /match path described above.  The URL is only
+                valid for a limited period of time.  After expiry a 404 will be
+                returned if accessed.
+              displayName: Supports GET of link data for a matched customer for a
+                limited period of time.
+              uriParameters:
+                customer-uuid:
+                  type: UUID
+                  example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
+              get:
+                description: |
+                  Used as a temporary URL to access via GET, the root data for
+                  a matched customer.  The URL is returned only from a matching action
+                  using the POST to the /match path described above.  The URL is only
+                  valid for a limited period of time.  After expiry a 404 will be
+                  returned if accessed.
+                displayName: Supports GET of link data for a matched customer for a
+                  limited period of time.
+                responses:
+                  200:
+                    body:
+                      application/json:
+                        type: !include schemas/match-response-schema.json
+                        example: |
+                          {
+                            "_links" :
+                            {
+                              "self": { "href": "/customer/matched/6b853b58-625f-4e64-955e-43a7cdff5c03" },
+                              "getResidencyStatus": { "href": "/customer/matched/6b853b58-625f-4e64-955e-43a7cdff5c03/get-residency-status" }
+                            }
+                          }
+                  403:
+                    description:
+                      The match has timed out and the UUID is no longer valid.
+                      The match (POST to /match) will need to repeated.
+
+              /get-residency-status:
+                description: Get the residency status for the matched customer
+                  for the requested financial year
+                displayName: Get the residency status for the matched customer
+                get:
+                  queryParameters:
+                    financial-year:
+                      type: FinancialYearType
+                      example: "2016-17"
+
+                  responses:
+                    200:
+                      body:
+                        application/json:
+                          type: !include schemas/getResidencyStatus.schema.json
+                          example: |
+                            {
+                              "financialYear" : "2015/16",
+                              "UKResidencyStatus" : "RUK",
+                              "confidenceStatus" : "confirmed"
+                            }
+                    403:
+                      description:
+                        The match has timed out and the UUID is no longer valid.
+                        The match (POST to /match) will need to repeated.
