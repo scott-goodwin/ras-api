@@ -26,17 +26,12 @@ types:
     type: string
     pattern: "^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$"
     example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
-  FinancialYearType :
-    type : string
-    pattern : "^\\d{4}-\\d{2}$"
-    example : "2016-17"
-
 
 /customer:
       /match:
             post:
               is: [headers.acceptHeader, headers.contentHeader]
-              displayName: Check Customer records
+              displayName: Search HMRC’s records for a customer
               description: !include documentation/customer.match
               (annotations.scope): "write:hmrcmatch"
               securedBy: [ sec.oauth_2_0: { scopes: [ "write:hmrcmatch" ] } ]
@@ -120,26 +115,22 @@ types:
       /matched:
             /{customer-uuid}:
               description: |
-                Used as a temporary URL to access via GET, the root data for
-                a matched customer.  The URL is returned only from a matching action
-                using the POST to the /match path described above.  The URL is only
-                valid for a limited period of time.  After expiry a 404 will be
-                returned if accessed.
-              displayName: Supports GET of link data for a matched customer for a
-                limited period of time.
+                Returns a URL you can use to check a customer’s information. Currently, the only check available is to
+                check if the customer is a Scottish taxpayer.
+
+                The URL is only valid for a limited period of time. After expiry a 404 will be returned if accessed.
+              displayName: Check a customer’s information
               uriParameters:
                 customer-uuid:
                   type: UUID
                   example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
               get:
                 description: |
-                  Used as a temporary URL to access via GET, the root data for
-                  a matched customer.  The URL is returned only from a matching action
-                  using the POST to the /match path described above.  The URL is only
-                  valid for a limited period of time.  After expiry a 404 will be
-                  returned if accessed.
-                displayName: Supports GET of link data for a matched customer for a
-                  limited period of time.
+                  Returns a URL you can use to check a customer’s information. Currently, the only check available is to
+                  check if the customer is a Scottish taxpayer.
+
+                  The URL is only valid for a limited period of time. After expiry a 404 will be returned if accessed.
+                displayName: Check a customer’s information
                 responses:
                   200:
                     body:
@@ -159,15 +150,17 @@ types:
                       The match (POST to /match) will need to repeated.
 
               /get-residency-status:
-                description: Get the residency status for the matched customer
-                  for the requested financial year
-                displayName: Get the residency status for the matched customer
-                get:
-                  queryParameters:
-                    financial-year:
-                      type: FinancialYearType
-                      example: "2016-17"
+                description: Check if the customer is resident in Scotland for tax purposes.
 
+                             If you’re a pension scheme administrator, you need to know this to make the correct
+                             relief at source claims.
+                displayName: Check if a customer is a Scottish resident
+                get:
+                  description: Check if the customer is resident in Scotland for tax purposes.
+
+                               If you’re a pension scheme administrator, you need to know this to make the correct
+                               relief at source claims.
+                  displayName: Check if a customer is a Scottish resident
                   responses:
                     200:
                       body:
@@ -175,9 +168,8 @@ types:
                           type: !include schemas/getResidencyStatus.schema.json
                           example: |
                             {
-                              "financialYear" : "2015/16",
-                              "UKResidencyStatus" : "RUK",
-                              "confidenceStatus" : "confirmed"
+                              "currentYearResidencyStatus" : "otherUKResident",
+                              "nextYearForecastResidencyStatus" : "scotResident"
                             }
                     403:
                       description:
