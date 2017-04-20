@@ -1,1 +1,3 @@
-API call to verify a customer has matching record with HMRC
+Search HMRC’s records for a customer by their name, date of birth and National Insurance number.
+
+A successful search will return a link you can use to check a customer’s information.

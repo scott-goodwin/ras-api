@@ -1,10 +1,10 @@
 
 
-This API allows financial organisations to validate and retrieve tax status information against HM Revenue and Customs (HMRC) records.
+Use this API to check HMRC's records and find out information about your customers.
 
 This version of the API is in development and is very likely to change.
 
-The current API allows the financial organisation to:
+Currently, the current API only allows a financial organisation to:
 
-  * match a customer record with HMRC    
-  * request a relief-at-source status after the customer information has been matched.    
+  * match a customer with HM Revenue and Customs (HMRC) records   
+  * check if a customer is a Scottish resident    
