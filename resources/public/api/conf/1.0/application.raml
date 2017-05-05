@@ -1,7 +1,7 @@
 #%RAML 1.0
 ---
 
-title: Customer information for businesses API
+title: Customer information for businesses
 version: 1.0
 protocols: [ HTTPS ]
 baseUri: http://api.service.hmrc.gov.uk
@@ -28,90 +28,6 @@ types:
     example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
 
 /customer:
-      /match:
-            post:
-              is: [headers.acceptHeader, headers.contentHeader]
-              displayName: Search HMRC’s records for a customer
-              description: !include documentation/customer.match
-              (annotations.scope): "write:hmrcmatch"
-              securedBy: [ sec.oauth_2_0: { scopes: [ "write:hmrcmatch" ] } ]
-              body:
-                application/json:
-                  example: !include examples/match.ex.json
-                  type: !include schemas/match.schema.json
-              responses:
-                303:
-                  description: The customer information provided has matched with HMRC records.
-                  headers:
-                    Location:
-                      description:  URL of temporary location of the HAL home endpoint for the matched customer.
-                                    A GET performed on the relative URL retruned in the Location header is valid
-                                    for a short period of time.  After that period it will fail with a 403 error
-                                     code and the match POST will have to be repeated.
-                      type: string
-                      example: "/customer/matched/08aa2149-5e6c-4f3d-8769-4b025db6ba42"
-                  body:
-                    application/json:
-                      example: !include examples/match.post.response.json
-
-                400:
-                  body:
-                    application/json:
-                      type: !include schemas/ErrorCodes.schema.json
-                      examples:
-                        notOpenStatus:
-                          description: Bad Request
-                          value: |
-                            {
-                              "code" : "BAD_REQUEST",
-                              "message" : "Bad Request"
-                            }
-                403:
-                  body:
-                    application/json:
-                      description: The customer details provided did not match with HMRC’s records.
-                      type: !include schemas/ErrorCodes.schema.json
-                      example: |
-                        {
-                          "code": "MATCHING_FAILED",
-                          "message": "The customer details provided did not match with HMRC’s records."
-                        }
-                404:
-                  body:
-                    application/json:
-                      type: !include schemas/ErrorCodes.schema.json
-                      examples:
-                        ResourceNotFound:
-                          description: Resource Not Found
-                          value: |
-                            {
-                              "code" : "NOT_FOUND",
-                              "message" : "Resource Not Found"
-                            }
-                406:
-                  body:
-                    application/json:
-                      type: !include schemas/ErrorCodes.schema.json
-                      examples:
-                        headerInvalid:
-                          description: Accept header invalid
-                          value: |
-                            {
-                              "code" : "ACCEPT_HEADER_INVALID",
-                              "message" : "Accept header invalid"
-                            }
-                500:
-                  body:
-                    application/json:
-                      type: !include schemas/ErrorCodes.schema.json
-                      examples:
-                       internalServerError :
-                          description: Internal Server Error
-                          value: |
-                            {
-                              "code" : "INTERNAL_SERVER_ERROR",
-                              "message" : "Internal Server Error"
-                            }
       /matched:
             /{customer-uuid}:
               description: |
@@ -124,30 +40,6 @@ types:
                 customer-uuid:
                   type: UUID
                   example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
-              get:
-                description: |
-                  Returns a URL you can use to check a customer’s information. Currently, the only check available is to
-                  check if the customer is a Scottish taxpayer.
-
-                  The URL is only valid for a limited period of time. After expiry a 404 will be returned if accessed.
-                displayName: Check a customer’s information
-                responses:
-                  200:
-                    body:
-                      application/json:
-                        type: !include schemas/match-response-schema.json
-                        example: |
-                          {
-                            "_links" :
-                            {
-                              "self": { "href": "/customer/matched/6b853b58-625f-4e64-955e-43a7cdff5c03" },
-                              "getResidencyStatus": { "href": "/customer/matched/6b853b58-625f-4e64-955e-43a7cdff5c03/get-residency-status" }
-                            }
-                          }
-                  403:
-                    description:
-                      The match has timed out and the UUID is no longer valid.
-                      The match (POST to /match) will need to repeated.
 
               /get-residency-status:
                 description: Check if the customer is resident in Scotland for tax purposes.
