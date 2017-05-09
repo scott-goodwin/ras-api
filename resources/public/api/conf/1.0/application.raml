@@ -30,47 +30,16 @@ types:
 /customer:
       /matched:
             /{customer-uuid}:
-              description: |
-                Returns a URL you can use to check a customer’s information. Currently, the only check available is to
-                check if the customer is a Scottish taxpayer.
-
-                The URL is only valid for a limited period of time. After expiry a 404 will be returned if accessed.
-              displayName: Check a customer’s information
-              uriParameters:
-                customer-uuid:
-                  type: UUID
-                  example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
-              get:
-                description: |
-                  Returns a URL you can use to check a customer’s information. Currently, the only check available is to
-                  check if the customer is a Scottish taxpayer.
-
-                  The URL is only valid for a limited period of time. After expiry a 404 will be returned if accessed.
-                displayName: Check a customer’s information
-                responses:
-                  200:
-                    body:
-                      application/json:
-                        type: !include schemas/match-response-schema.json
-                        example: |
-                          {
-                            "_links" :
-                            {
-                              "self": { "href": "/customer/matched/6b853b58-625f-4e64-955e-43a7cdff5c03" },
-                              "getResidencyStatus": { "href": "/customer/matched/6b853b58-625f-4e64-955e-43a7cdff5c03/get-residency-status" }
-                            }
-                          }
-                  403:
-                    description:
-                      The match has timed out and the UUID is no longer valid.
-                      The match (POST to /match) will need to repeated.
-
               /get-residency-status:
                 description: Check if the customer is resident in Scotland for tax purposes.
 
                              If you’re a pension scheme administrator, you need to know this to make the correct
                              relief at source claims.
                 displayName: Check if a customer is a Scottish resident
+                uriParameters:
+                  customer-uuid:
+                    type: UUID
+                    example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
                 get:
                   description: Check if the customer is resident in Scotland for tax purposes.
 
