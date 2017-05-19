@@ -1,8 +1,6 @@
 
 
-Use this API to check HMRC records and find out information about the residency status of your customers. The current API only allows a financial organisation to check if a customer is a Scottish resident.
-
-This version of the API is in development and is very likely to change.
+Use this API to check HMRC records to see if a customer is a Scottish resident for tax purposes.
 
 ##Before you start
 
