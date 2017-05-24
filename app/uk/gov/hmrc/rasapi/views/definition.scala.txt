@@ -4,7 +4,7 @@
     {
       "key": "write:hmrcmatch",
       "name": "Relief At Source",
-      "description": "Access to Relief At Source API's TODO"
+      "description": "Access to Relief At Source API's"
     }
   ],
   "api": {
