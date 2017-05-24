@@ -3,13 +3,15 @@
   "scopes": [
     {
       "key": "write:hmrcmatch",
-      "name": "Relief At Source TODO",
-      "description": "Access to Relief At Source API's TODO"
+      "name": "Relief At Source",
+      "description": "Access to Relief At Source API's"
     }
   ],
   "api": {
     "name": "Relief At Source",
-    "description": "RAS Description TODO",
+    "description": "For pension scheme administrators to identify the  residency status for thier scheme members.
+
+                     ",
     "context": "@context",
     "versions": [
       {
