@@ -4,4 +4,4 @@ Use this API to check HMRC records to see if a customer is a Scottish resident f
 
 ##Before you start
 
-You’ll need the customer’s UUID number. You can get this by using the [customer lookup API](/api-documentation/docs/api/service/customer/).
+You’ll need the customer’s UUID number. You can get this by using the [customer lookup API](/api-documentation/docs/api/service/customer-api/).
