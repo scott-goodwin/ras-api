@@ -20,27 +20,28 @@ import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.rasapi.models.CustomerDetails
-import uk.gov.hmrc.rasapi.services.CachingService
-
+import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DESConnector}
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
+import play.api.libs.json.Json._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait LookupController extends BaseController with HeaderValidator with RunMode {
 
-  val cachingService: CachingService
+  val cachingConnector: CachingConnector
+  val desConnector: DESConnector
 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      val customerDetails: Option[CustomerDetails] = cachingService.getData(uuid)
+      val customerDetails: Option[CustomerDetails] = cachingConnector.getCachedData(uuid)
+      val residencyStatus: Option[ResidencyStatus] = desConnector.getResidencyStatus(customerDetails.getOrElse(CustomerDetails()))
 
-
-      Future(Ok("Hello World"))
+      Future(Ok(toJson(residencyStatus.getOrElse(ResidencyStatus("","")))))
   }
 }
 
 object LookupController extends LookupController {
-
-  override val cachingService: CachingService = CachingService
+  override val cachingConnector: CachingConnector = CachingConnector
+  override val desConnector: DESConnector = DESConnector
 }

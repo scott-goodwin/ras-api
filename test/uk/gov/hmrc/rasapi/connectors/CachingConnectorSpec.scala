@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import org.scalatest.{WordSpec, _}
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.{WordSpec, _}
 import uk.gov.hmrc.rasapi.models.CustomerDetails
 
 class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatchers {

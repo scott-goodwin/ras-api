@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.models
 
 import play.api.libs.json.Json
 
-case class CustomerDetails(nino: String, firstName: String, lastName: String, dateOfBirth: String)
+case class CustomerDetails(nino: String = "", firstName: String = "", lastName: String = "", dateOfBirth: String = "")
 
 object CustomerDetails {
   implicit val format = Json.format[CustomerDetails]

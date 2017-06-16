@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rasapi.services
+package uk.gov.hmrc.rasapi.models
 
-import uk.gov.hmrc.rasapi.connectors.CachingConnector
-import uk.gov.hmrc.rasapi.models.CustomerDetails
+import play.api.libs.json.Json
 
+case class ResidencyStatus(currentYearResidencyStatus: String = "", nextYearForecastResidencyStatus: String = "")
 
-trait CachingService {
-
-  val cachingConnector: CachingConnector
-
-  def getData(uuid: String): Option[CustomerDetails] = cachingConnector.getCachedData(uuid)
-}
-
-object CachingService extends CachingService {
-
-  override val cachingConnector: CachingConnector = CachingConnector
+object ResidencyStatus{
+  implicit val format = Json.format[ResidencyStatus]
 }
