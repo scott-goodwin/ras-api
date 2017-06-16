@@ -18,19 +18,29 @@ package uk.gov.hmrc.rasapi.controllers
 
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.api.controllers.HeaderValidator
+import uk.gov.hmrc.play.config.RunMode
+import uk.gov.hmrc.rasapi.models.CustomerDetails
+import uk.gov.hmrc.rasapi.services.CachingService
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait LookupController extends BaseController{
+trait LookupController extends BaseController with HeaderValidator with RunMode {
 
-  def helloWorld(): Action[AnyContent] = ???
+  val cachingService: CachingService
+
+  def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
+    implicit request =>
+
+      val customerDetails: Option[CustomerDetails] = cachingService.getData(uuid)
+
+
+      Future(Ok("Hello World"))
+  }
 }
 
 object LookupController extends LookupController {
 
-  override def helloWorld() = {Action.async {
-    implicit request =>
-
-    Future(Ok("Hello World"))
-  }}
+  override val cachingService: CachingService = CachingService
 }
