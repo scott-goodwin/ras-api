@@ -17,14 +17,19 @@
 package uk.gov.hmrc.rasapi.controllers
 
 import org.scalatest.mock.MockitoSugar
+import org.mockito.Mockito._
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.test.{FakeRequest, Helpers}
 import play.api.test.Helpers._
 import org.scalatest.{ShouldMatchers, WordSpec}
 import play.api.libs.json.Json
 import play.mvc.Http.HeaderNames
+import uk.gov.hmrc.rasapi.connectors.CachingConnector
+import uk.gov.hmrc.rasapi.models.CustomerDetails
 
 class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
+
+  val mockCachingConnector = mock[CachingConnector]
 
   val acceptHeader: (String, String) = (HeaderNames.ACCEPT, "application/vnd.hmrc.1.0+json")
 
@@ -71,5 +76,26 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
+
+    "return status 403 if no residency status is found for the provided customer" in {
+
+      val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc9"
+      when(mockCachingConnector.getCachedData(uuid)).thenReturn(Some(CustomerDetails("ABCDEFG","Jack","Johnson","1234-56-78")))
+
+
+      val expectedJsonResult = Json.parse(
+        """
+          |{
+          |  "code": "INVALID_UUID",
+          |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
+          |}
+        """.stripMargin)
+
+      val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+      status(result) shouldBe 403
+      contentAsJson(result) shouldBe expectedJsonResult
+    }
+
   }
 }

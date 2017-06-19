@@ -37,23 +37,12 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      val customerDetails: Option[CustomerDetails] = cachingConnector.getCachedData(uuid)
-      val residencyStatus: Option[ResidencyStatus] = desConnector.getResidencyStatus(customerDetails.getOrElse(CustomerDetails()))
-
-      if (isValidUUID(uuid))
-        Future(Ok(toJson(residencyStatus.getOrElse(ResidencyStatus("","")))))
-      else
-        Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-
+      cachingConnector.getCachedData(uuid) match {
+        case Some(customerDetails) => Future(Ok(toJson(desConnector.getResidencyStatus(customerDetails))))
+        case _ => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+      }
   }
 
-  private def isValidUUID(uuid: String): Boolean = {
-
-    val uuidRegex = "^((2800a7ab-fe20-42ca-98d7-c33f4133cfc2)|(633e0ee7-315b-49e6-baed-d79c3dffe467)|" +
-      "(77648d82-309e-484d-a310-d0ffd2997791)|(79f21755-8cd4-4785-9c10-13253f7a8bb6))$"
-
-    uuid.matches(uuidRegex)
-  }
 }
 
 object LookupController extends LookupController {
