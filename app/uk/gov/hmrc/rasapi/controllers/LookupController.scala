@@ -21,8 +21,11 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
 import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DESConnector}
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, InvalidUUIDForbiddenResponse, ResidencyStatus}
 import play.api.libs.json.Json._
+import play.api.Logger
+
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -37,7 +40,19 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       val customerDetails: Option[CustomerDetails] = cachingConnector.getCachedData(uuid)
       val residencyStatus: Option[ResidencyStatus] = desConnector.getResidencyStatus(customerDetails.getOrElse(CustomerDetails()))
 
-      Future(Ok(toJson(residencyStatus.getOrElse(ResidencyStatus("","")))))
+      if (isValidUUID(uuid))
+        Future(Ok(toJson(residencyStatus.getOrElse(ResidencyStatus("","")))))
+      else
+        Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+
+  }
+
+  private def isValidUUID(uuid: String): Boolean = {
+
+    val uuidRegex = "^((2800a7ab-fe20-42ca-98d7-c33f4133cfc2)|(633e0ee7-315b-49e6-baed-d79c3dffe467)|" +
+      "(77648d82-309e-484d-a310-d0ffd2997791)|(79f21755-8cd4-4785-9c10-13253f7a8bb6))$"
+
+    uuid.matches(uuidRegex)
   }
 }
 
