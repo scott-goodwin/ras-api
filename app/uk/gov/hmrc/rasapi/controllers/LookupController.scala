@@ -38,7 +38,12 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
     implicit request =>
 
       cachingConnector.getCachedData(uuid) match {
-        case Some(customerDetails) => Future(Ok(toJson(desConnector.getResidencyStatus(customerDetails))))
+        case Some(customerDetails) => {
+          desConnector.getResidencyStatus(customerDetails) match {
+            case Some(rs) => Future(Ok(toJson(rs)))
+            case _ => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+          }
+        }
         case _ => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
       }
   }

@@ -24,12 +24,18 @@ import play.api.test.Helpers._
 import org.scalatest.{ShouldMatchers, WordSpec}
 import play.api.libs.json.Json
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.rasapi.connectors.CachingConnector
+import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DESConnector}
 import uk.gov.hmrc.rasapi.models.CustomerDetails
 
 class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
 
   val mockCachingConnector = mock[CachingConnector]
+  val mockDesConnector = mock[DESConnector]
+
+  object TestLookupController extends LookupController {
+    override val cachingConnector: CachingConnector = mockCachingConnector
+    override val desConnector: DESConnector = mockDesConnector
+  }
 
   val acceptHeader: (String, String) = (HeaderNames.ACCEPT, "application/vnd.hmrc.1.0+json")
 
@@ -79,9 +85,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
     "return status 403 if no residency status is found for the provided customer" in {
 
-      val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc9"
-      when(mockCachingConnector.getCachedData(uuid)).thenReturn(Some(CustomerDetails("ABCDEFG","Jack","Johnson","1234-56-78")))
-
+      val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
+      when(mockCachingConnector.getCachedData(uuid)).thenReturn(Some(CustomerDetails("","","","")))
 
       val expectedJsonResult = Json.parse(
         """
@@ -91,7 +96,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           |}
         """.stripMargin)
 
-      val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+      val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
       status(result) shouldBe 403
       contentAsJson(result) shouldBe expectedJsonResult
