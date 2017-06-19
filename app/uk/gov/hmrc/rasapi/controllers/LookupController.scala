@@ -41,7 +41,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
         case Some(customerDetails) => {
           desConnector.getResidencyStatus(customerDetails) match {
             case Some(rs) => Future(Ok(toJson(rs)))
-            case _ => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+            case _ => Future(InternalServerError)
           }
         }
         case _ => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))

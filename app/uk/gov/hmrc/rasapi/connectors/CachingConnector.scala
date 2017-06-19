@@ -44,6 +44,7 @@ trait CachingConnector {
       case "11648d82-309e-484g-a310-d0ffd2997791" => Some(CustomerDetails("CF456789F", "Raj", "Patel", "1984-10-31"))
       case "76648d82-309e-484d-a310-d0ffd2997794" => Some(CustomerDetails("EH456789H", "Mary", "Brown", "1982-02-17"))
 
+      case "76648d82-309e-484d-a310-d0ffd2997795" => Some(CustomerDetails("AA666888B","Ramin","Raj", "1947-08-15"))
       case _ => None
     }
   }
