@@ -18,19 +18,43 @@ package uk.gov.hmrc.rasapi.controllers
 
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.api.controllers.HeaderValidator
+import uk.gov.hmrc.play.config.RunMode
+import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DESConnector}
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, InvalidUUIDForbiddenResponse, ResidencyStatus}
+import play.api.libs.json.Json._
+import play.api.Logger
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait LookupController extends BaseController{
+trait LookupController extends BaseController with HeaderValidator with RunMode {
 
-  def helloWorld(): Action[AnyContent] = ???
+  val cachingConnector: CachingConnector
+  val desConnector: DESConnector
+
+  def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
+    implicit request =>
+
+      cachingConnector.getCachedData(uuid) match {
+        case Some(customerDetails) => {
+          desConnector.getResidencyStatus(customerDetails) match {
+            case Some(rs) => Future(Ok(toJson(rs)))
+            case _ => {
+              Logger.debug("Failed to retrieve residency status[LookupController][getResidencyStatus]")
+              Future(InternalServerError)
+            }
+          }
+        }
+        case _ => {
+          Logger.debug("Failed to retrieve customer details[LookupController][getResidencyStatus]")
+          Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+        }
+      }
+  }
+
 }
 
 object LookupController extends LookupController {
-
-  override def helloWorld() = {Action.async {
-    implicit request =>
-
-    Future(Ok("Hello World"))
-  }}
+  override val cachingConnector: CachingConnector = CachingConnector
+  override val desConnector: DESConnector = DESConnector
 }
