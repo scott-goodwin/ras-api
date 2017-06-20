@@ -35,7 +35,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
       "a valid UUID is given" in {
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
         val expectedJsonResult = Json.parse(
           """
             {
@@ -56,7 +55,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
       "an invalid UUID is given" in {
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -75,7 +73,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
     "return status 500 if no residency status is found for the provided customer" in {
 
       val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
-
       val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
       status(result) shouldBe 500

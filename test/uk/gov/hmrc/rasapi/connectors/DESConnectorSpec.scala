@@ -22,6 +22,8 @@ import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
 
 class DESConnectorSpec extends WordSpec with OneAppPerSuite with ShouldMatchers{
 
+  //TODO: The tests below will need to be updated after the migration of test data to stubs
+
   "DESConnector" should {
     "return correct residency status" when {
 
