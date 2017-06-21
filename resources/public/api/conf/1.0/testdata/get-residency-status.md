@@ -66,7 +66,7 @@
             </td>
         </tr>
         <tr>
-            <td><p>Request with a valid UUID and an invalid 'Accept' header</p><p class ="code--block">uuid: 2800a7ab-fe20-42ca-98d7-c33f4133cfc2<br>Accept: application/vnd.hmrc.1.0</p></td>
+            <td><p>Request with a valid UUID and an invalid 'Accept' header</p><p class ="code--block">uuid: 2800a7ab-fe20-42ca-98d7-c33f4133cfc2<br><br>Accept: application/vnd.hmrc.1.0</p></td>
             <td>
                 <p>N/A</p>
             </td>
