@@ -33,7 +33,7 @@ trait CachingConnector {
       case "743e0ee7-315b-49e7-baed-d79c3dffe467" => Some(CustomerDetails("BC234567C", "Steven", "Smith", "1947-08-15"))
       case "88648d82-309e-484e-a310-d0ffd2997791" => Some(CustomerDetails("CD234567D", "Simon", "Handyside", "1984-10-31"))
       case "88648d82-309e-484d-a310-d0ffd2997792" => Some(CustomerDetails("EF234567F", "Linda", "Marshall", "1966-06-21"))
-      case "3000a7ab-fe20-42ca-98d9-c33f4133cfc2" => Some(CustomerDetails("AC345678C", "Kelly", "Thompslon", "1990-02-15"))
+      case "3000a7ab-fe20-42ca-98d9-c33f4133cfc2" => Some(CustomerDetails("AC345678C", "Kelly", "Thompson", "1990-02-15"))
       case "853e0ee7-315b-49e8-baed-d79c3dffe467" => Some(CustomerDetails("BD345678D", "Simon", "Handyside", "1984-10-31"))
       case "99648d82-309e-484f-a310-d0ffd2997791" => Some(CustomerDetails("CE345678E", "Zack", "Jackson", "1966-04-04"))
       case "99648d82-309e-484d-a310-d0ffd2997793" => Some(CustomerDetails("EF234567F", "Linda", "Marshall", "1966-06-21"))
