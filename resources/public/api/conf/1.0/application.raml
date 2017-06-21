@@ -65,11 +65,11 @@ types:
                               The match has timed out and the UUID is no longer valid.
                               The match (POST to /match) will need to repeated.
                           type: !include schemas/ErrorCodes.schema.json
-                            example: |
-                              {
-                                "code": "INVALID_UUID",
-                                "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to repeated."
-                              }
+                          example: |
+                            {
+                              "code": "INVALID_UUID",
+                              "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to repeated."
+                            }
                     404:
                       body:
                         application/json:
