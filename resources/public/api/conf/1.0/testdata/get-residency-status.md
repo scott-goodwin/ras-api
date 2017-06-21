@@ -55,13 +55,7 @@
         <tr>
              <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/get-residency-status</p></td>
             <td>
-                <p class ="code--block"> {<br>
-                                                "nino" : "BC234567C",<br>
-                                                "firstName" : "Steven",<br>
-                                                "lastName" : "Smith",<br>
-                                                "dateOfBirth" : "1947-08-15"<br>
-                                             }
-                </p>
+                <p>N/A</p>
             </td>
             <td><p>HTTP status: <code class="code--slim">404 (Not Found)</code></p>
                 <p class ="code--block"> {<br>
