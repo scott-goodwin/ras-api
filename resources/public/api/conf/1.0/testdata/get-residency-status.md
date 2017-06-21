@@ -53,6 +53,25 @@
             </td>
         </tr>
         <tr>
+             <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/get-residency-status</p></td>
+            <td>
+                <p class ="code--block"> {<br>
+                                                "nino" : "BC234567C",<br>
+                                                "firstName" : "Steven",<br>
+                                                "lastName" : "Smith",<br>
+                                                "dateOfBirth" : "1947-08-15"<br>
+                                             }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">404 (Not Found)</code></p>
+                <p class ="code--block"> {<br>
+                                              "code": "NOT_FOUND",<br>
+                                              "message": "Resource Not Found"<br>
+                                            }
+                </p>
+            </td>
+        </tr>
+        <tr>
             <td><p>Request with a valid UUID and an invalid 'Accept' header</p><p class ="code--block">uuid: 2800a7ab-fe20-42ca-98d7-c33f4133cfc2<br>Accept: application/vnd.hmrc.1.0</p></td>
             <td>
                 <p>N/A</p>

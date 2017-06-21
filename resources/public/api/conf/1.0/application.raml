@@ -47,6 +47,7 @@ types:
                                relief at source claims.
                   displayName: Check if a customer is a Scottish resident
                   is: [headers.acceptHeader]
+                  (annotations.sandboxData): !include testdata/get-residency-status.md
                   responses:
                     200:
                       body:
