@@ -41,7 +41,7 @@ trait CachingConnector {
       case "963e0ee7-315b-49e-baed-d79c3dffe467"  => Some(CustomerDetails("BE456789E", "Louise", "Oscar", "1966-04-04"))
       case "11648d82-309e-484g-a310-d0ffd2997791" => Some(CustomerDetails("CF456789F", "Raj", "Patel", "1984-10-31"))
       case "76648d82-309e-484d-a310-d0ffd2997794" => Some(CustomerDetails("EH456789H", "Mary", "Brown", "1982-02-17"))
-      case "76648d82-309e-484d-a310-d0ffd2997795" => Some(CustomerDetails("AA666888B","Ramin","Raj", "1947-08-15"))
+      case "76648d82-309e-484d-a310-d0ffd2997795" => Some(CustomerDetails("AA666888B","Ramin","Raj", "1947-08-15")) // This scenario will trigger a 500
       case _ => None
     }
   }

@@ -39,7 +39,7 @@
             </td>
         </tr>
         <tr>
-        	<td><p>Request with a valid UUID that has timed out</p><p class ="code--block">uuid: INSERT TIMED OUT UUID</p></td>
+        	<td><p>Request with a valid UUID that has timed out</p><p class ="code--block">uuid: 11548d82-309e-484d-a310-d0ffd2997795</p></td>
 	        <td>
 	            <p>N/A</p>
 	        </td>
@@ -79,7 +79,7 @@
             </td>
         </tr>
         <tr>
-            <td><p>Request which fails due to an unexpected error</p><p class ="code--block">uuid: INSERT INTERNAL_SERVER_ERROR uuid</p></td>
+            <td><p>Request which fails due to an unexpected error</p><p class ="code--block">uuid: 76648d82-309e-484d-a310-d0ffd2997795</p></td>
             <td>
                 <p>N/A</p>
             </td>
