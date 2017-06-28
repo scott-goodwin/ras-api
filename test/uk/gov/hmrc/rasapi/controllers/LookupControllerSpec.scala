@@ -23,10 +23,20 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import play.mvc.Http.HeaderNames
+import uk.gov.hmrc.play.http.HttpPost
+import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DesConnector}
 
 class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
 
   val acceptHeader: (String, String) = (HeaderNames.ACCEPT, "application/vnd.hmrc.1.0+json")
+
+
+  object TestLookupController extends LookupController {
+
+    override val desConnector = mock[DesConnector]
+    override val cachingConnector = mock[CachingConnector]
+
+  }
 
   "LookupController" should {
 
@@ -43,7 +53,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
             }
           """.stripMargin)
 
-        val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
         status(result) shouldBe 200
         contentAsJson(result) shouldBe expectedJsonResult
