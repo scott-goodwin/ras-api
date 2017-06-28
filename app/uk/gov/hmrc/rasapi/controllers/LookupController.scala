@@ -38,15 +38,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
+      val result =
+        for{
+          nino <- cachingConnector.getCachedData(uuid)
+        } yield {
+          desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
+        }
 
+      result.flatMap(res => res)
 
-      val result = for{
-        nino <- cachingConnector.getCachedData(uuid)
-      } yield {
-        desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
-      }
-
-      result.flatMap(x => x)
   }
 
 }

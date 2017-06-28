@@ -48,7 +48,6 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
     "return a nino when a valid uuid is provided" in {
 
-      implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
       val uuid = UUID.randomUUID.toString
 
       when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())

@@ -55,8 +55,6 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     "return correct residency status" when {
       "valid customer body is passed" in {
 
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-
         when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
           (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
 
