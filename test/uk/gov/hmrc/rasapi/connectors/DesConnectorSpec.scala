@@ -64,7 +64,5 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
       }
 
     }
-  }
-
-
+  
 }
