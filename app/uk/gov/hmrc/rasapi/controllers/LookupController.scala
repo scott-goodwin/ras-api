@@ -26,6 +26,7 @@ import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -37,29 +38,18 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      cachingConnector.getCachedData(uuid) match {
-        case Some(customerDetails) => {
-
-          for{
-            residencyStatus <- desConnector.getResidencyStatus(customerDetails)
-          } yield {
-             Ok(toJson(residencyStatus))
-          }
-
-//          desConnector.getResidencyStatus(customerDetails) match {
-//            case Some(rs) => Future(Ok(toJson(rs)))
-//            case _ => {
-//              Logger.debug("Failed to retrieve residency status[LookupController][getResidencyStatus]")
-//              Future(InternalServerError)
-//            }
+//      for{
+//        nino <- cachingConnector.getCachedData(uuid)
+//      } yield {
+//        desConnector.getResidencyStatus(nino).map ( x =>
+//          x match {
+//            case Some(rs) => Ok(toJson(rs))
+//            case  _ => InternalServerError
 //          }
+//        )
+//      }
+      Future(InternalServerError)
 
-        }
-        case _ => {
-          Logger.debug("Failed to retrieve customer details[LookupController][getResidencyStatus]")
-          Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-        }
-      }
   }
 
 }

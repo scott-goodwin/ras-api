@@ -19,10 +19,9 @@ package uk.gov.hmrc.rasapi.connectors
 import uk.gov.hmrc.api.controllers.ErrorInternalServerError
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.rasapi.config.WSHttp
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
+
 import scala.concurrent.ExecutionContext.Implicits.global
-
-
 import scala.concurrent.Future
 
 
@@ -30,12 +29,12 @@ trait DesConnector {
 
   val http: HttpPost = WSHttp
 
-  def getResidencyStatus(customerDetails: CustomerDetails)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
+  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
 
     val uri = "http://localhost:9670/ras-stubs/get-residency-status"
 
     val result =
-      http.POST(uri, customerDetails).map { response =>
+      http.POST(uri, nino).map { response =>
           response.json.as[ResidencyStatus]
       }
 
