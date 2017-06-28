@@ -22,6 +22,8 @@ import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
 import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DesConnector}
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, InvalidUUIDForbiddenResponse, ResidencyStatus}
+import uk.gov.hmrc.rasapi.connectors.CachingConnector
+import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
 import scala.concurrent.Future

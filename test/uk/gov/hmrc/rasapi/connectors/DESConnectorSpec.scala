@@ -28,6 +28,7 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
 
@@ -60,6 +61,12 @@ class DESConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
         result shouldBe ResidencyStatus("scotResident","scotResident")
 
+      }
+
+      "customer with nino: AE325433D is passed in" in {
+
+        val result = DESConnector.getResidencyStatus(CustomerDetails("AE325433D", "Mary", "Brown", "1982-02-17"))
+        result shouldBe AccountLockedResponse
       }
     }
   }
