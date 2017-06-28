@@ -20,8 +20,8 @@ import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
+
 
 trait CachingConnector {
 
@@ -39,6 +39,7 @@ trait CachingConnector {
     result
 
   }
+
 }
 
 object CachingConnector extends CachingConnector

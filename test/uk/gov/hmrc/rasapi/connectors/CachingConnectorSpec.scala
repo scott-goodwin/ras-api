@@ -23,7 +23,7 @@ import org.mockito.Mockito.when
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{WordSpec, _}
 import play.api.libs.json.Json
-import play.api.test.Helpers.await
+import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
@@ -35,17 +35,17 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
   implicit val hc = HeaderCarrier()
 
   val mockHttp = mock[HttpPost]
+  val nino = Json.parse(
+        """{
+            "nino" : "AB123456C"
+           }""".stripMargin)
 
   object TestCachingConnector extends CachingConnector {
     override val http: HttpPost = mockHttp
   }
 
-  val nino = Json.parse("""{"nino" : "AB123456C"}""".stripMargin
-
-  )
-
-
   "getCachedData" should {
+
     "return a nino when a valid uuid is provided" in {
 
       implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
@@ -54,9 +54,10 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
       when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
         (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(nino))))
 
-      val result = TestCachingConnector.getCachedData(Matchers.eq(uuid))
+      val result = TestCachingConnector.getCachedData(uuid)
 
       await(result) shouldBe Nino("AB123456C")
 
     }
+  }
 }

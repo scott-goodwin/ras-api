@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import uk.gov.hmrc.api.controllers.ErrorInternalServerError
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
