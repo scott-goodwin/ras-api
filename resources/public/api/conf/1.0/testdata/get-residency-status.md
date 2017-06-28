@@ -39,19 +39,6 @@
             </td>
         </tr>
         <tr>
-            <td><p>Request with a valid UUID, but the account has been locked</p><p class ="code--block">uuid: 76648d82-309e-484d-a310-d0ffd2997794</p></td>
-            <td>
-                <p>N/A</p>
-            </td>
-            <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
-                <p class ="code--block"> {<br>
-                                            "code": "ACCOUNT_LOCKED",<br>
-                                            "message": "The account is locked, please ask your customer to get in touch with HMRC."<br>
-                                         }<br>
-                </p>
-            </td>
-        </tr>
-        <tr>
         	<td><p>Request with a valid UUID that has timed out</p><p class ="code--block">uuid: 11548d82-309e-484d-a310-d0ffd2997795</p></td>
 	        <td>
 	            <p>N/A</p>
@@ -65,6 +52,19 @@
                 </p>
             </td>
         </tr>
+        <tr>
+                    <td><p>Request with a valid UUID, but the account has been locked</p><p class ="code--block">uuid: 76648d82-309e-484d-a310-d0ffd2997794</p></td>
+                    <td>
+                        <p>N/A</p>
+                    </td>
+                    <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
+                        <p class ="code--block"> {<br>
+                                                    "code": "ACCOUNT_LOCKED",<br>
+                                                    "message": "The account is locked, please ask your customer to get in touch with HMRC."<br>
+                                                 }<br>
+                        </p>
+                    </td>
+                </tr>
         <tr>
              <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/get-residency-status</p></td>
             <td>
