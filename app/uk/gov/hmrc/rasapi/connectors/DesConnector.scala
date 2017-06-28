@@ -16,35 +16,33 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import uk.gov.hmrc.api.controllers.ErrorInternalServerError
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
+import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
+import scala.concurrent.ExecutionContext.Implicits.global
 
-trait DESConnector {
 
-  def getResidencyStatus(customerDetails: CustomerDetails): Option[ResidencyStatus] = {
+import scala.concurrent.Future
 
-    //TODO: Update this function to call ras-stubs to access the data below
 
-    customerDetails match {
-      case CustomerDetails("LE241131B", "Jim", "Jimson", "1989-09-29") => Some(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("BB123456B", "John", "Smith", "1975-05-25") => Some(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("LR325154D", "Jane", "Doe", "1969-06-09") => Some(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("CC123456C", "Joe", "Bloggs", "1982-02-17") => Some(ResidencyStatus("scotResident","scotResident"))
-      case CustomerDetails("PC243122B", "Peter", "Armstrong", "1969-01-01") => Some(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("EE123456D", "Steven", "Smith", "1947-08-15") => Some(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("ZR132134C", "Simon", "Handyside", "1984-10-31") => Some(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("SG123456D", "Linda", "Marshall", "1966-06-21") => Some(ResidencyStatus("scotResident","scotResident"))
-      case CustomerDetails("CK355335C", "Kelly", "Thompson", "1990-02-15") => Some(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("AR355335C", "Simon", "Handyside", "1984-10-31") => Some(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("NW424252D", "Zack", "Jackson", "1966-04-04") => Some(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("KA122234B", "Linda", "Marshall", "1966-06-21") => Some(ResidencyStatus("scotResident","scotResident"))
-      case CustomerDetails("WK332122D", "Oscar", "Smith", "1986-06-14") => Some(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("RW215443D", "Louise", "Oscar", "1966-04-04") => Some(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("SE235112A", "Raj", "Patel", "1984-10-31") => Some(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("AE325433D", "Mary", "Brown", "1982-02-17") => Some(ResidencyStatus("scotResident","scotResident"))
-      case _ => None
-    }
+trait DesConnector {
+
+  val http: HttpPost = WSHttp
+
+  def getResidencyStatus(customerDetails: CustomerDetails)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
+
+    val uri = "http://localhost:9670/ras-stubs/get-residency-status"
+
+    val result =
+      http.POST(uri, customerDetails).map { response =>
+          response.json.as[ResidencyStatus]
+      }
+
+    result
+
   }
 
 }
 
-object DESConnector extends DESConnector
+object DesConnector extends DesConnector
