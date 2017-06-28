@@ -68,6 +68,23 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         status(result) shouldBe 403
         contentAsJson(result) shouldBe expectedJsonResult
       }
+
+      "the account is locked" in {
+
+        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "ACCOUNT_LOCKED",
+            |  "message": "The account is locked, please ask your customer to get in touch with HMRC."
+            |}
+          """.stripMargin)
+
+        val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe 403
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
     }
 
     "return status 500 if no residency status is found for the provided customer" in {

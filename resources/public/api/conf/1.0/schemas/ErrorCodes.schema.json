@@ -1,12 +1,12 @@
 {
-	"$schema": "http://json-schema.org/draft-04/schema#",
-	"type": "object",
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
   "properties":
   {
     "code" : {"$ref": "#/definitions/error-codeType"},
     "message" : {"type" : "string"}
   },
-	"required" : ["code", "message"],
+  "required" : ["code", "message"],
   "definitions":
   {
     "error-codeType" :
@@ -14,10 +14,11 @@
       "type" : "string",
       "enum" :
       [
-		"INTERNAL_SERVER_ERROR",
-		"ACCEPT_HEADER_INVALID",
+        "INTERNAL_SERVER_ERROR",
+        "ACCEPT_HEADER_INVALID",
         "NOT_FOUND",
-        "INVALID_UUID"
+        "INVALID_UUID",
+        "ACCOUNT_LOCKED"
       ]
     }
   }
