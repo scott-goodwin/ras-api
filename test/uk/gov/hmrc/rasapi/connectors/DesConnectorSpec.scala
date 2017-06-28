@@ -24,12 +24,11 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{ShouldMatchers, WordSpec}
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.{await, _}
 import uk.gov.hmrc.play.http.logging.SessionId
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
 import uk.gov.hmrc.rasapi.models._
-
 
 import scala.concurrent.Future
 
@@ -52,17 +51,36 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
   )
 
   "DESConnector"  should {
-    "return 200 and a residency status when a customer body is passed" in {
 
+    "return 200 and a residency status when a customer body is passed" in {
         when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
           (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
 
-        val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
+        val result = await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
 
-        await(result) shouldBe ResidencyStatus("scotResident","scotResident")
-
+        result shouldBe ResidencyStatus("scotResident","scotResident")
       }
-
     }
-  
+
+
+    "return an error when 404 is returned" in {
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(404, None)))
+
+      val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
+      intercept[Upstream4xxResponse] {
+        await(result)
+      }
+    }
+
+    "return an error when 500 is returned" in {
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(500, None)))
+
+      val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
+      intercept[Upstream5xxResponse] {
+        await(result)
+      }
+    }
+
 }

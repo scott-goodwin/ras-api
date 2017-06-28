@@ -16,9 +16,13 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
+import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.http.Status.NOT_FOUND
+
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -33,7 +37,13 @@ trait DesConnector {
 
     val result =
       http.POST(uri, nino).map { response =>
-          response.json.as[ResidencyStatus]
+
+        response.status match {
+          case 200 => response.json.as[ResidencyStatus]
+          case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
+          case _ => throw new Upstream5xxResponse("Resource not found", 500 , INTERNAL_SERVER_ERROR)
+        }
+
       }
 
     result
