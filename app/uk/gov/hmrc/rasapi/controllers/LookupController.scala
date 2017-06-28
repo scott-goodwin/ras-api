@@ -21,9 +21,10 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
 import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DESConnector}
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, InvalidUUIDForbiddenResponse, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -38,15 +39,19 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       cachingConnector.getCachedData(uuid) match {
         case Some(customerDetails) => {
           desConnector.getResidencyStatus(customerDetails) match {
-            case Some(rs) => Future(Ok(toJson(rs)))
+            case SuccessfulNPSResponse(rs) => Future(Ok(toJson(rs)))
+            case AccountLockedResponse => {
+              Logger.debug("The account has been locked [LookupController][getResidencyStatus]")
+              Future(Forbidden(toJson(AccountLockedForbiddenResponse)))
+            }
             case _ => {
-              Logger.debug("Failed to retrieve residency status[LookupController][getResidencyStatus]")
-              Future(InternalServerError)
+              Logger.debug("Failed to retrieve residency status [LookupController][getResidencyStatus]")
+              Future(InternalServerError(toJson(ErrorInternalServerError)))
             }
           }
         }
         case _ => {
-          Logger.debug("Failed to retrieve customer details[LookupController][getResidencyStatus]")
+          Logger.debug("Failed to retrieve customer details [LookupController][getResidencyStatus]")
           Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
         }
       }

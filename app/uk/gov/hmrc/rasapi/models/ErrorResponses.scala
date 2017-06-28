@@ -29,6 +29,15 @@ case object InvalidUUIDForbiddenResponse extends ErrorResponse(
   "The match has timed out and the UUID is no longer valid. " +
     "The match (POST to /match) will need to be repeated.") with JsonFormats
 
+case object AccountLockedForbiddenResponse extends ErrorResponse(
+  403,
+  "ACCOUNT_LOCKED",
+  "The account is locked, please ask your customer to get in touch with HMRC."
+) with JsonFormats
+
+case object ErrorInternalServerError extends
+  ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error") with JsonFormats
+
 trait JsonFormats {
   implicit val errorResponseWrites = new Writes[ErrorResponse] {
     def writes(e: ErrorResponse): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message)
