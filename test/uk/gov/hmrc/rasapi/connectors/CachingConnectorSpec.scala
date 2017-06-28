@@ -46,7 +46,7 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
   "getCachedData" should {
 
-    "return a nino when a valid uuid is provided" in {
+    "return a 200 and a nino when a valid uuid is provided" in {
 
       val uuid = UUID.randomUUID.toString
 

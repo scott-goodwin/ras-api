@@ -52,8 +52,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
   )
 
   "DESConnector"  should {
-    "return correct residency status" when {
-      "valid customer body is passed" in {
+    "return 200 and a residency status when a customer body is passed" in {
 
         when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
           (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
