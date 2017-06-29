@@ -19,7 +19,7 @@ package uk.gov.hmrc.rasapi.connectors
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.http.Status.NOT_FOUND
 import play.api.http.Status.FORBIDDEN
-
+import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
@@ -28,13 +28,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-trait DesConnector {
+trait DesConnector extends ServicesConfig {
 
   val http: HttpPost = WSHttp
+  val desBaseUrl = baseUrl("des")
+  val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
 
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
 
-    val uri = "http://localhost:9670/ras-stubs/get-residency-status"
+    val uri = desBaseUrl + cachingGetResidencyStatusUrl
 
     http.POST(uri, nino).map { response =>
       response.status match {

@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, NOT_ACCEPTABLE}
+import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_ACCEPTABLE, NOT_FOUND}
+import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
@@ -25,13 +26,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-trait CachingConnector {
+trait CachingConnector extends ServicesConfig {
 
   val http: HttpPost = WSHttp
+  val cachingBaseUrl = baseUrl("caching")
+  val cachingGetNinoUrl = "/customer-matching-cache/get-nino"
 
   def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[Nino] ={
 
-    val uri = "http://localhost:9674/customer-matching-cache/get-nino"
+    val uri = cachingBaseUrl + cachingGetNinoUrl
 
     http.POST(uri, uuid).map { response =>
       response.status match {

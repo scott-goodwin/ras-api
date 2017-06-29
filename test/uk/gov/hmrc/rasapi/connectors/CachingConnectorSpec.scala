@@ -22,6 +22,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito.when
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{WordSpec, _}
+import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.logging.SessionId
@@ -30,7 +31,7 @@ import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
 
 import scala.concurrent.Future
 
-class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatchers {
+class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
 
   implicit val hc = HeaderCarrier()
 
