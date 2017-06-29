@@ -25,7 +25,7 @@ import org.scalatest.{WordSpec, _}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.http.logging.SessionId
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
 
 import scala.concurrent.Future
@@ -34,11 +34,14 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
   implicit val hc = HeaderCarrier()
 
+
   val mockHttp = mock[HttpPost]
   val nino = Json.parse(
         """{
             "nino" : "AB123456C"
            }""".stripMargin)
+  val uuid = UUID.randomUUID.toString
+
 
   object TestCachingConnector extends CachingConnector {
     override val http: HttpPost = mockHttp
@@ -46,17 +49,59 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
   "getCachedData" should {
 
-    "return a 200 and a nino when a valid uuid is provided" in {
-
-      val uuid = UUID.randomUUID.toString
+    "handle successful response when 200 is returned from caching service" in {
 
       when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
         (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(nino))))
 
       val result = TestCachingConnector.getCachedData(uuid)
-
       await(result) shouldBe Nino("AB123456C")
+    }
 
+    "handle 403 error returned from caching service" in {
+
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(403, None)))
+
+      val result = TestCachingConnector.getCachedData(uuid)
+      intercept[Upstream4xxResponse] {
+        await(result)
+      }
+    }
+
+    "handle 404 error returned from caching service" in {
+
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(404, None)))
+
+      val result = TestCachingConnector.getCachedData(uuid)
+      intercept[Upstream4xxResponse] {
+        await(result)
+      }
+    }
+
+    "handle 406 error returned from caching service" in {
+
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(406, None)))
+
+      val result = TestCachingConnector.getCachedData(uuid)
+      intercept[Upstream4xxResponse] {
+        await(result)
+      }
+    }
+
+    "handle 500 error returned from caching service" in {
+
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(500, None)))
+
+      val result = TestCachingConnector.getCachedData(uuid)
+      intercept[Upstream5xxResponse] {
+        await(result)
+      }
     }
   }
 }
+
+

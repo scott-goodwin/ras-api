@@ -50,20 +50,19 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     """.stripMargin
   )
 
-  "DESConnector"  should {
+  "DESConnector" should {
 
-    "return 200 and a residency status when a customer body is passed" in {
-        when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
+    "handle successful response when 200 is returned from des" in {
 
-        val result = await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
+      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
+        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
 
-        result shouldBe ResidencyStatus("scotResident","scotResident")
-      }
+      val result = await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
+      result shouldBe ResidencyStatus("scotResident","scotResident")
     }
 
+    "handle 404 error returned from des" in {
 
-    "return an error when 404 is returned" in {
       when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
         (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(404, None)))
 
@@ -73,7 +72,8 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
       }
     }
 
-    "return an error when 500 is returned" in {
+    "handle 500 error returned from des" in {
+
       when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
         (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(500, None)))
 
@@ -82,5 +82,6 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
         await(result)
       }
     }
-
+  }
 }
+

@@ -18,6 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.http.Status.NOT_FOUND
+import play.api.http.Status.FORBIDDEN
 
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.rasapi.config.WSHttp
@@ -35,21 +36,14 @@ trait DesConnector {
 
     val uri = "http://localhost:9670/ras-stubs/get-residency-status"
 
-    val result =
-      http.POST(uri, nino).map { response =>
-
-        response.status match {
-          case 200 => response.json.as[ResidencyStatus]
-          case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
-          case _ => throw new Upstream5xxResponse("Resource not found", 500 , INTERNAL_SERVER_ERROR)
-        }
-
+    http.POST(uri, nino).map { response =>
+      response.status match {
+        case 200 => response.json.as[ResidencyStatus]
+        case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
+        case _ => throw new Upstream5xxResponse("Internal Server Error", 500 , INTERNAL_SERVER_ERROR)
       }
-
-    result
-
+    }
   }
-
 }
 
 object DesConnector extends DesConnector

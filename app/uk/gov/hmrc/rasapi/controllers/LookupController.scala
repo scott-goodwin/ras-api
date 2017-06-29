@@ -52,6 +52,8 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 }
 
 object LookupController extends LookupController {
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val cachingConnector: CachingConnector = CachingConnector
   override val desConnector: DesConnector = DesConnector
+  // $COVERAGE-ON$
 }
