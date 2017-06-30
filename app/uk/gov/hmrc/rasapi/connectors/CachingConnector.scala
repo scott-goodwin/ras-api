@@ -28,9 +28,9 @@ import scala.concurrent.Future
 
 trait CachingConnector extends ServicesConfig {
 
-  val http: HttpPost = WSHttp
-  val cachingBaseUrl = baseUrl("caching")
-  val cachingGetNinoUrl = "/customer-matching-cache/get-nino"
+  val http: HttpPost
+  val cachingBaseUrl: String
+  val cachingGetNinoUrl: String
 
   def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[Nino] ={
 
@@ -49,4 +49,10 @@ trait CachingConnector extends ServicesConfig {
 
 }
 
-object CachingConnector extends CachingConnector
+object CachingConnector extends CachingConnector{
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
+  override val http: HttpPost = WSHttp
+  override val cachingBaseUrl = baseUrl("caching")
+  override val cachingGetNinoUrl = "/customer-matching-cache/get-nino"
+  // $COVERAGE-ON$
+}

@@ -35,17 +35,14 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
   implicit val hc = HeaderCarrier()
 
-
   val mockHttp = mock[HttpPost]
-  val nino = Json.parse(
-        """{
-            "nino" : "AB123456C"
-           }""".stripMargin)
+  val nino = Json.toJson(Nino("AB123456C"))
   val uuid = UUID.randomUUID.toString
-
 
   object TestCachingConnector extends CachingConnector {
     override val http: HttpPost = mockHttp
+    override val cachingBaseUrl = ""
+    override val cachingGetNinoUrl = ""
   }
 
   "getCachedData" should {
