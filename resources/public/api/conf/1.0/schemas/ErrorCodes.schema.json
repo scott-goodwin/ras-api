@@ -18,7 +18,7 @@
         "ACCEPT_HEADER_INVALID",
         "NOT_FOUND",
         "INVALID_UUID",
-        "ACCOUNT_LOCKED"
+        "INVALID_RESIDENCY_STATUS"
       ]
     }
   }
