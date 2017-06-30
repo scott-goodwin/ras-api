@@ -16,35 +16,42 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import uk.gov.hmrc.rasapi.models._
+import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.http.Status.NOT_FOUND
+import play.api.http.Status.FORBIDDEN
+import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
 
-trait DESConnector {
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-  def getResidencyStatus(customerDetails: CustomerDetails): NPSResponse = {
 
-    //TODO: Update this function to call ras-stubs to access the data below
+trait DesConnector extends ServicesConfig {
 
-    customerDetails match {
-      case CustomerDetails("LE241131B", "Jim", "Jimson", "1989-09-29") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("BB123456B", "John", "Smith", "1975-05-25") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("LR325154D", "Jane", "Doe", "1969-06-09") => SuccessfulNPSResponse(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("CC123456C", "Joe", "Bloggs", "1982-02-17") => SuccessfulNPSResponse(ResidencyStatus("scotResident","scotResident"))
-      case CustomerDetails("PC243122B", "Peter", "Armstrong", "1969-01-01") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("EE123456D", "Steven", "Smith", "1947-08-15") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("ZR132134C", "Simon", "Handyside", "1984-10-31") => SuccessfulNPSResponse(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("SG123456D", "Linda", "Marshall", "1966-06-21") => SuccessfulNPSResponse(ResidencyStatus("scotResident","scotResident"))
-      case CustomerDetails("CK355335C", "Kelly", "Thompson", "1990-02-15") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("AR355335C", "Simon", "Handyside", "1984-10-31") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("NW424252D", "Zack", "Jackson", "1966-04-04") => SuccessfulNPSResponse(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("KA122234B", "Linda", "Marshall", "1966-06-21") => SuccessfulNPSResponse(ResidencyStatus("scotResident","scotResident"))
-      case CustomerDetails("WK332122D", "Oscar", "Smith", "1986-06-14") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","otherUKResident"))
-      case CustomerDetails("RW215443D", "Louise", "Oscar", "1966-04-04") => SuccessfulNPSResponse(ResidencyStatus("otherUKResident","scotResident"))
-      case CustomerDetails("SE235112A", "Raj", "Patel", "1984-10-31") => SuccessfulNPSResponse(ResidencyStatus("scotResident","otherUKResident"))
-      case CustomerDetails("AE325433D", "Mary", "Brown", "1982-02-17") => AccountLockedResponse
-      case _ => InternalServerErrorResponse
+  val http: HttpPost
+  val desBaseUrl: String
+  val cachingGetResidencyStatusUrl: String
+
+  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
+
+    val uri = desBaseUrl + cachingGetResidencyStatusUrl
+
+    http.POST(uri, nino).map { response =>
+      response.status match {
+        case 200 => response.json.as[ResidencyStatus]
+        case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
+        case _ => throw new Upstream5xxResponse("Internal Server Error", 500 , INTERNAL_SERVER_ERROR)
+      }
     }
   }
-
 }
 
-object DESConnector extends DESConnector
+object DesConnector extends DesConnector{
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
+  override val http: HttpPost = WSHttp
+  override val desBaseUrl = baseUrl("des")
+  override val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
+  // $COVERAGE-ON$
+}

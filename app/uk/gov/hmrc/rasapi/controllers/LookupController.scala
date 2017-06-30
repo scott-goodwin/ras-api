@@ -20,7 +20,9 @@ import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DESConnector}
+import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DesConnector}
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, InvalidUUIDForbiddenResponse, ResidencyStatus}
+import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
@@ -31,35 +33,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
 trait LookupController extends BaseController with HeaderValidator with RunMode {
 
   val cachingConnector: CachingConnector
-  val desConnector: DESConnector
+  val desConnector: DesConnector
 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      cachingConnector.getCachedData(uuid) match {
-        case Some(customerDetails) => {
-          desConnector.getResidencyStatus(customerDetails) match {
-            case SuccessfulNPSResponse(rs) => Future(Ok(toJson(rs)))
-            case AccountLockedResponse => {
-              Logger.debug("The account has been locked [LookupController][getResidencyStatus]")
-              Future(Forbidden(toJson(AccountLockedForbiddenResponse)))
-            }
-            case _ => {
-              Logger.debug("Failed to retrieve residency status [LookupController][getResidencyStatus]")
-              Future(InternalServerError(toJson(ErrorInternalServerError)))
-            }
-          }
+      val result =
+        for{
+          nino <- cachingConnector.getCachedData(uuid)
+        } yield {
+          desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
         }
-        case _ => {
-          Logger.debug("Failed to retrieve customer details [LookupController][getResidencyStatus]")
-          Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-        }
-      }
+
+      result.flatMap(res => res)
+
   }
 
 }
 
 object LookupController extends LookupController {
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val cachingConnector: CachingConnector = CachingConnector
-  override val desConnector: DESConnector = DESConnector
+  override val desConnector: DesConnector = DesConnector
+  // $COVERAGE-ON$
 }
