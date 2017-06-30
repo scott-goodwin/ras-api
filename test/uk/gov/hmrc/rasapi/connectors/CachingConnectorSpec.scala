@@ -37,10 +37,6 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
 
   val mockHttp = mock[HttpPost]
-//  val nino = Json.parse(
-//        """{
-//            "nino" : "AB123456C"
-//           }""".stripMargin)
   val nino = Json.toJson(Nino("AB123456C"))
   val uuid = UUID.randomUUID.toString
 
