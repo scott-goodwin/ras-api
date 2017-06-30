@@ -40,6 +40,8 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
   object TestDesConnector extends DesConnector {
     override val http: HttpPost = mockHttp
+    override val desBaseUrl = ""
+    override val cachingGetResidencyStatusUrl = ""
   }
 
   val residencyStatus = Json.parse(

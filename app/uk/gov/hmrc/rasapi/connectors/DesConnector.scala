@@ -30,9 +30,9 @@ import scala.concurrent.Future
 
 trait DesConnector extends ServicesConfig {
 
-  val http: HttpPost = WSHttp
-  val desBaseUrl = baseUrl("des")
-  val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
+  val http: HttpPost
+  val desBaseUrl: String
+  val cachingGetResidencyStatusUrl: String
 
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
 
@@ -48,4 +48,10 @@ trait DesConnector extends ServicesConfig {
   }
 }
 
-object DesConnector extends DesConnector
+object DesConnector extends DesConnector{
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
+  override val http: HttpPost = WSHttp
+  override val desBaseUrl = baseUrl("des")
+  override val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
+  // $COVERAGE-ON$
+}
