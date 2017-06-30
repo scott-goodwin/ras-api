@@ -36,7 +36,7 @@ trait CachingConnector extends ServicesConfig {
 
     val uri = cachingBaseUrl + cachingGetNinoUrl
 
-    http.POST(uri, uuid, List("Accept" -> "application/vnd.hmrc.1.0+json", "Content-Type" -> "application/json")).map { response =>
+    http.POST(uri, uuid).map { response =>
       response.status match {
         case 200 => response.json.as[Nino]
         case 403 => throw new Upstream4xxResponse("UUID is no longer valid", 403, FORBIDDEN)

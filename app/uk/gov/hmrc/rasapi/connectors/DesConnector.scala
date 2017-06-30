@@ -38,7 +38,7 @@ trait DesConnector extends ServicesConfig {
 
     val uri = desBaseUrl + cachingGetResidencyStatusUrl
 
-    http.POST(uri, nino, List("Accept" -> "application/vnd.hmrc.1.0+json", "Content-Type" -> "application/json")).map { response =>
+    http.POST(uri, nino).map { response =>
       response.status match {
         case 200 => response.json.as[ResidencyStatus]
         case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
