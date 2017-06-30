@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_ACCEPTABLE, NOT_FOUND}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
 
@@ -28,15 +28,15 @@ import scala.concurrent.Future
 
 trait CachingConnector extends ServicesConfig {
 
-  val http: HttpPost
+  val http: HttpGet
   val cachingBaseUrl: String
   val cachingGetNinoUrl: String
 
   def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[Nino] ={
 
-    val uri = cachingBaseUrl + cachingGetNinoUrl
+    val uri = cachingBaseUrl + cachingGetNinoUrl + s"/$uuid"
 
-    http.POST(uri, uuid).map { response =>
+    http.GET(uri).map { response =>
       response.status match {
         case 200 => response.json.as[Nino]
         case 403 => throw new Upstream4xxResponse("UUID is no longer valid", 403, FORBIDDEN)
@@ -51,7 +51,7 @@ trait CachingConnector extends ServicesConfig {
 
 object CachingConnector extends CachingConnector{
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val http: HttpPost = WSHttp
+  override val http: HttpGet = WSHttp
   override val cachingBaseUrl = baseUrl("caching")
   override val cachingGetNinoUrl = "/customer-matching-cache/get-nino"
   // $COVERAGE-ON$
