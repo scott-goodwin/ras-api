@@ -64,7 +64,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           """.stripMargin)
 
         when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
-        when(mockDesConnector.getResidencyStatus(Matchers.eq(nino))(Matchers.any())).thenReturn(Future.successful(residencyStatus))
+        when(mockDesConnector.getResidencyStatus(Matchers.eq(Nino("LE241131B")))(Matchers.any())).thenReturn(Future.successful(residencyStatus))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 

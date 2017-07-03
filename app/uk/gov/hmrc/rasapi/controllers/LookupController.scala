@@ -45,13 +45,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
           val nino = customerCacheResponse.nino.getOrElse(Nino(""))
           customerCacheResponse.status match {
-            case OK => desConnector.getResidencyStatus(nino).map { x =>
-              x.status match {
-                case OK => Ok(toJson(x))
-                case FORBIDDEN => Forbidden(toJson(AccountLockedForbiddenResponse))
-                case _ => InternalServerError(toJson(ErrorInternalServerError))
-              }
-            }
+            case OK => desConnector.getResidencyStatus(nino).map { x => Ok(toJson(x))}
             case FORBIDDEN => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
             case _ => Future(InternalServerError(toJson(ErrorInternalServerError)))
           }
