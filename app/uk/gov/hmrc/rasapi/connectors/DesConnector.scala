@@ -19,10 +19,11 @@ package uk.gov.hmrc.rasapi.connectors
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.http.Status.NOT_FOUND
 import play.api.http.Status.FORBIDDEN
+import play.api.http.Status.OK
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.rasapi.config.WSHttp
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{CustomerDetails, DesResponse, Nino, ResidencyStatus}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -34,15 +35,16 @@ trait DesConnector extends ServicesConfig {
   val desBaseUrl: String
   val cachingGetResidencyStatusUrl: String
 
-  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
+  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[DesResponse] = {
 
     val uri = desBaseUrl + cachingGetResidencyStatusUrl
 
     http.POST(uri, nino).map { response =>
       response.status match {
-        case 200 => response.json.as[ResidencyStatus]
-        case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
-        case _ => throw new Upstream5xxResponse("Internal Server Error", 500 , INTERNAL_SERVER_ERROR)
+        case 200 => DesResponse(OK, Some(response.json.as[ResidencyStatus]))
+        case 403 => DesResponse(FORBIDDEN, None)
+        case 404 => DesResponse(NOT_FOUND, None)
+        case _ => DesResponse(INTERNAL_SERVER_ERROR, None)
       }
     }
   }
