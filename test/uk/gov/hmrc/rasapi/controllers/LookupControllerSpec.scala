@@ -53,7 +53,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
         val nino = Nino("LE241131B")
-        val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
+        val httpResponse = HttpResponse(200, Some(Json.toJson(nino)),Map(""->List("")),None)
+        val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
         val expectedJsonResult = Json.parse(
           """
@@ -63,7 +64,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
             }
           """.stripMargin)
 
-        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(nino))
+        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(httpResponse))
         when(mockDesConnector.getResidencyStatus(Matchers.eq(nino))(Matchers.any())).thenReturn(Future.successful(residencyStatus))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
@@ -73,55 +74,57 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
       }
     }
 
-//    "return status 403" when {
-//
-//      "an invalid UUID is given" in {
-//
-//        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
-//        val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
-//        val expectedJsonResult = Json.parse(
-//          """
-//            |{
-//            |  "code": "INVALID_UUID",
-//            |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
-//            |}
-//          """.stripMargin)
-//
-//        when(mockCachingConnector.getCachedData(uuid)).thenReturn(Future.successful(None))
-//
-//        val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-//
-//        status(result) shouldBe 403
-//        contentAsJson(result) shouldBe expectedJsonResult
-//      }
-//    }
-//
-//      "the account is locked" in {
-//
-//        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
-//        val expectedJsonResult = Json.parse(
-//          """
-//            |{
-//            |  "code": "ACCOUNT_LOCKED",
-//            |  "message": "The account is locked, please ask your customer to get in touch with HMRC."
-//            |}
-//          """.stripMargin)
-//
-//        val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-//
-//        status(result) shouldBe 403
-//        contentAsJson(result) shouldBe expectedJsonResult
-//      }
-//    }
-//
-//    "return status 500 if no residency status is found for the provided customer" in {
-//
-//      val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
-//      val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-//
-//      status(result) shouldBe 500
-//
-//    }
+    //    "return status 403" when {
+    //
+    //      "an invalid UUID is given" in {
+    //
+    //        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
+    //        val nino = Nino("LE241131B")
+    //        val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
+    //        val expectedJsonResult = Json.parse(
+    //          """
+    //            |{
+    //            |  "code": "INVALID_UUID",
+    //            |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
+    //            |}
+    //          """.stripMargin)
+    //
+    //        when(mockCachingConnector.getCachedData(uuid)).thenReturn(Future.successful(None))
+    //
+    //        val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+    //
+    //        status(result) shouldBe 403
+    //        contentAsJson(result) shouldBe expectedJsonResult
+    //      }
+    //    }
 
+    //      "the account is locked" in {
+    //
+    //        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
+    //        val expectedJsonResult = Json.parse(
+    //          """
+    //            |{
+    //            |  "code": "ACCOUNT_LOCKED",
+    //            |  "message": "The account is locked, please ask your customer to get in touch with HMRC."
+    //            |}
+    //          """.stripMargin)
+    //
+    //        val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+    //
+    //        status(result) shouldBe 403
+    //        contentAsJson(result) shouldBe expectedJsonResult
+    //      }
+
+    //
+    //    "return status 500 if no residency status is found for the provided customer" in {
+    //
+    //      val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
+    //      val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+    //
+    //      status(result) shouldBe 500
+    //
+    //    }
   }
+
 }
+

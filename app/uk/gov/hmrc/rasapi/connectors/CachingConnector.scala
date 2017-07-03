@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_ACCEPTABLE, NOT_FOUND}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
 
@@ -32,19 +32,9 @@ trait CachingConnector extends ServicesConfig {
   val cachingBaseUrl: String
   val cachingGetNinoUrl: String
 
-  def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[Nino] ={
-
+  def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[HttpResponse] ={
     val uri = cachingBaseUrl + cachingGetNinoUrl + s"/$uuid"
-
-    http.GET(uri).map { response =>
-      response.status match {
-        case 200 => response.json.as[Nino]
-        case 403 => throw new Upstream4xxResponse("UUID is no longer valid", 403, FORBIDDEN)
-        case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
-        case 406 => throw new Upstream4xxResponse("Resource not found", 406 , NOT_ACCEPTABLE)
-        case _ => throw new Upstream5xxResponse("Internal Server Error", 500 , INTERNAL_SERVER_ERROR)
-      }
-    }
+    http.GET(uri).map(response => response)
   }
 
 }

@@ -78,17 +78,6 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
       }
     }
 
-    "handle 406 error returned from caching service" in {
-
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(406, None)))
-
-      val result = TestCachingConnector.getCachedData(uuid)
-      intercept[Upstream4xxResponse] {
-        await(result)
-      }
-    }
-
     "handle 500 error returned from caching service" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
