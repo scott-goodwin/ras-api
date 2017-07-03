@@ -40,15 +40,20 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
       val result =
         for{
-          nino <- cachingConnector.getCachedData(uuid)
+          customerCacheResponse <- cachingConnector.getCachedData(uuid)
         } yield {
-          desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
+
+          val nino = customerCacheResponse.nino.getOrElse(Nino(""))
+          customerCacheResponse.status match {
+            case OK => desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
+            case FORBIDDEN => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+            case _ => Future(InternalServerError(toJson(ErrorInternalServerError)))
+          }
         }
 
       result.flatMap(res => res)
 
   }
-
 }
 
 object LookupController extends LookupController {
