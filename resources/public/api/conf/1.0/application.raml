@@ -77,11 +77,11 @@ types:
                                   "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to repeated."
                                 }
                             accountLocked:
-                              description: The account is locked, please ask your customer to get in touch with HMRC.
+                              description: There is a problem with this member's account. Ask them to call HMRC.
                               value: |
                                 {
-                                  "code": "ACCOUNT_LOCKED",
-                                  "message": "The account is locked, please ask your customer to get in touch with HMRC."
+                                  "code": "INVALID_RESIDENCY_STATUS",
+                                  "message": "There is a problem with this member's account. Ask them to call HMRC."
                                 }
                     404:
                       body:
