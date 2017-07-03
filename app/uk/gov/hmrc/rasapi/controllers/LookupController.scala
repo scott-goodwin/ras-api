@@ -26,7 +26,6 @@ import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
-import play.api.libs.json.Json
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,16 +40,9 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
       val result =
         for{
-          cacheResponse <- cachingConnector.getCachedData(uuid)
+          nino <- cachingConnector.getCachedData(uuid)
         } yield {
-          cacheResponse.status match {
-            case 200 => {
-              val bod = Json.toJson(cacheResponse.body)
-              desConnector.getResidencyStatus(bod.as[Nino]).map ( x => Ok(toJson(x)))
-            }
-            case _ => ???
-          }
-
+          desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
         }
 
       result.flatMap(res => res)

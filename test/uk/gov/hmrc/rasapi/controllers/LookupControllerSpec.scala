@@ -27,7 +27,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito.when
 import org.scalatest.{ShouldMatchers, WordSpec}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{CustomerCacheResponse, CustomerDetails, Nino, ResidencyStatus}
 
 import scala.concurrent.Future
 
@@ -52,8 +52,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
       "a valid UUID is given" in {
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val nino = Nino("LE241131B")
-        val httpResponse = HttpResponse(200, Some(Json.toJson(nino)),Map(""->List("")),None)
+        val customerCacheResponse = CustomerCacheResponse(200, Some(Nino("LE241131B")))
         val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
         val expectedJsonResult = Json.parse(
@@ -64,7 +63,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
             }
           """.stripMargin)
 
-        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(httpResponse))
+        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
         when(mockDesConnector.getResidencyStatus(Matchers.eq(nino))(Matchers.any())).thenReturn(Future.successful(residencyStatus))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
