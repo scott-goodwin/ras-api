@@ -20,7 +20,7 @@ import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.http.Status.NOT_FOUND
 import play.api.http.Status.FORBIDDEN
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models._
 
@@ -30,15 +30,19 @@ import scala.concurrent.Future
 
 trait DesConnector extends ServicesConfig {
 
-  val http: HttpPost
+  val http: HttpGet
   val desBaseUrl: String
   val cachingGetResidencyStatusUrl: String
 
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[DesResponse] = {
 
-    val uri = desBaseUrl + cachingGetResidencyStatusUrl
+    val customoerNino = nino.nino
+    val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customoerNino"
 
-    http.POST(uri, nino).map { response =>
+    println(Console.YELLOW + "making a call to ras stubs with " + nino + Console.WHITE)
+    http.GET(uri).map { response =>
+
+      println(Console.YELLOW + "status " + response.status + Console.WHITE)
       response.status match {
         case 200 => SuccessfulDesResponse(response.json.as[ResidencyStatus])
         case 403 => AccountLockedResponse
@@ -51,7 +55,7 @@ trait DesConnector extends ServicesConfig {
 
 object DesConnector extends DesConnector{
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val http: HttpPost = WSHttp
+  override val http: HttpGet = WSHttp
   override val desBaseUrl = baseUrl("des")
   override val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
   // $COVERAGE-ON$
