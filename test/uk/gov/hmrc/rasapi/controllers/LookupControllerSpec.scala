@@ -27,7 +27,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito.when
 import org.scalatest.{ShouldMatchers, WordSpec}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.rasapi.models.{CustomerCacheResponse, CustomerDetails, Nino, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
 
@@ -54,6 +54,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
         val customerCacheResponse = CustomerCacheResponse(200, Some(Nino("LE241131B")))
         val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
+        val desResponse = SuccessfulDesResponse(residencyStatus)
 
         val expectedJsonResult = Json.parse(
           """
@@ -64,7 +65,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           """.stripMargin)
 
         when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
-        when(mockDesConnector.getResidencyStatus(Matchers.eq(Nino("LE241131B")))(Matchers.any())).thenReturn(Future.successful(residencyStatus))
+        when(mockDesConnector.getResidencyStatus(Matchers.eq(Nino("LE241131B")))(Matchers.any())).thenReturn(Future.successful(desResponse))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
