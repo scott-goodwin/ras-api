@@ -31,8 +31,8 @@ case object InvalidUUIDForbiddenResponse extends ErrorResponse(
 
 case object AccountLockedForbiddenResponse extends ErrorResponse(
   403,
-  "ACCOUNT_LOCKED",
-  "The account is locked, please ask your customer to get in touch with HMRC."
+  "INVALID_RESIDENCY_STATUS",
+  "There is a problem with this member's account. Ask them to call HMRC."
 ) with JsonFormats
 
 case object ErrorInternalServerError extends
