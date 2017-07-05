@@ -42,18 +42,26 @@ trait DesConnector extends ServicesConfig {
 
     http.GET(uri).map { response =>
       response.status match {
-        case 200 => SuccessfulDesResponse(response.json.as[ResidencyStatus])
+        case 200 =>
+          Logger.debug("Residency Status returned successfully [DesConnector][getResidencyStatus]")
+          SuccessfulDesResponse(response.json.as[ResidencyStatus])
       }
     } recover {
       case exception: Upstream4xxResponse => {
         exception.upstreamResponseCode match {
-          case 403 => AccountLockedResponse
-          case 404 => NotFoundResponse
+          case 403 =>
+            Logger.debug("There was a problem with the account [DesConnector][getResidencyStatus]")
+            AccountLockedResponse
+          case 404 =>
+            Logger.debug("Resource not found [DesConnector][getResidencyStatus]")
+            NotFoundResponse
         }
       }
       case exception: Upstream5xxResponse => {
         exception.upstreamResponseCode match {
-          case _ => InternalServerErrorResponse
+          case _ =>
+            Logger.debug("Internal server error [DesConnector][getResidencyStatus]")
+            InternalServerErrorResponse
         }
       }
     }

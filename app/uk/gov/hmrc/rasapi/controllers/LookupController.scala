@@ -43,15 +43,27 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
       cachingConnector.getCachedData(uuid).flatMap ( customerCacheResponse =>
         customerCacheResponse.status match {
-          case OK => desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino(""))).map(desResponse =>
+          case OK =>
+            Logger.debug("Nino returned successfully [LookupController][getResidencyStatus]")
+            desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino(""))).map(desResponse =>
             desResponse match {
-              case r: SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
-              case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
-              case _ => InternalServerError(toJson(ErrorInternalServerError))
+              case r: SuccessfulDesResponse =>
+                Logger.debug("Residency status returned successfully [LookupController][getResidencyStatus]")
+                Ok(toJson(r.residencyStatus))
+              case AccountLockedResponse =>
+                Logger.debug("There was a problem with the account [LookupController][getResidencyStatus]")
+                Forbidden(toJson(AccountLockedForbiddenResponse))
+              case _ =>
+                Logger.debug("Internal server error returned from DES [LookupController][getResidencyStatus]")
+                InternalServerError(toJson(ErrorInternalServerError))
             }
           )
-          case FORBIDDEN => Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-          case _ => Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
+          case FORBIDDEN =>
+            Logger.debug("Invalid uuid passed [LookupController][getResidencyStatus]")
+            Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+          case _ =>
+            Logger.debug("Internal server error returned from cache [LookupController][getResidencyStatus]")
+            Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
       )
   }

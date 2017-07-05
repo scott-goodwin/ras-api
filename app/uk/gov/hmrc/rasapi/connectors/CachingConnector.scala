@@ -38,21 +38,28 @@ trait CachingConnector extends ServicesConfig {
 
     val uri = cachingBaseUrl + cachingGetNinoUrl + s"/$uuid"
 
-
       http.GET(uri).map { response =>
         response.status match {
-          case 200 => CustomerCacheResponse(OK, Some(response.json.as[Nino]))
+          case 200 =>
+            Logger.debug("Nino returned from customer matching cache[CachingConnector][getCachedData]")
+            CustomerCacheResponse(OK, Some(response.json.as[Nino]))
         }
       } recover {
         case exception: Upstream4xxResponse => {
           exception.upstreamResponseCode match {
-            case 403 => CustomerCacheResponse(FORBIDDEN, None)
-            case 404 => CustomerCacheResponse(NOT_FOUND, None)
+            case 403 =>
+              Logger.debug("Invalid uuid passed [CachingConnector][getCachedData]")
+              CustomerCacheResponse(FORBIDDEN, None)
+            case 404 =>
+              Logger.debug("Resource not found [CachingConnector][getCachedData]")
+              CustomerCacheResponse(NOT_FOUND, None)
           }
         }
         case exception: Upstream5xxResponse => {
           exception.upstreamResponseCode match {
-            case _ => CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
+            case _ =>
+              Logger.debug("Internal Server Error [CachingConnector][getCachedData]")
+              CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
           }
         }
       }
