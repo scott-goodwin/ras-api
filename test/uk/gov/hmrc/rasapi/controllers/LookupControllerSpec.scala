@@ -74,58 +74,106 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
       }
     }
 
-        "return status 403" when {
+    "return status 403" when {
 
-          "an invalid UUID is given" in {
+      "an invalid UUID is given" in {
 
-            val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
-            val nino = Nino("LE241131B")
-            val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
-            val customerCacheResponse = CustomerCacheResponse(403, None)
+        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
+        val nino = Nino("LE241131B")
+        val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
+        val customerCacheResponse = CustomerCacheResponse(403, None)
 
-            val expectedJsonResult = Json.parse(
-              """
-                |{
-                |  "code": "INVALID_UUID",
-                |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
-                |}
-              """.stripMargin)
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_UUID",
+            |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
+            |}
+          """.stripMargin)
 
-            when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
+        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
 
-            val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-            status(result) shouldBe 403
-            contentAsJson(result) shouldBe expectedJsonResult
-          }
-        }
+        status(result) shouldBe 403
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
 
-//          "the account is locked" in {
-//
-//            val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
-//            val expectedJsonResult = Json.parse(
-//              """
-//                |{
-//                |  "code": "ACCOUNT_LOCKED",
-//                |  "message": "The account is locked, please ask your customer to get in touch with HMRC."
-//                |}
-//              """.stripMargin)
-//
-//            val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-//
-//            status(result) shouldBe 403
-//            contentAsJson(result) shouldBe expectedJsonResult
-//          }
+    "return status 500" when {
+      "an invalid UUID is given" in {
 
-    //
-    //    "return status 500 if no residency status is found for the provided customer" in {
-    //
-    //      val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
-    //      val result = LookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-    //
-    //      status(result) shouldBe 500
-    //
-    //    }
+        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
+        val customerCacheResponse = CustomerCacheResponse(500, None)
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INTERNAL_SERVER_ERROR",
+            |  "message": "Internal server error"
+            |}
+          """.stripMargin)
+
+        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe 500
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
+
+    "return 403" when {
+      "the account is locked" in {
+        val nino = Nino("LE241131B")
+        val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
+        val customerCacheResponse = CustomerCacheResponse(200, Some(nino))
+        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
+        val desResponse = SuccessfulDesResponse(residencyStatus)
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_RESIDENCY_STATUS",
+            |  "message": "There is a problem with this member's account. Ask them to call HMRC."
+            |}
+          """.stripMargin)
+
+        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
+        when(mockDesConnector.getResidencyStatus(Matchers.eq(nino))(Matchers.any())).thenReturn(Future.successful(AccountLockedResponse))
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe 403
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
+
+    "return 500" when {
+      "when 500 is returned from desconnector" in {
+        val nino = Nino("LE241131B")
+        val residencyStatus = ResidencyStatus("otherUKResident","otherUKResident")
+        val customerCacheResponse = CustomerCacheResponse(200, Some(nino))
+        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
+        val desResponse = SuccessfulDesResponse(residencyStatus)
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INTERNAL_SERVER_ERROR",
+            |  "message": "Internal server error"
+            |}
+          """.stripMargin)
+
+        when(mockCachingConnector.getCachedData(Matchers.eq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
+        when(mockDesConnector.getResidencyStatus(Matchers.eq(nino))(Matchers.any())).thenReturn(Future.successful(InternalServerErrorResponse))
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe 500
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
   }
 
 }
