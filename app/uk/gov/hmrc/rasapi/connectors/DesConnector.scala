@@ -41,17 +41,21 @@ trait DesConnector extends ServicesConfig {
     val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customerNino"
 
     http.GET(uri).map { response =>
-      Logger.debug(s"status is ${response.body}")
       response.status match {
         case 200 => SuccessfulDesResponse(response.json.as[ResidencyStatus])
-        case 403 => AccountLockedResponse
-        case 404 => NotFoundResponse
-        case _ => InternalServerErrorResponse
       }
     } recover {
-      case e:Exception=>
-        Logger.error(s"[DesConnector][getResidencyStatus][ERROR:500] : ${e.getMessage}")
-        InternalServerErrorResponse
+      case exception: Upstream4xxResponse => {
+        exception.upstreamResponseCode match {
+          case 403 => AccountLockedResponse
+          case 404 => NotFoundResponse
+        }
+      }
+      case exception: Upstream5xxResponse => {
+        exception.upstreamResponseCode match {
+          case _ => InternalServerErrorResponse
+        }
+      }
     }
   }
 }

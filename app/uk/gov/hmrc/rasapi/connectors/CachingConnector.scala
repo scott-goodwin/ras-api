@@ -42,14 +42,19 @@ trait CachingConnector extends ServicesConfig {
       http.GET(uri).map { response =>
         response.status match {
           case 200 => CustomerCacheResponse(OK, Some(response.json.as[Nino]))
-          case 403 => CustomerCacheResponse(FORBIDDEN, None)
-          case 404 => CustomerCacheResponse(NOT_FOUND, None)
-          case _ => CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
         }
       } recover {
-        case e:Exception=>
-          Logger.error(s"[CacheConnector][getCachedData][ERROR:500] : ${e.getMessage}")
-          CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
+        case exception: Upstream4xxResponse => {
+          exception.upstreamResponseCode match {
+            case 403 => CustomerCacheResponse(FORBIDDEN, None)
+            case 404 => CustomerCacheResponse(NOT_FOUND, None)
+          }
+        }
+        case exception: Upstream5xxResponse => {
+          exception.upstreamResponseCode match {
+            case _ => CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
+          }
+        }
       }
     }
 }

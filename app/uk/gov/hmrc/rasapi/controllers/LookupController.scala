@@ -41,56 +41,21 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-
       cachingConnector.getCachedData(uuid).flatMap ( customerCacheResponse =>
         customerCacheResponse.status match {
           case OK => desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino(""))).map(desResponse =>
             desResponse match {
               case r: SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
               case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
+              case NotFoundResponse => NotFound(toJson(ErrorNotFound))
               case _ => InternalServerError(toJson(ErrorInternalServerError))
             }
           )
           case FORBIDDEN => Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+          case NOT_FOUND => Future.successful(NotFound(toJson(ErrorNotFound)))
           case _ => Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
       )
-
-//      val result =
-//            for{
-//              customerCacheResponse <- cachingConnector.getCachedData(uuid)
-//              desResponse <- desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino("")))
-//            } yield {
-//
-//            }
-
-
-
-
-
-//      val result =
-//        for{
-//          customerCacheResponse <- cachingConnector.getCachedData(uuid)
-//        } yield {
-//
-//          val nino = customerCacheResponse.nino.getOrElse(Nino(""))
-//          customerCacheResponse.status match {
-//            case OK => desConnector.getResidencyStatus(nino).map { x =>
-//              x match{
-//                case r:SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
-//                case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
-//                case NotFoundResponse => NotFound
-//                case _ => InternalServerError(toJson(ErrorInternalServerError))
-//              }
-//            }
-//            case FORBIDDEN => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-//            case _ => Future(InternalServerError(toJson(ErrorInternalServerError)))
-//          }
-//        }
-//
-//      result.flatMap(res => res)
-      //Future.successful(Ok)
-
   }
 }
 
