@@ -23,6 +23,11 @@ sealed abstract class ErrorResponse(
                                        val  errorCode: String,
                                        val message: String)
 
+case object BadRequestResponse extends ErrorResponse(
+  400,
+  "BAD_REQUEST",
+  "Bad Request") with JsonFormats
+
 case object InvalidUUIDForbiddenResponse extends ErrorResponse(
   403,
   "INVALID_UUID",
@@ -37,6 +42,9 @@ case object AccountLockedForbiddenResponse extends ErrorResponse(
 
 case object ErrorInternalServerError extends
   ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error") with JsonFormats
+
+case object ErrorNotFound extends ErrorResponse(404, "NOT_FOUND", "Resource was not found") with JsonFormats
+
 
 trait JsonFormats {
   implicit val errorResponseWrites = new Writes[ErrorResponse] {

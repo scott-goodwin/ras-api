@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import play.api.Logger
 import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_ACCEPTABLE, NOT_FOUND, OK}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models.{CustomerCacheResponse, CustomerDetails, Nino, ResidencyStatus}
 
@@ -36,16 +38,20 @@ trait CachingConnector extends ServicesConfig {
 
     val uri = cachingBaseUrl + cachingGetNinoUrl + s"/$uuid"
 
-    http.GET(uri).map { response =>
-      response.status match {
-        case 200 => CustomerCacheResponse(OK, Some(response.json.as[Nino]))
-        case 403 => CustomerCacheResponse(FORBIDDEN, None)
-        case 404 => CustomerCacheResponse(NOT_FOUND, None)
-        case _ => CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
+
+      http.GET(uri).map { response =>
+        response.status match {
+          case 200 => CustomerCacheResponse(OK, Some(response.json.as[Nino]))
+          case 403 => CustomerCacheResponse(FORBIDDEN, None)
+          case 404 => CustomerCacheResponse(NOT_FOUND, None)
+          case _ => CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
+        }
+      } recover {
+        case e:Exception=>
+          Logger.error(s"[CacheConnector][getCachedData][ERROR:500] : ${e.getMessage}")
+          CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
       }
     }
-  }
-
 }
 
 object CachingConnector extends CachingConnector{

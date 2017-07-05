@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import play.api.Logger
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.http.Status.NOT_FOUND
 import play.api.http.Status.FORBIDDEN
@@ -36,19 +37,21 @@ trait DesConnector extends ServicesConfig {
 
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[DesResponse] = {
 
-    val customoerNino = nino.nino
-    val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customoerNino"
+    val customerNino = nino.nino
+    val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customerNino"
 
-    println(Console.YELLOW + "making a call to ras stubs with " + nino + Console.WHITE)
     http.GET(uri).map { response =>
-
-      println(Console.YELLOW + "status " + response.status + Console.WHITE)
+      Logger.debug(s"status is ${response.body}")
       response.status match {
         case 200 => SuccessfulDesResponse(response.json.as[ResidencyStatus])
         case 403 => AccountLockedResponse
         case 404 => NotFoundResponse
         case _ => InternalServerErrorResponse
       }
+    } recover {
+      case e:Exception=>
+        Logger.error(s"[DesConnector][getResidencyStatus][ERROR:500] : ${e.getMessage}")
+        InternalServerErrorResponse
     }
   }
 }

@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import java.util.concurrent.TimeUnit
+
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
@@ -27,8 +29,9 @@ import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 trait LookupController extends BaseController with HeaderValidator with RunMode {
 
@@ -38,27 +41,55 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      val result =
-        for{
-          customerCacheResponse <- cachingConnector.getCachedData(uuid)
-        } yield {
 
-          val nino = customerCacheResponse.nino.getOrElse(Nino(""))
-          customerCacheResponse.status match {
-            case OK => desConnector.getResidencyStatus(nino).map { x =>
-              x match{
-                case r:SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
-                case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
-                case NotFoundResponse => NotFound
-                case _ => InternalServerError(toJson(ErrorInternalServerError))
-              }
+      cachingConnector.getCachedData(uuid).flatMap ( customerCacheResponse =>
+        customerCacheResponse.status match {
+          case OK => desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino(""))).map(desResponse =>
+            desResponse match {
+              case r: SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
+              case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
+              case _ => InternalServerError(toJson(ErrorInternalServerError))
             }
-            case FORBIDDEN => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-            case _ => Future(InternalServerError(toJson(ErrorInternalServerError)))
-          }
+          )
+          case FORBIDDEN => Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+          case _ => Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
+      )
 
-      result.flatMap(res => res)
+//      val result =
+//            for{
+//              customerCacheResponse <- cachingConnector.getCachedData(uuid)
+//              desResponse <- desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino("")))
+//            } yield {
+//
+//            }
+
+
+
+
+
+//      val result =
+//        for{
+//          customerCacheResponse <- cachingConnector.getCachedData(uuid)
+//        } yield {
+//
+//          val nino = customerCacheResponse.nino.getOrElse(Nino(""))
+//          customerCacheResponse.status match {
+//            case OK => desConnector.getResidencyStatus(nino).map { x =>
+//              x match{
+//                case r:SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
+//                case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
+//                case NotFoundResponse => NotFound
+//                case _ => InternalServerError(toJson(ErrorInternalServerError))
+//              }
+//            }
+//            case FORBIDDEN => Future(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+//            case _ => Future(InternalServerError(toJson(ErrorInternalServerError)))
+//          }
+//        }
+//
+//      result.flatMap(res => res)
+      //Future.successful(Ok)
 
   }
 }
