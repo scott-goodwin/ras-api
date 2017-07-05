@@ -43,7 +43,7 @@ case object AccountLockedForbiddenResponse extends ErrorResponse(
 case object ErrorInternalServerError extends
   ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error") with JsonFormats
 
-case object ErrorNotFound extends ErrorResponse(404, "NOT_FOUND", "Resource was not found") with JsonFormats
+case object ErrorNotFound extends ErrorResponse(404, "NOT_FOUND", "Resource Not Found") with JsonFormats
 
 
 trait JsonFormats {
