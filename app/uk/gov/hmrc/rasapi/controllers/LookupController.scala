@@ -47,12 +47,10 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             desResponse match {
               case r: SuccessfulDesResponse => Ok(toJson(r.residencyStatus))
               case AccountLockedResponse => Forbidden(toJson(AccountLockedForbiddenResponse))
-              case NotFoundResponse => NotFound(toJson(ErrorNotFound))
               case _ => InternalServerError(toJson(ErrorInternalServerError))
             }
           )
           case FORBIDDEN => Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-          case NOT_FOUND => Future.successful(NotFound(toJson(ErrorNotFound)))
           case _ => Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
       )
