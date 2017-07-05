@@ -61,16 +61,17 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
     "handle 403 error returned from caching service" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(403, None)))
+        thenReturn(Future.failed(new Upstream4xxResponse("",403,403)))
 
       val result = TestCachingConnector.getCachedData(uuid)
       await(result) shouldBe CustomerCacheResponse(FORBIDDEN, None)
+
     }
 
     "handle 404 error returned from caching service" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(404, None)))
+        thenReturn(Future.failed(new Upstream4xxResponse("",404,404)))
 
       val result = TestCachingConnector.getCachedData(uuid)
       await(result) shouldBe CustomerCacheResponse(NOT_FOUND, None)
@@ -79,7 +80,7 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
     "handle 500 error returned from caching service" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(500, None)))
+        thenReturn(Future.failed(new Upstream5xxResponse("",500,500)))
 
       val result = TestCachingConnector.getCachedData(uuid)
       await(result) shouldBe CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)

@@ -66,7 +66,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     "handle 403 error returned from des" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(403, None)))
+        thenReturn(Future.failed(new Upstream4xxResponse("",403,403)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
       await(result) shouldBe AccountLockedResponse
@@ -75,7 +75,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     "handle 404 error returned from des" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(404, None)))
+        thenReturn(Future.failed(new Upstream4xxResponse("",404,404)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
       await(result) shouldBe NotFoundResponse
@@ -84,7 +84,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     "handle 500 error returned from des" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(500, None)))
+        thenReturn(Future.failed(new Upstream5xxResponse("",500,500)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
       await(result) shouldBe InternalServerErrorResponse
