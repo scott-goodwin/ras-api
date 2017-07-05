@@ -36,10 +36,10 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
   implicit val hc = HeaderCarrier()
 
-  val mockHttp = mock[HttpPost]
+  val mockHttp = mock[HttpGet]
 
   object TestDesConnector extends DesConnector {
-    override val http: HttpPost = mockHttp
+    override val http: HttpGet = mockHttp
     override val desBaseUrl = ""
     override val cachingGetResidencyStatusUrl = ""
   }
@@ -56,33 +56,38 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
     "handle successful response when 200 is returned from des" in {
 
-      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
-        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
+      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
 
       val result = await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
-      result shouldBe ResidencyStatus("scotResident","scotResident")
+      result shouldBe SuccessfulDesResponse(ResidencyStatus("scotResident","scotResident"))
+    }
+
+    "handle 403 error returned from des" in {
+
+      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+        thenReturn(Future.failed(new Upstream4xxResponse("",403,403)))
+
+      val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
+      await(result) shouldBe AccountLockedResponse
     }
 
     "handle 404 error returned from des" in {
 
-      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
-        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(404, None)))
+      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+        thenReturn(Future.failed(new Upstream4xxResponse("",404,404)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
-      intercept[Upstream4xxResponse] {
-        await(result)
-      }
+      await(result) shouldBe NotFoundResponse
     }
 
     "handle 500 error returned from des" in {
 
-      when(mockHttp.POST[HttpResponse, HttpResponse](Matchers.any(),Matchers.any(), Matchers.any())
-        (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(500, None)))
+      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+        thenReturn(Future.failed(new Upstream5xxResponse("",500,500)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
-      intercept[Upstream5xxResponse] {
-        await(result)
-      }
+      await(result) shouldBe InternalServerErrorResponse
     }
   }
 }

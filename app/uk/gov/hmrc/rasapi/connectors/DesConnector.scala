@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import play.api.Logger
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.http.Status.NOT_FOUND
 import play.api.http.Status.FORBIDDEN
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.WSHttp
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, Nino, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -30,19 +31,38 @@ import scala.concurrent.Future
 
 trait DesConnector extends ServicesConfig {
 
-  val http: HttpPost
+  val http: HttpGet
   val desBaseUrl: String
   val cachingGetResidencyStatusUrl: String
 
-  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[ResidencyStatus] = {
+  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[DesResponse] = {
 
-    val uri = desBaseUrl + cachingGetResidencyStatusUrl
+    val customerNino = nino.nino
+    val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customerNino"
 
-    http.POST(uri, nino).map { response =>
+    http.GET(uri).map { response =>
       response.status match {
-        case 200 => response.json.as[ResidencyStatus]
-        case 404 => throw new Upstream4xxResponse("Resource not found", 404 , NOT_FOUND)
-        case _ => throw new Upstream5xxResponse("Internal Server Error", 500 , INTERNAL_SERVER_ERROR)
+        case 200 =>
+          Logger.debug("Residency Status returned successfully [DesConnector][getResidencyStatus]")
+          SuccessfulDesResponse(response.json.as[ResidencyStatus])
+      }
+    } recover {
+      case exception: Upstream4xxResponse => {
+        exception.upstreamResponseCode match {
+          case 403 =>
+            Logger.debug("There was a problem with the account [DesConnector][getResidencyStatus]")
+            AccountLockedResponse
+          case 404 =>
+            Logger.debug("Resource not found [DesConnector][getResidencyStatus]")
+            NotFoundResponse
+        }
+      }
+      case exception: Upstream5xxResponse => {
+        exception.upstreamResponseCode match {
+          case _ =>
+            Logger.debug("Internal server error [DesConnector][getResidencyStatus]")
+            InternalServerErrorResponse
+        }
       }
     }
   }
@@ -50,7 +70,7 @@ trait DesConnector extends ServicesConfig {
 
 object DesConnector extends DesConnector{
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val http: HttpPost = WSHttp
+  override val http: HttpGet = WSHttp
   override val desBaseUrl = baseUrl("des")
   override val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
   // $COVERAGE-ON$

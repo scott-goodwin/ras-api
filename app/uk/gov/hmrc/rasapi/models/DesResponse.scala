@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.rasapi.models
 
-sealed abstract class NPSResponse(residencyStatus: Option[ResidencyStatus])
+sealed abstract class DesResponse(residencyStatus: Option[ResidencyStatus])
 
-case class SuccessfulNPSResponse(residencyStatus: ResidencyStatus) extends NPSResponse(Some(residencyStatus))
+case class SuccessfulDesResponse(residencyStatus: ResidencyStatus) extends DesResponse(Some(residencyStatus))
 
-case object AccountLockedResponse extends NPSResponse(residencyStatus = None)
+case object AccountLockedResponse extends DesResponse(residencyStatus = None)
 
-case object InternalServerErrorResponse extends NPSResponse(residencyStatus = None)
+case object InternalServerErrorResponse extends DesResponse(residencyStatus = None)
+
+case object NotFoundResponse extends DesResponse(residencyStatus = None)

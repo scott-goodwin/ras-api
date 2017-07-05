@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import java.util.concurrent.TimeUnit
+
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
@@ -27,8 +29,9 @@ import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 trait LookupController extends BaseController with HeaderValidator with RunMode {
 
@@ -38,17 +41,32 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      val result =
-        for{
-          nino <- cachingConnector.getCachedData(uuid)
-        } yield {
-          desConnector.getResidencyStatus(nino).map ( x => Ok(toJson(x)))
+      cachingConnector.getCachedData(uuid).flatMap ( customerCacheResponse =>
+        customerCacheResponse.status match {
+          case OK =>
+            Logger.debug("Nino returned successfully [LookupController][getResidencyStatus]")
+            desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino(""))).map(desResponse =>
+            desResponse match {
+              case r: SuccessfulDesResponse =>
+                Logger.debug("Residency status returned successfully [LookupController][getResidencyStatus]")
+                Ok(toJson(r.residencyStatus))
+              case AccountLockedResponse =>
+                Logger.debug("There was a problem with the account [LookupController][getResidencyStatus]")
+                Forbidden(toJson(AccountLockedForbiddenResponse))
+              case _ =>
+                Logger.debug("Internal server error returned from DES [LookupController][getResidencyStatus]")
+                InternalServerError(toJson(ErrorInternalServerError))
+            }
+          )
+          case FORBIDDEN =>
+            Logger.debug("Invalid uuid passed [LookupController][getResidencyStatus]")
+            Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
+          case _ =>
+            Logger.debug("Internal server error returned from cache [LookupController][getResidencyStatus]")
+            Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
-
-      result.flatMap(res => res)
-
+      )
   }
-
 }
 
 object LookupController extends LookupController {

@@ -25,10 +25,19 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
+import play.api.libs.json.Json.toJson
+import play.api.mvc.{RequestHeader, Result}
+import play.api.mvc.Results.{BadRequest, NotFound, Status}
+import uk.gov.hmrc.api.controllers.{ErrorInternalServerError, ErrorUnauthorized}
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
+import uk.gov.hmrc.rasapi.models.{BadRequestResponse, ErrorNotFound}
+import scala.concurrent.ExecutionContext.Implicits.global
+
+
+import scala.concurrent.Future
 
 
 trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
@@ -86,4 +95,25 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Mi
 
   override lazy val registrationEnabled = AppContext.registrationEnabled
 
+  override def onBadRequest(request: RequestHeader, error: String) = {
+    Future.successful {
+      BadRequest(toJson(BadRequestResponse))
+    }
+  }
+
+  override def onHandlerNotFound(request: RequestHeader) = {
+    Future.successful {
+      NotFound(toJson(ErrorNotFound))
+    }
+  }
+
+  override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
+    super.onError(request, ex) map (res => {
+      res.header.status
+      match {
+        case 401 => Status(ErrorUnauthorized.httpStatusCode)(toJson(ErrorUnauthorized))
+        case _ => Status(ErrorInternalServerError.httpStatusCode)(toJson(ErrorInternalServerError))
+      }
+    })
+  }
 }
