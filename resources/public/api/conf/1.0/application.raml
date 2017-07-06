@@ -29,10 +29,10 @@ types:
     pattern: "^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$"
     example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
 
-/customer:
-      /matched:
+/relief-at-source:
+      /customer:
             /{customer-uuid}:
-              /get-residency-status:
+              /residency-status:
                 description: Check if the customer is resident in Scotland for tax purposes.
 
                              If you’re a pension scheme administrator, you need to know this to make the correct
