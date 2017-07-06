@@ -66,7 +66,7 @@
                     </td>
                 </tr>
         <tr>
-             <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/get-residency-status</p></td>
+             <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /relief-at-source/customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/residency-status</p></td>
             <td>
                 <p>N/A</p>
             </td>
