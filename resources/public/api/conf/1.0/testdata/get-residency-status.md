@@ -33,7 +33,7 @@
                 <p class ="code--block"> {<br>
                                             "code": "INVALID_UUID",<br>
                                             "message": "The match has timed out and the UUID is no longer valid. 
-                                                        The match (POST to /match) will need to be repeated."<br>
+                                                        The match (POST to /customer/match) will need to be repeated."<br>
                                          }<br>
                 </p>
             </td>
@@ -47,7 +47,7 @@
                 <p class ="code--block"> {<br>
                                             "code": "INVALID_UUID",<br>
                                             "message": "The match has timed out and the UUID is no longer valid. 
-                                                        The match (POST to /match) will need to be repeated."<br>
+                                                        The match (POST to /customer/match) will need to be repeated."<br>
                                          }<br>
                 </p>
             </td>
@@ -66,14 +66,14 @@
                     </td>
                 </tr>
         <tr>
-             <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/get-residency-status</p></td>
+             <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /relief-at-source/customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/residency-status</p></td>
             <td>
                 <p>N/A</p>
             </td>
             <td><p>HTTP status: <code class="code--slim">404 (Not Found)</code></p>
                 <p class ="code--block"> {<br>
-                                              "code": "NOT_FOUND",<br>
-                                              "message": "Resource Not Found"<br>
+                                              "code": "MATCHING_RESOURCE_NOT_FOUND",<br>
+                                              "message": "A resource with the name in the request can not be found in the API"<br>
                                             }
                 </p>
             </td>
