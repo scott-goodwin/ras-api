@@ -2,7 +2,7 @@
 {
   "scopes": [
     {
-      "key": "write:hmrcmatch",
+      "key": "read:ras",
       "name": "Relief At Source",
       "description": "Access to Relief At Source API's"
     }

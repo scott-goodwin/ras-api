@@ -49,8 +49,8 @@ types:
                                relief at source claims.
                   displayName: Check if a customer is a Scottish resident
                   is: [headers.acceptHeader]
-                  (annotations.scope): "read:hmrcmatch"
-                  securedBy: [ sec.oauth_2_0: { scopes: [ "read:hmrcmatch" ] } ]
+                  (annotations.scope): "read:ras"
+                  securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
                   (annotations.sandboxData): !include testdata/get-residency-status.md
                   responses:
                     200:
@@ -71,7 +71,7 @@ types:
                               description: |
                                   The match has timed out and the UUID is no longer valid.
                                   The match (POST to /match) will need to repeated.
-                              value: |
+                              value: |git co
                                 {
                                   "code": "INVALID_UUID",
                                   "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to repeated."
