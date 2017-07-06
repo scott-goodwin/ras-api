@@ -175,5 +175,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
       }
     }
   }
+
 }
 
