@@ -9,7 +9,7 @@
   ],
   "api": {
     "name": "Relief At Source",
-    "description": "For pension scheme administrators to identify the residency status for thier scheme members.",
+    "description": "For pension scheme administrators to identify the residency status for their scheme members.",
     "context": "@context",
     "versions": [
       {

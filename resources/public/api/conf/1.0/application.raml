@@ -49,8 +49,6 @@ types:
                                relief at source claims.
                   displayName: Check if a customer is a Scottish resident
                   is: [headers.acceptHeader]
-                  (annotations.scope): "read:ras"
-                  securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
                   (annotations.sandboxData): !include testdata/get-residency-status.md
                   responses:
                     200:
