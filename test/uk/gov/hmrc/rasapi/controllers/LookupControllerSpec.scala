@@ -26,14 +26,14 @@ import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DesConnector}
 import org.mockito.Matchers
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
-import org.scalatest.{ShouldMatchers, WordSpec}
+import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpec}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.Future
 
-class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
+class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite with BeforeAndAfter{
 
   implicit val hc = HeaderCarrier()
 
@@ -49,6 +49,10 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
     override val auditService: AuditService = mockAuditService
   }
 
+  before{
+    reset(mockAuditService)
+  }
+
   "The lookup controller endpoint" should {
 
     "audit a successful lookup response" when {
@@ -62,18 +66,17 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         when(mockCachingConnector.getCachedData(Meq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
         when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.successful(desResponse))
 
-        val result = await(TestLookupController.getResidencyStatus(uuid)
-                        .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-                        .withHeaders(acceptHeader)))
+        await(TestLookupController.getResidencyStatus(uuid)
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
+          .withHeaders(acceptHeader)))
 
         verify(mockAuditService).audit(
-          auditType = Meq("residencyLookupSuccess"),
+          auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("uuid" -> uuid,
-                              "nino" -> "LE241131B",
-                              "residencyStatusDefined" -> "true",
-                              "CYResidencyStatus" -> "otherUKResident",
-                              "CYPlus1ResidencyStatus" -> "otherUKResident"))
+          auditData = Meq(Map("successfulLookup" -> "true",
+                              "CYStatus" -> "otherUKResident",
+                              "NextCYStatus" -> "otherUKResident",
+                              "nino" -> "LE241131B"))
         )(any())
       }
     }
@@ -86,17 +89,15 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         when(mockCachingConnector.getCachedData(Meq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
 
-        val result = await(TestLookupController.getResidencyStatus(uuid)
+        await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-            .withHeaders(acceptHeader)))
+          .withHeaders(acceptHeader)))
 
         verify(mockAuditService).audit(
-          auditType = Meq("residencyLookupFailure"),
+          auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("uuid" -> uuid,
-            "nino" -> "NO_NINO_DEFINED",
-            "residencyStatusDefined" -> "false",
-            "failureReason" -> "INVALID_UUID"))
+          auditData = Meq(Map("successfulLookup" -> "false",
+                              "reason" -> "INVALID_UUID"))
         )(any())
       }
 
@@ -105,19 +106,17 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
         val customerCacheResponse = CustomerCacheResponse(500, None)
 
-        when(mockCachingConnector.getCachedData(Meq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(customerCacheResponse))
 
-        val result = await(TestLookupController.getResidencyStatus(uuid)
+        await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-            .withHeaders(acceptHeader)))
+          .withHeaders(acceptHeader)))
 
         verify(mockAuditService).audit(
-          auditType = Meq("residencyLookupFailure"),
+          auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("uuid" -> uuid,
-            "nino" -> "NO_NINO_DEFINED",
-            "residencyStatusDefined" -> "false",
-            "failureReason" -> "INTERNAL_SERVER_ERROR"))
+          auditData = Meq(Map("successfulLookup" -> "false",
+                              "reason" -> "INTERNAL_SERVER_ERROR"))
         )(any())
       }
 
@@ -130,17 +129,16 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         when(mockCachingConnector.getCachedData(Meq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
         when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.successful(desResponse))
 
-        val result = await(TestLookupController.getResidencyStatus(uuid)
+        await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-            .withHeaders(acceptHeader)))
+          .withHeaders(acceptHeader)))
 
         verify(mockAuditService).audit(
-          auditType = Meq("residencyLookupFailure"),
+          auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("uuid" -> uuid,
-            "nino" -> "LE241131B",
-            "residencyStatusDefined" -> "false",
-            "failureReason" -> "INVALID_RESIDENCY_STATUS"))
+          auditData = Meq(Map("nino" -> "LE241131B",
+                              "successfulLookup" -> "false",
+                              "reason" -> "INVALID_RESIDENCY_STATUS"))
         )(any())
       }
 
@@ -153,17 +151,16 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         when(mockCachingConnector.getCachedData(Meq(uuid))(Matchers.any())).thenReturn(Future.successful(customerCacheResponse))
         when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.successful(desResponse))
 
-        val result = await(TestLookupController.getResidencyStatus(uuid)
+        await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-            .withHeaders(acceptHeader)))
+          .withHeaders(acceptHeader)))
 
         verify(mockAuditService).audit(
-          auditType = Meq("residencyLookupFailure"),
+          auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("uuid" -> uuid,
-            "nino" -> "LE241131B",
-            "residencyStatusDefined" -> "false",
-            "failureReason" -> "INTERNAL_SERVER_ERROR"))
+          auditData = Meq(Map("nino" -> "LE241131B",
+                              "successfulLookup" -> "false",
+                              "reason" -> "INTERNAL_SERVER_ERROR"))
         )(any())
       }
     }

@@ -47,28 +47,38 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             Logger.debug("Nino returned successfully [LookupController][getResidencyStatus]")
             desConnector.getResidencyStatus(customerCacheResponse.nino.getOrElse(Nino(""))).map {
               case desResponse@(r: SuccessfulDesResponse) => {
-                auditResponse(uuid, customerCacheResponse, Some(desResponse), None)
+                auditResponse(failureReason = None,
+                              nino = customerCacheResponse.nino.flatMap(nino => Option(nino.nino)),
+                              residencyStatus = r.residencyStatus)
                 Logger.debug("Residency status returned successfully [LookupController][getResidencyStatus]")
                 Ok(toJson(r.residencyStatus))
               }
               case desResponse@AccountLockedResponse => {
-                auditResponse(uuid, customerCacheResponse, Some(desResponse), Some(AccountLockedForbiddenResponse.errorCode))
+                auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
+                  nino = customerCacheResponse.nino.flatMap(nino => Option(nino.nino)),
+                  residencyStatus = None)
                 Logger.debug("There was a problem with the account [LookupController][getResidencyStatus]")
                 Forbidden(toJson(AccountLockedForbiddenResponse))
               }
               case desResponse => {
-                auditResponse(uuid, customerCacheResponse, Some(desResponse), Some(ErrorInternalServerError.errorCode))
+                auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
+                  nino = customerCacheResponse.nino.flatMap(nino => Option(nino.nino)),
+                  residencyStatus = None)
                 Logger.debug("Internal server error returned from DES [LookupController][getResidencyStatus]")
                 InternalServerError(toJson(ErrorInternalServerError))
               }
             }
           case FORBIDDEN => {
-            auditResponse(uuid, customerCacheResponse, None, Some(InvalidUUIDForbiddenResponse.errorCode))
+            auditResponse(failureReason = Some(InvalidUUIDForbiddenResponse.errorCode),
+              nino = customerCacheResponse.nino.flatMap(nino => Option(nino.nino)),
+              residencyStatus = None)
             Logger.debug("Invalid uuid passed [LookupController][getResidencyStatus]")
             Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
           }
           case _ => {
-            auditResponse(uuid, customerCacheResponse, None, Some(ErrorInternalServerError.errorCode))
+            auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
+              nino = customerCacheResponse.nino.flatMap(nino => Option(nino.nino)),
+              residencyStatus = None)
             Logger.debug("Internal server error returned from cache [LookupController][getResidencyStatus]")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
           }
@@ -76,45 +86,31 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       )
   }
 
-  private def auditResponse(uuid: String, cachingResponse: CustomerCacheResponse, desResponse: Option[DesResponse],
-                            failureReason: Option[String])
+  /**
+    * Audits the response, if failure reason is None then residencyStatus is Some (sucess) and vice versa (failure).
+    * @param failureReason Optional message, present if the journey failed, else not
+    * @param nino Optional user identifier, present if the customer-matching-cache call was a success, else not
+    * @param residencyStatus Optional status object returned from the HoD, present if the journey succeeded, else not
+    * @param request Object containing request made by the user
+    * @param hc Headers
+    */
+  private def auditResponse(failureReason: Option[String], nino: Option[String],
+                            residencyStatus: Option[ResidencyStatus])
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
-    val dataMap = buildAuditDataMap(uuid, cachingResponse, desResponse)
+    val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
+    val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
+                                                                            "reason" -> reason) ++ ninoMap).
+                                              getOrElse(Map(
+                                                "successfulLookup" -> "true",
+                                                "CYStatus" -> residencyStatus.get.currentYearResidencyStatus,
+                                                "NextCYStatus" -> residencyStatus.get.nextYearForecastResidencyStatus
+                                              ) ++ ninoMap)
 
-    val auditType = desResponse.exists(residencyStatus => residencyStatus.residencyStatus.isDefined) match {
-      case true => "residencyLookupSuccess"
-      case false => "residencyLookupFailure"
-    }
-
-    val auditDataMap: Map[String, String] = failureReason.map(reason => dataMap ++ Map("failureReason" -> reason)).getOrElse(dataMap)
-
-    auditService.audit(auditType = auditType,
+    auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
       auditData = auditDataMap
     )
-  }
-
-  private def buildAuditDataMap(uuid: String, cachingResponse: CustomerCacheResponse, desResponse: Option[DesResponse]):
-    Map[String, String] = {
-
-    val nino = cachingResponse.nino.map (nino => nino.nino)
-    val dataMap = Map("uuid" -> uuid,
-                      "nino" -> nino.getOrElse("NO_NINO_DEFINED"))
-
-    if (desResponse.isDefined) {
-
-      val residencyStatus = desResponse.get.residencyStatus
-
-      val dataMapAddition = dataMap ++ Map("residencyStatusDefined" -> residencyStatus.isDefined.toString)
-
-      if (residencyStatus.isDefined)
-        dataMapAddition ++ Map("CYResidencyStatus" -> residencyStatus.get.currentYearResidencyStatus,
-                       "CYPlus1ResidencyStatus" -> residencyStatus.get.nextYearForecastResidencyStatus)
-      else
-        dataMapAddition
-    } else
-      dataMap ++ Map("residencyStatusDefined" -> "false")
   }
 }
 
