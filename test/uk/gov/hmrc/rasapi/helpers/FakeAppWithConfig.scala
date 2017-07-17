@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rasapi.models
+package uk.gov.hmrc.rasapi.helpers
 
-sealed abstract class DesResponse(val residencyStatus: Option[ResidencyStatus])
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.WithApplication
 
-case class SuccessfulDesResponse(override val residencyStatus: Option[ResidencyStatus]) extends DesResponse(residencyStatus)
+object constants {
 
-case object AccountLockedResponse extends DesResponse(residencyStatus = None)
+  val appNameConfig = Map("appName" -> "customer-api")
+}
+abstract class FakeAppWithAppName(config: Map[String, _] = constants.appNameConfig) extends WithApplication(new GuiceApplicationBuilder().configure(config).build)
 
-case object InternalServerErrorResponse extends DesResponse(residencyStatus = None)
-
-case object NotFoundResponse extends DesResponse(residencyStatus = None)

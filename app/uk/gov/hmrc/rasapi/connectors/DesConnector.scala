@@ -17,9 +17,6 @@
 package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
-import play.api.http.Status.INTERNAL_SERVER_ERROR
-import play.api.http.Status.NOT_FOUND
-import play.api.http.Status.FORBIDDEN
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.WSHttp
@@ -44,7 +41,7 @@ trait DesConnector extends ServicesConfig {
       response.status match {
         case 200 =>
           Logger.debug("Residency Status returned successfully [DesConnector][getResidencyStatus]")
-          SuccessfulDesResponse(response.json.as[ResidencyStatus])
+          SuccessfulDesResponse(Some(response.json.as[ResidencyStatus]))
       }
     } recover {
       case exception: Upstream4xxResponse => {
