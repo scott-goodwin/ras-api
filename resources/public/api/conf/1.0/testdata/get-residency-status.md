@@ -91,18 +91,5 @@
                 </p>
             </td>
         </tr>
-        <tr>
-            <td><p>Request which fails due to an unexpected error</p><p class ="code--block">uuid: 76648d82-309e-484d-a310-d0ffd2997795</p></td>
-            <td>
-                <p>N/A</p>
-            </td>
-            <td><p>HTTP status: <code class="code--slim">500 (Internal Server Error)</code></p>
-                <p class ="code--block"> {<br>
-                                            "code": "INTERNAL_SERVER_ERROR",<br>
-                                            "message": "Internal server error"<br>
-                                          }
-                </p>
-            </td>
-        </tr>
 	</tbody>
 </table>
