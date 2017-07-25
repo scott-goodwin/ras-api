@@ -17,59 +17,32 @@
 package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
-import play.api.http.Status.{FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_ACCEPTABLE, NOT_FOUND, OK}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.rasapi.config.WSHttp
-import uk.gov.hmrc.rasapi.models.{CustomerCacheResponse, CustomerDetails, Nino, ResidencyStatus}
+import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 
 trait CachingConnector extends ServicesConfig {
 
-  val http: HttpGet
+  val httpGet: HttpGet
   val cachingBaseUrl: String
-  val cachingGetNinoUrl: String
+  val cachingUrl: String
 
-  def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[CustomerCacheResponse] ={
+  def getCachedData(uuid: String)(implicit hc: HeaderCarrier): Future[HttpResponse] ={
 
-    val uri = cachingBaseUrl + cachingGetNinoUrl + s"/$uuid"
+    val uri = cachingBaseUrl + cachingUrl + s"/$uuid"
 
-      http.GET(uri).map { response =>
-        response.status match {
-          case 200 =>
-            Logger.debug("Nino returned from customer matching cache[CachingConnector][getCachedData]")
-            CustomerCacheResponse(OK, Some(response.json.as[Nino]))
-        }
-      } recover {
-        case exception: Upstream4xxResponse => {
-          exception.upstreamResponseCode match {
-            case 403 =>
-              Logger.debug("Invalid uuid passed [CachingConnector][getCachedData]")
-              CustomerCacheResponse(FORBIDDEN, None)
-            case 404 =>
-              Logger.debug("Resource not found [CachingConnector][getCachedData]")
-              CustomerCacheResponse(NOT_FOUND, None)
-          }
-        }
-        case exception: Upstream5xxResponse => {
-          exception.upstreamResponseCode match {
-            case _ =>
-              Logger.debug("Internal Server Error [CachingConnector][getCachedData]")
-              CustomerCacheResponse(INTERNAL_SERVER_ERROR, None)
-          }
-        }
-      }
-    }
+    Logger.info("CachingConnector getCachedData making request to Customer Cache")
+
+    httpGet.GET(uri)
+  }
 }
 
 object CachingConnector extends CachingConnector{
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val http: HttpGet = WSHttp
+  override val httpGet: HttpGet = WSHttp
   override val cachingBaseUrl = baseUrl("caching")
-  override val cachingGetNinoUrl = "/customer-matching-cache/get-nino"
+  override val cachingUrl = AppContext.cachingUrl
   // $COVERAGE-ON$
 }
