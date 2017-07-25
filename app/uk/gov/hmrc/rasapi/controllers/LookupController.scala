@@ -26,10 +26,9 @@ import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.rasapi.services.AuditService
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait LookupController extends BaseController with HeaderValidator with RunMode {
@@ -41,50 +40,54 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
+      if(!uuid.matches("^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")) {
+        Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
+        Forbidden(toJson(InvalidUUIDForbiddenResponse))
+      }
       cachingConnector.getCachedData(uuid).flatMap ( customerCacheResponse =>
         customerCacheResponse.status match {
           case OK =>
             Logger.debug("Nino returned successfully [LookupController][getResidencyStatus]")
             val nino = customerCacheResponse.json.as[Nino]
             desConnector.getResidencyStatus(nino).map {
-              case desResponse@(r: SuccessfulDesResponse) => {
+
+              case desResponse@(r: SuccessfulDesResponse) =>
                 auditResponse(failureReason = None,
                               nino = Some(nino.nino),
                               residencyStatus = r.residencyStatus)
-                Logger.debug("Residency status returned successfully [LookupController][getResidencyStatus]")
+                Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully")
                 Ok(toJson(r.residencyStatus))
-              }
-              case desResponse@AccountLockedResponse => {
+
+              case desResponse@AccountLockedResponse =>
                 auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
                               nino = Some(nino.nino),
                               residencyStatus = None)
-                Logger.debug("There was a problem with the account [LookupController][getResidencyStatus]")
+                Logger.debug("[LookupController][getResidencyStatus] There was a problem with the account")
                 Forbidden(toJson(AccountLockedForbiddenResponse))
-              }
-              case desResponse => {
+
+              case desResponse =>
                 auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
                               nino = Some(nino.nino),
                               residencyStatus = None)
-                Logger.debug("Internal server error returned from DES [LookupController][getResidencyStatus]")
+                Logger.debug("[LookupController][getResidencyStatus] Internal server error returned from DES")
                 InternalServerError(toJson(ErrorInternalServerError))
-              }
             }
-          case NOT_FOUND => {
+        }
+      ) recover {
+          case _404: NotFoundException =>
             auditResponse(failureReason = Some(InvalidUUIDForbiddenResponse.errorCode),
                           nino = None,
                           residencyStatus = None)
-            Logger.debug("Invalid uuid passed [LookupController][getResidencyStatus]")
-            Future.successful(Forbidden(toJson(InvalidUUIDForbiddenResponse)))
-          }
-          case _ => {
+            Logger.debug("[LookupController][getResidencyStatus] UUID has timed out")
+            Forbidden(toJson(InvalidUUIDForbiddenResponse))
+
+          case th: Throwable  =>
             auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
-                          nino = None,
-                          residencyStatus = None)
-            Logger.debug("Internal server error returned from cache [LookupController][getResidencyStatus]")
-            Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
-          }
-        }
-      )
+              nino = None,
+              residencyStatus = None)
+            Logger.error(s"[LookupController][getResidencyStatus] Error while calling cache. Exception message: ${th.getMessage}", th)
+            InternalServerError(toJson(ErrorInternalServerError))
+      }
   }
 
   /**

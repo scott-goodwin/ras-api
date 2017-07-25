@@ -30,6 +30,7 @@ import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpec}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
+import uk.gov.hmrc.play.http.NotFoundException
 
 import scala.concurrent.Future
 
@@ -87,7 +88,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.failed(new NotFoundException("")))
 
         await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
@@ -193,10 +194,9 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
     "return status 403" when {
 
-      "an invalid UUID is given" in {
+      "an timed out UUID is given" in {
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
-        val nino = Nino("LE241131B")
 
         val expectedJsonResult = Json.parse(
           """
@@ -206,7 +206,25 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
             |}
           """.stripMargin)
 
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.failed(new NotFoundException("")))
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe 403
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+
+      "an invalid UUID is given (non conforming to regex: ^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$" in {
+
+        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc"
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_UUID",
+            |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
+            |}
+          """.stripMargin)
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 

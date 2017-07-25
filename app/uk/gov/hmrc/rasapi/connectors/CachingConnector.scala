@@ -33,7 +33,7 @@ trait CachingConnector extends ServicesConfig {
 
     val uri = cachingBaseUrl + cachingUrl + s"/$uuid"
 
-    Logger.info("CachingConnector getCachedData making request to Customer Cache")
+    Logger.debug("[CachingConnector][getCachedData] making request to Customer Cache")
 
     httpGet.GET(uri)
   }
