@@ -43,5 +43,7 @@ trait AuditService extends AppName {
 }
 
 object AuditService extends AuditService {
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val connector: AuditConnector = MicroserviceAuditConnector
+  // $COVERAGE-ON$
 }

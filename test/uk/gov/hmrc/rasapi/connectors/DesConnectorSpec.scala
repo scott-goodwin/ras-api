@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import java.util.UUID
-
 import org.mockito.Matchers
 import org.mockito.Mockito.when
 import org.scalatest.mock.MockitoSugar
@@ -25,9 +23,7 @@ import org.scalatest.{ShouldMatchers, WordSpec}
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
-import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.rasapi.models.{CustomerDetails, ResidencyStatus}
 import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
@@ -60,34 +56,26 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
         thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
 
       val result = await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
-      result shouldBe SuccessfulDesResponse(Some(ResidencyStatus("scotResident","scotResident")))
-    }
-
-    "handle 403 error returned from des" in {
-
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.failed(new Upstream4xxResponse("",403,403)))
-
-      val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
-      await(result) shouldBe AccountLockedResponse
+      result.status shouldBe OK
     }
 
     "handle 404 error returned from des" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.failed(new Upstream4xxResponse("",404,404)))
+        thenReturn(Future.failed(new NotFoundException("")))
 
-      val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
-      await(result) shouldBe NotFoundResponse
+      intercept[NotFoundException] {
+        await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
+      }
     }
 
     "handle 500 error returned from des" in {
 
       when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
-        thenReturn(Future.failed(new Upstream5xxResponse("",500,500)))
+        thenReturn(Future.successful(HttpResponse(500)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
-      await(result) shouldBe InternalServerErrorResponse
+      await(result).status shouldBe INTERNAL_SERVER_ERROR
     }
   }
 }

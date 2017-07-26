@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import play.api.Logger
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.WSHttp
 import uk.gov.hmrc.rasapi.models._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
@@ -32,36 +30,12 @@ trait DesConnector extends ServicesConfig {
   val desBaseUrl: String
   val cachingGetResidencyStatusUrl: String
 
-  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[DesResponse] = {
+  def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     val customerNino = nino.nino
     val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customerNino"
 
-    http.GET(uri).map { response =>
-      response.status match {
-        case 200 =>
-          Logger.debug("Residency Status returned successfully [DesConnector][getResidencyStatus]")
-          SuccessfulDesResponse(Some(response.json.as[ResidencyStatus]))
-      }
-    } recover {
-      case exception: Upstream4xxResponse => {
-        exception.upstreamResponseCode match {
-          case 403 =>
-            Logger.debug("There was a problem with the account [DesConnector][getResidencyStatus]")
-            AccountLockedResponse
-          case 404 =>
-            Logger.debug("Resource not found [DesConnector][getResidencyStatus]")
-            NotFoundResponse
-        }
-      }
-      case exception: Upstream5xxResponse => {
-        exception.upstreamResponseCode match {
-          case _ =>
-            Logger.debug("Internal server error [DesConnector][getResidencyStatus]")
-            InternalServerErrorResponse
-        }
-      }
-    }
+    http.GET(uri)
   }
 }
 
