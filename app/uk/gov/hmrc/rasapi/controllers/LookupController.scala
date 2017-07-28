@@ -26,7 +26,7 @@ import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
-import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,7 +47,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       cachingConnector.getCachedData(uuid).flatMap { customerCacheResponse =>
         customerCacheResponse.status match {
           case OK =>
-            Logger.debug("Nino returned successfully [LookupController][getResidencyStatus]")
+            Logger.debug("[LookupController][getResidencyStatus] Nino returned successfully.")
             val nino = customerCacheResponse.json.as[Nino]
             desConnector.getResidencyStatus(nino).map { httpResponse =>
               httpResponse.status match {
@@ -56,15 +56,24 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                   auditResponse(failureReason = None,
                     nino = Some(nino.nino),
                     residencyStatus = Some(residencyStatus))
-                  Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully")
+                  Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
                   Ok(toJson(residencyStatus))
               }
             } recover {
+              case _4xx: Upstream4xxResponse =>
+                _4xx.upstreamResponseCode match {
+                  case FORBIDDEN =>  auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
+                    nino = Some(nino.nino),
+                    residencyStatus = None)
+                    Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
+                    Forbidden(toJson(AccountLockedForbiddenResponse))
+                }
+
               case _404: NotFoundException =>
                 auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
                               nino = Some(nino.nino),
                               residencyStatus = None)
-                Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account")
+                Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
                 Forbidden(toJson(AccountLockedForbiddenResponse))
 
               case th: Throwable  =>
@@ -81,7 +90,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             auditResponse(failureReason = Some(InvalidUUIDForbiddenResponse.errorCode),
                           nino = None,
                           residencyStatus = None)
-            Logger.debug("[LookupController][getResidencyStatus] UUID has timed out")
+            Logger.debug("[LookupController][getResidencyStatus] UUID has timed out.")
             Forbidden(toJson(InvalidUUIDForbiddenResponse))
 
           case th: Throwable  =>
