@@ -28,10 +28,9 @@ import org.mockito.Matchers
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpec}
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
-import uk.gov.hmrc.play.http.NotFoundException
 
 import scala.concurrent.Future
 
@@ -159,6 +158,43 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
                               "reason" -> "INTERNAL_SERVER_ERROR"))
         )(any())
       }
+
+      "A 403 is returned from DES Connector (HoD)" in {
+        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
+
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
+        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 403, 0)))
+
+        await(TestLookupController.getResidencyStatus(uuid)
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
+            .withHeaders(acceptHeader)))
+
+        verify(mockAuditService).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
+          auditData = Meq(Map("nino" -> "LE241131B",
+                              "successfulLookup" -> "false",
+                              "reason" -> "INVALID_RESIDENCY_STATUS"))
+        )(any())
+      }
+
+      "an unexpected 4xx response is returned from DES Connector (HoD)" in {
+        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
+
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
+        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 406, 0)))
+
+        await(TestLookupController.getResidencyStatus(uuid)
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
+            .withHeaders(acceptHeader)))
+
+        verify(mockAuditService).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
+          auditData = Meq(Map("successfulLookup" -> "false",
+                              "reason" -> "INTERNAL_SERVER_ERROR"))
+        )(any())
+      }
     }
   }
 
@@ -185,7 +221,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe 200
+        status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
@@ -208,7 +244,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe 403
+        status(result) shouldBe FORBIDDEN
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
@@ -226,7 +262,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe 403
+        status(result) shouldBe FORBIDDEN
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
@@ -247,7 +283,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe 403
+        status(result) shouldBe FORBIDDEN
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
@@ -269,7 +305,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe 500
+        status(result) shouldBe INTERNAL_SERVER_ERROR
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
@@ -290,7 +326,50 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe 500
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+
+      "A 403 is returned from DES Connector (HoD)" in {
+
+        val nino = Nino("LE241131B")
+        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_RESIDENCY_STATUS",
+            |  "message": "There is a problem with this member's account. Ask them to call HMRC."
+            |}
+          """.stripMargin)
+
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
+        when(mockDesConnector.getResidencyStatus(Meq(nino))(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 403, 0)))
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe FORBIDDEN
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+
+      "an unexpected 4xx response is returned from DES Connector (HoD)" in {
+        val nino = Nino("LE241131B")
+        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INTERNAL_SERVER_ERROR",
+            |  "message": "Internal server error"
+            |}
+          """.stripMargin)
+
+        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
+        when(mockDesConnector.getResidencyStatus(Meq(nino))(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 406, 0)))
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe INTERNAL_SERVER_ERROR
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
