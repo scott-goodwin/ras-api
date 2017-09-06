@@ -19,11 +19,9 @@ package uk.gov.hmrc.rasapi.config
 import com.typesafe.config.Config
 import play.api._
 import uk.gov.hmrc.play.audit.filters.AuditFilter
-import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{RequestHeader, Result}
@@ -31,7 +29,6 @@ import play.api.mvc.Results.{BadRequest, NotFound, Status}
 import uk.gov.hmrc.api.controllers.{ErrorInternalServerError, ErrorUnauthorized}
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 import uk.gov.hmrc.rasapi.models.{BadRequestResponse, ErrorNotFound}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -59,10 +56,6 @@ object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
 }
 
-object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
-  lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
-}
-
 object MicroserviceAuditFilter extends AuditFilter with AppName with MicroserviceFilterSupport {
   override val auditConnector = MicroserviceAuditConnector
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
@@ -70,12 +63,6 @@ object MicroserviceAuditFilter extends AuditFilter with AppName with Microservic
 
 object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSupport {
   override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
-}
-
-object MicroserviceAuthFilter extends AuthorisationFilter with MicroserviceFilterSupport {
-  override lazy val authParamsConfig = AuthParamsControllerConfiguration
-  override lazy val authConnector = MicroserviceAuthConnector
-  override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
 object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport with ServiceLocatorRegistration  {

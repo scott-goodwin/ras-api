@@ -49,6 +49,8 @@ types:
                                relief at source claims.
                   displayName: Check if a customer is a Scottish resident
                   is: [headers.acceptHeader]
+                  (annotations.scope): "read:ras"
+                  securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
                   (annotations.sandboxData): !include testdata/get-residency-status.md
                   responses:
                     200:
@@ -59,6 +61,16 @@ types:
                             {
                               "currentYearResidencyStatus" : "otherUKResident",
                               "nextYearForecastResidencyStatus" : "scotResident"
+                            }
+                    401:
+                      body:
+                        application/json:
+                          type: !include schemas/ErrorCodes.schema.json
+                          description: Unauthorized
+                          example: |
+                            {
+                              "code" : "UNAUTHORIZED",
+                              "message" : "Not an authorised User to use matching API endpoint"
                             }
                     403:
                       body:
