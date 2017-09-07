@@ -18,7 +18,8 @@
         "ACCEPT_HEADER_INVALID",
         "NOT_FOUND",
         "INVALID_UUID",
-        "INVALID_RESIDENCY_STATUS"
+        "INVALID_RESIDENCY_STATUS",
+        "INVALID_FORMAT"
       ]
     }
   }

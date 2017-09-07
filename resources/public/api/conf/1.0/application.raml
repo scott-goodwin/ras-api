@@ -60,6 +60,16 @@ types:
                               "currentYearResidencyStatus" : "otherUKResident",
                               "nextYearForecastResidencyStatus" : "scotResident"
                             }
+                    400:
+                      body:
+                        application/json:
+                          type: !include schemas/ErrorCodes.schema.json
+                          description: Bad Request
+                          example: |
+                            {
+                              "code" : "INVALID_FORMAT",
+                              "message" : "Invalid UUID format. Use the UUID provided."
+                            }
                     403:
                       body:
                         application/json:
