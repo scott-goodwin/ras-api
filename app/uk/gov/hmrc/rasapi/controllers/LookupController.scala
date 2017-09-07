@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, Upstream4xxRespo
 import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait LookupController extends BaseController with HeaderValidator with RunMode {
 
@@ -40,66 +41,68 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
 
-      if(!uuid.matches("^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")) {
-        Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
-        Forbidden(toJson(InvalidUUIDForbiddenResponse))
-      }
-      cachingConnector.getCachedData(uuid).flatMap { customerCacheResponse =>
-        customerCacheResponse.status match {
-          case OK =>
-            Logger.debug("[LookupController][getResidencyStatus] Nino returned successfully.")
-            val nino = customerCacheResponse.json.as[Nino]
-            desConnector.getResidencyStatus(nino).map { httpResponse =>
-              httpResponse.status match {
-                case OK =>
-                  val residencyStatus = httpResponse.json.as[ResidencyStatus]
-                  auditResponse(failureReason = None,
-                    nino = Some(nino.nino),
-                    residencyStatus = Some(residencyStatus))
-                  Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
-                  Ok(toJson(residencyStatus))
-              }
-            } recover {
-              case _4xx: Upstream4xxResponse =>
-                _4xx.upstreamResponseCode match {
-                  case FORBIDDEN =>  auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
-                    nino = Some(nino.nino),
-                    residencyStatus = None)
-                    Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
-                    Forbidden(toJson(AccountLockedForbiddenResponse))
+      if(uuid.matches("^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")) {
+        cachingConnector.getCachedData(uuid).flatMap { customerCacheResponse =>
+          customerCacheResponse.status match {
+            case OK =>
+              Logger.debug("[LookupController][getResidencyStatus] Nino returned successfully.")
+              val nino = customerCacheResponse.json.as[Nino]
+              desConnector.getResidencyStatus(nino).map { httpResponse =>
+                httpResponse.status match {
+                  case OK =>
+                    val residencyStatus = httpResponse.json.as[ResidencyStatus]
+                    auditResponse(failureReason = None,
+                      nino = Some(nino.nino),
+                      residencyStatus = Some(residencyStatus))
+                    Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
+                    Ok(toJson(residencyStatus))
                 }
+              } recover {
+                case _4xx: Upstream4xxResponse =>
+                  _4xx.upstreamResponseCode match {
+                    case FORBIDDEN =>  auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
+                      nino = Some(nino.nino),
+                      residencyStatus = None)
+                      Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
+                      Forbidden(toJson(AccountLockedForbiddenResponse))
+                  }
 
-              case _404: NotFoundException =>
-                auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
-                              nino = Some(nino.nino),
-                              residencyStatus = None)
-                Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
-                Forbidden(toJson(AccountLockedForbiddenResponse))
+                case _404: NotFoundException =>
+                  auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
+                                nino = Some(nino.nino),
+                                residencyStatus = None)
+                  Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
+                  Forbidden(toJson(AccountLockedForbiddenResponse))
 
-              case th: Throwable  =>
-                auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
-                              nino = Some(nino.nino),
-                              residencyStatus = None)
-                Logger.error(s"[LookupController][getResidencyStatus] Internal server error returned from DES. " +
-                             s"Exception message: ${th.getMessage}", th)
-                InternalServerError(toJson(ErrorInternalServerError))
-            }
+                case th: Throwable  =>
+                  auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
+                                nino = Some(nino.nino),
+                                residencyStatus = None)
+                  Logger.error(s"[LookupController][getResidencyStatus] Internal server error returned from DES. " +
+                               s"Exception message: ${th.getMessage}", th)
+                  InternalServerError(toJson(ErrorInternalServerError))
+              }
+          }
+        } recover {
+            case _404: NotFoundException =>
+              auditResponse(failureReason = Some(InvalidUUIDForbiddenResponse.errorCode),
+                            nino = None,
+                            residencyStatus = None)
+              Logger.debug("[LookupController][getResidencyStatus] UUID has timed out.")
+              Forbidden(toJson(InvalidUUIDForbiddenResponse))
+
+            case th: Throwable  =>
+              auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
+                nino = None,
+                residencyStatus = None)
+              Logger.error(s"[LookupController][getResidencyStatus] Error while calling cache. " +
+                           s"Exception message: ${th.getMessage}", th)
+              InternalServerError(toJson(ErrorInternalServerError))
         }
-      } recover {
-          case _404: NotFoundException =>
-            auditResponse(failureReason = Some(InvalidUUIDForbiddenResponse.errorCode),
-                          nino = None,
-                          residencyStatus = None)
-            Logger.debug("[LookupController][getResidencyStatus] UUID has timed out.")
-            Forbidden(toJson(InvalidUUIDForbiddenResponse))
-
-          case th: Throwable  =>
-            auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
-              nino = None,
-              residencyStatus = None)
-            Logger.error(s"[LookupController][getResidencyStatus] Error while calling cache. " +
-                         s"Exception message: ${th.getMessage}", th)
-            InternalServerError(toJson(ErrorInternalServerError))
+      }
+      else {
+        Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
+        Future.successful(BadRequest(toJson(BadRequestInvalidFormatResponse)))
       }
   }
 

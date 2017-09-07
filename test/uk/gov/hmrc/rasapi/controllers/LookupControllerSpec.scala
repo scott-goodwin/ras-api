@@ -255,14 +255,14 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val expectedJsonResult = Json.parse(
           """
             |{
-            |  "code": "INVALID_UUID",
-            |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
+            |  "code": "INVALID_FORMAT",
+            |  "message": "Invalid UUID format. Use the UUID provided."
             |}
           """.stripMargin)
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
-        status(result) shouldBe FORBIDDEN
+        status(result) shouldBe BAD_REQUEST
         contentAsJson(result) shouldBe expectedJsonResult
       }
 

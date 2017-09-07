@@ -28,6 +28,11 @@ case object BadRequestResponse extends ErrorResponse(
   "BAD_REQUEST",
   "Bad Request") with JsonFormats
 
+case object BadRequestInvalidFormatResponse extends ErrorResponse(
+  400,
+  "INVALID_FORMAT",
+  "Invalid UUID format. Use the UUID provided.") with JsonFormats
+
 case object InvalidUUIDForbiddenResponse extends ErrorResponse(
   403,
   "INVALID_UUID",
