@@ -417,25 +417,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
-      "an invalid UUID is given (non conforming to regex: ^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$" in {
 
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc"
-
-        val expectedJsonResult = Json.parse(
-          """
-            |{
-            |  "code": "INVALID_FORMAT",
-            |  "message": "Invalid UUID format. Use the UUID provided."
-            |}
-          """.stripMargin)
-
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-
-        status(result) shouldBe BAD_REQUEST
-        contentAsJson(result) shouldBe expectedJsonResult
-      }
 
       "the account is locked" in {
 
@@ -458,6 +440,28 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
         status(result) shouldBe FORBIDDEN
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
+
+    "return status 400" when {
+      "an invalid UUID is given (non conforming to regex: ^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
+
+        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc"
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_FORMAT",
+            |  "message": "Invalid UUID format. Use the UUID provided."
+            |}
+          """.stripMargin)
+
+        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+
+        status(result) shouldBe BAD_REQUEST
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
