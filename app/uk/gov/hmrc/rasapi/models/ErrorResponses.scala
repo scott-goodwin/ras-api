@@ -33,6 +33,11 @@ case object Unauthorised extends ErrorResponse(
   "UNAUTHORIZED",
   "Not an authorised User to use matching API endpoint") with JsonFormats
 
+case object BadRequestInvalidFormatResponse extends ErrorResponse(
+  400,
+  "INVALID_FORMAT",
+  "Invalid UUID format. Use the UUID provided.") with JsonFormats
+
 case object InvalidUUIDForbiddenResponse extends ErrorResponse(
   403,
   "INVALID_UUID",
