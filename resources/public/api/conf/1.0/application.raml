@@ -64,7 +64,7 @@ types:
                       body:
                         application/json:
                           type: !include schemas/ErrorCodes.schema.json
-                          description: Bad Request
+                          description: Invalid UUID format. Use the UUID provided.
                           example: |
                             {
                               "code" : "INVALID_FORMAT",
