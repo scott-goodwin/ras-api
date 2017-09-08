@@ -50,10 +50,8 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
 
-          if (!uuid.matches("^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")) {
-            Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
-            Forbidden(toJson(InvalidUUIDForbiddenResponse))
-          }
+          if (uuid.matches("^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")) {
+
           cachingConnector.getCachedData(uuid).flatMap { customerCacheResponse =>
             customerCacheResponse.status match {
               case OK =>
@@ -110,7 +108,11 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
               Logger.error(s"[LookupController][getResidencyStatus] Error while calling cache. " +
                 s"Exception message: ${th.getMessage}", th)
               InternalServerError(toJson(ErrorInternalServerError))
-          }
+          }}
+        else {
+          Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
+          Future.successful(BadRequest(toJson(BadRequestInvalidFormatResponse)))
+        }
       } recoverWith{
         case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
           Future.successful(Unauthorized(toJson(Unauthorised)))
@@ -121,10 +123,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
         case e => Logger.warn(s"Internal Error ${e.getCause}" )
           Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
       }
-      else {
-        Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
-        Future.successful(BadRequest(toJson(BadRequestInvalidFormatResponse)))
-      }
+
   }
 
   private def getEnrolmentIdentifier(enrols:Enrolments) = {
