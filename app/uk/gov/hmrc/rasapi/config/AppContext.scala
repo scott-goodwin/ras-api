@@ -28,6 +28,5 @@ object AppContext extends ServicesConfig {
   lazy val baseUrl = current.configuration.getString(s"$env.baseUrl").getOrElse(throw new RuntimeException(s"Missing Key $env.baseUrl"))
   lazy val apiStatus = current.configuration.getString("api.status").getOrElse(throw new RuntimeException(s"Missing Key $env.api.status"))
   lazy val cachingUrl = current.configuration.getString("endpoints.customer-caching.url").getOrElse(throw new RuntimeException(s"Missing Key $env.endpoints.customer-caching.store-nino"))
-
-
+  lazy val residencyStatusUrl = current.configuration.getString("endpoints.residency-status.url").getOrElse(throw new RuntimeException(s"Missing Key $env.endpoints.residency-status.url"))
 }

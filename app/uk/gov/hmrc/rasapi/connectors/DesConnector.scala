@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
@@ -28,12 +28,12 @@ trait DesConnector extends ServicesConfig {
 
   val http: HttpGet
   val desBaseUrl: String
-  val cachingGetResidencyStatusUrl: String
+  def getResidencyStatusUrl(nino: String): String
 
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     val customerNino = nino.nino
-    val uri = desBaseUrl + cachingGetResidencyStatusUrl + s"/$customerNino"
+    val uri = desBaseUrl + getResidencyStatusUrl(customerNino)
 
     http.GET(uri)
   }
@@ -43,6 +43,6 @@ object DesConnector extends DesConnector{
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val http: HttpGet = WSHttp
   override val desBaseUrl = baseUrl("des")
-  override val cachingGetResidencyStatusUrl = "/ras-stubs/get-residency-status"
+  override def getResidencyStatusUrl(nino: String) = String.format(AppContext.residencyStatusUrl, nino) //"/ras-stubs/get-residency-status"
   // $COVERAGE-ON$
 }
