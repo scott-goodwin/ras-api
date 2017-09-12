@@ -18,6 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.http.logging.Authorization
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models._
 
@@ -35,8 +36,16 @@ trait DesConnector extends ServicesConfig {
     val customerNino = nino.nino
     val uri = desBaseUrl + getResidencyStatusUrl(customerNino)
 
-    http.GET(uri)
+    http.GET(uri)(httpReads, updateHeaderCarrier(hc))
   }
+
+  val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
+    override def read(method: String, url: String, response: HttpResponse) = response
+  }
+
+  private def updateHeaderCarrier(headerCarrier: HeaderCarrier) =
+    headerCarrier.copy(extraHeaders = Seq(("Environment" -> AppContext.desUrlHeaderEnv)),
+      authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
 }
 
 object DesConnector extends DesConnector{
