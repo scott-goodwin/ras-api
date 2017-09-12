@@ -19,21 +19,19 @@ package uk.gov.hmrc.rasapi.controllers
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import play.api.libs.json.Json._
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.rasapi.connectors.{CachingConnector, DesConnector}
-import org.mockito.Matchers
+import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpec}
 import uk.gov.hmrc.auth.core.ConfidenceLevel.L300
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, NotFoundException, Upstream4xxResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, NotFoundException}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.models._
-import uk.gov.hmrc.rasapi.services.AuditService
+import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
 
 import scala.concurrent.Future
 
@@ -43,7 +41,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
   val acceptHeader: (String, String) = (HeaderNames.ACCEPT, "application/vnd.hmrc.1.0+json")
 
-  val mockDesConnector = mock[DesConnector]
+  val mockHttpResponseHandlerService = mock[HttpResponseHandlerService]
   val mockCachingConnector = mock[CachingConnector]
   val mockAuditService = mock[AuditService]
   val mockAuthConnector = mock[RasAuthConnector]
@@ -59,7 +57,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
   val successfulRetrieval: Future[Enrolments] = Future.successful(enrolments)
 
   object TestLookupController extends LookupController {
-    override val desConnector = mockDesConnector
+    override val responseHandlerService: HttpResponseHandlerService = mockHttpResponseHandlerService
     override val cachingConnector = mockCachingConnector
     override val auditService: AuditService = mockAuditService
     override val authConnector: AuthConnector = mockAuthConnector
@@ -77,10 +75,10 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
+        val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
@@ -145,7 +143,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.failed(new NotFoundException("")))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Right("")))
 
         await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
@@ -156,7 +154,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INVALID_RESIDENCY_STATUS"))
+                              "reason" -> "INTERNAL_SERVER_ERROR"))
         )(any())
       }
 
@@ -167,7 +165,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.successful(HttpResponse(500, None)))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Right("")))
 
         await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
@@ -189,7 +187,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 403, 0)))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Right("")))
 
         await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
@@ -200,7 +198,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INVALID_RESIDENCY_STATUS"))
+                              "reason" -> "INTERNAL_SERVER_ERROR"))
         )(any())
       }
 
@@ -211,7 +209,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(any())(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 406, 0)))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Right("")))
 
         await(TestLookupController.getResidencyStatus(uuid)
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
@@ -220,7 +218,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("successfulLookup" -> "false",
+          auditData = Meq(Map("nino" -> "LE241131B",
+                              "successfulLookup" -> "false",
                               "reason" -> "INTERNAL_SERVER_ERROR"))
         )(any())
       }
@@ -236,7 +235,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
+        val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
         val expectedJsonResult = Json.parse(
           """
@@ -247,8 +246,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           """.stripMargin)
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(Nino("LE241131B")))(Matchers.any())).
-          thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
@@ -265,19 +263,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "Bearer ABC")
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
-
-        val expectedJsonResult = Json.parse(
-          """
-            {
-              "currentYearResidencyStatus" : "otherUKResident",
-              "nextYearForecastResidencyStatus" : "otherUKResident"
-            }
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(Nino("LE241131B")))(Matchers.any())).
-          thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
@@ -290,19 +275,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         when(mockAuthConnector.authorise[Option[String]](any(), any())(any())).thenReturn(Future.failed(new MissingBearerToken))
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
-
-        val expectedJsonResult = Json.parse(
-          """
-            {
-              "currentYearResidencyStatus" : "otherUKResident",
-              "nextYearForecastResidencyStatus" : "otherUKResident"
-            }
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(Nino("LE241131B")))(Matchers.any())).
-          thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader))
@@ -317,19 +289,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "")
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
-
-        val expectedJsonResult = Json.parse(
-          """
-            {
-              "currentYearResidencyStatus" : "otherUKResident",
-              "nextYearForecastResidencyStatus" : "otherUKResident"
-            }
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(Nino("LE241131B")))(Matchers.any())).
-          thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
@@ -345,19 +304,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "")
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
-
-        val expectedJsonResult = Json.parse(
-          """
-            {
-              "currentYearResidencyStatus" : "otherUKResident",
-              "nextYearForecastResidencyStatus" : "otherUKResident"
-            }
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(Nino("LE241131B")))(Matchers.any())).
-          thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
@@ -372,19 +318,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "Bearer ABC")
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-        val residencyStatus = Some(ResidencyStatus("otherUKResident", "otherUKResident"))
-
-        val expectedJsonResult = Json.parse(
-          """
-            {
-              "currentYearResidencyStatus" : "otherUKResident",
-              "nextYearForecastResidencyStatus" : "otherUKResident"
-            }
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(Nino("LE241131B")))(Matchers.any())).
-          thenReturn(Future.successful(HttpResponse(200, Some(toJson(residencyStatus)))))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
@@ -395,7 +328,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
     "return status 403" when {
 
-      "an timed out UUID is given" in {
+      "a timed out UUID is given" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
 
@@ -410,32 +343,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           """.stripMargin)
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.failed(new NotFoundException("")))
-
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-
-        status(result) shouldBe FORBIDDEN
-        contentAsJson(result) shouldBe expectedJsonResult
-      }
-
-
-
-      "the account is locked" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
-
-        val nino = Nino("LE241131B")
-        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
-
-        val expectedJsonResult = Json.parse(
-          """
-            |{
-            |  "code": "INVALID_RESIDENCY_STATUS",
-            |  "message": "There is a problem with this member's account. Ask them to call HMRC."
-            |}
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(nino))(Matchers.any())). thenReturn(Future.failed(new NotFoundException("")))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
@@ -490,7 +397,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
-      "when 500 is returned from desconnector" in {
+      "when residency status is not returned from the response handler service" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
 
@@ -506,55 +413,7 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           """.stripMargin)
 
         when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(nino))(Matchers.any())).thenReturn(Future.successful(HttpResponse(500, None)))
-
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-        contentAsJson(result) shouldBe expectedJsonResult
-      }
-
-      "A 403 is returned from DES Connector (HoD)" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
-
-        val nino = Nino("LE241131B")
-        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
-
-        val expectedJsonResult = Json.parse(
-          """
-            |{
-            |  "code": "INVALID_RESIDENCY_STATUS",
-            |  "message": "There is a problem with this member's account. Ask them to call HMRC."
-            |}
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(nino))(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 403, 0)))
-
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-
-        status(result) shouldBe FORBIDDEN
-        contentAsJson(result) shouldBe expectedJsonResult
-      }
-
-      "an unexpected 4xx response is returned from DES Connector (HoD)" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any())).thenReturn(successfulRetrieval)
-
-        val nino = Nino("LE241131B")
-        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
-
-        val expectedJsonResult = Json.parse(
-          """
-            |{
-            |  "code": "INTERNAL_SERVER_ERROR",
-            |  "message": "Internal server error"
-            |}
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockDesConnector.getResidencyStatus(Meq(nino))(Matchers.any())).thenReturn(Future.failed(Upstream4xxResponse("", 406, 0)))
+        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any())(any())).thenReturn(Future.successful(Right("")))
 
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
 
@@ -562,7 +421,6 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
-
   }
 
 }
