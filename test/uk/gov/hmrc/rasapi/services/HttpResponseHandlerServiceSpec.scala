@@ -58,8 +58,8 @@ class HttpResponseHandlerServiceSpec extends UnitSpec{
 
         when(mockDesConnector.getResidencyStatus(any())(any())).thenReturn(Future.successful(desResponse))
 
-        val expectedResult = Left(ResidencyStatus(currentYearResidencyStatus = "Uk",
-                                                  nextYearForecastResidencyStatus = "Uk"))
+        val expectedResult = Left(ResidencyStatus(currentYearResidencyStatus = "otherUKResident",
+                                                  nextYearForecastResidencyStatus = "otherUKResident"))
 
         val nino = Nino("AB123456")
 
@@ -85,8 +85,8 @@ class HttpResponseHandlerServiceSpec extends UnitSpec{
 
         when(mockDesConnector.getResidencyStatus(any())(any())).thenReturn(Future.successful(desResponse))
 
-        val expectedResult = Left(ResidencyStatus(currentYearResidencyStatus = "Uk",
-                                                  nextYearForecastResidencyStatus = "Scottish"))
+        val expectedResult = Left(ResidencyStatus(currentYearResidencyStatus = "otherUKResident",
+                                                  nextYearForecastResidencyStatus = "scotResident"))
 
         val nino = Nino("AB123456")
 

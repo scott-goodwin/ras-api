@@ -36,11 +36,24 @@ trait HttpResponseHandlerService {
     desConnector.getResidencyStatus(nino).map { response =>
       Try(response.json.validate[ResidencyStatusSuccess]) match {
         case Success(JsSuccess(payload, _)) =>
-          Left(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
-            nextYearForecastResidencyStatus = payload.nextYearResidencyStatus))
+          Left(transformResidencyStatusValues(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
+            nextYearForecastResidencyStatus = payload.nextYearResidencyStatus)))
         case _ => Right("")
       }
     }
+  }
+
+  private def transformResidencyStatusValues(residencyStatus: ResidencyStatus) = {
+
+    def transformResidencyStatusValue(residencyStatus: String): String = {
+      residencyStatus match {
+        case "Uk" => "otherUKResident"
+        case "Scottish" => "scotResident"
+      }
+    }
+
+    ResidencyStatus(transformResidencyStatusValue(residencyStatus.currentYearResidencyStatus),
+                    transformResidencyStatusValue(residencyStatus.nextYearForecastResidencyStatus))
   }
 }
 
