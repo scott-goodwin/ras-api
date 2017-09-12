@@ -34,10 +34,6 @@ trait HttpResponseHandlerService {
   def handleResidencyStatusResponse(nino: Nino)(implicit hc: HeaderCarrier) : Future[Either[ResidencyStatus, String]] = {
 
     desConnector.getResidencyStatus(nino).map { response =>
-
-      println(Console.YELLOW, response.json.toString())
-      println(Console.WHITE)
-
       Try(response.json.validate[ResidencyStatusSuccess]) match {
         case Success(JsSuccess(payload, _)) =>
           Left(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
