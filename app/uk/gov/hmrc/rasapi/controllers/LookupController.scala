@@ -20,7 +20,6 @@ import play.api.mvc.{Action, AnyContent, Request}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.models.InvalidUUIDForbiddenResponse
 import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
@@ -29,7 +28,7 @@ import play.api.Logger
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.Retrievals._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
 import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
