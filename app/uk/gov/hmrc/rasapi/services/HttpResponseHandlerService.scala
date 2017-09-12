@@ -17,27 +17,34 @@
 package uk.gov.hmrc.rasapi.services
 
 import play.api.libs.json.JsSuccess
-import uk.gov.hmrc.play.http.HttpResponse
-import uk.gov.hmrc.rasapi.models.{ResidencyStatus, ResidencyStatusSuccess}
+import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.connectors.DesConnector
+import uk.gov.hmrc.rasapi.models.{Nino, ResidencyStatus, ResidencyStatusSuccess}
 import uk.gov.hmrc.rasapi.models.ResidencyStatusFormats.successFormats
 
 import scala.concurrent.Future
 import scala.util.{Success, Try}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 trait HttpResponseHandlerService {
 
-  def handleResidencyStatusResponse(response: HttpResponse): Future[Either[ResidencyStatus, String]]
+  val desConnector: DesConnector
+
+  def handleResidencyStatusResponse(nino: Nino)(implicit hc: HeaderCarrier) : Future[Either[ResidencyStatus, String]] = {
+
+    desConnector.getResidencyStatus(nino).map { response =>
+      Try(response.json.validate[ResidencyStatusSuccess]) match {
+        case Success(JsSuccess(payload, _)) =>
+          Left(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
+            nextYearForecastResidencyStatus = payload.nextYearResidencyStatus))
+        case _ => Right("")
+      }
+    }
+  }
 }
 
 object HttpResponseHandlerService extends HttpResponseHandlerService {
-  override def handleResidencyStatusResponse(response: HttpResponse): Future[Either[ResidencyStatus, String]] = {
 
-    Try(response.json.validate[ResidencyStatusSuccess]) match {
-      case Success(JsSuccess(payload, _)) =>
-        Future.successful(Left(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
-                                               nextYearForecastResidencyStatus = payload.nextYearResidencyStatus)))
-      case _ => Future.successful(Right(""))
-    }
-  }
+  override val desConnector = DesConnector
 }
