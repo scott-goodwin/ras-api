@@ -20,7 +20,6 @@ import play.api.mvc.{Action, AnyContent, Request}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.models.InvalidUUIDForbiddenResponse
 import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
@@ -29,8 +28,8 @@ import play.api.Logger
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.Retrievals._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
-import uk.gov.hmrc.rasapi.services.AuditService
+import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
 import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 
@@ -40,7 +39,7 @@ import scala.concurrent.Future
 trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
 
   val cachingConnector: CachingConnector
-  val desConnector: DesConnector
+  val responseHandlerService: HttpResponseHandlerService
   val auditService: AuditService
 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
@@ -57,39 +56,16 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
               case OK =>
                 Logger.debug("[LookupController][getResidencyStatus] Nino returned successfully.")
                 val nino = customerCacheResponse.json.as[Nino]
-                desConnector.getResidencyStatus(nino).map { httpResponse =>
-                  httpResponse.status match {
-                    case OK =>
-                      val residencyStatus = httpResponse.json.as[ResidencyStatus]
-                      auditResponse(failureReason = None,
-                        nino = Some(nino.nino),
-                        residencyStatus = Some(residencyStatus))
-                      Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
-                      Ok(toJson(residencyStatus))
-                  }
-                } recover {
-                  case _4xx: Upstream4xxResponse =>
-                    _4xx.upstreamResponseCode match {
-                      case FORBIDDEN => auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
-                        nino = Some(nino.nino),
-                        residencyStatus = None)
-                        Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
-                        Forbidden(toJson(AccountLockedForbiddenResponse))
-                    }
-
-                  case _404: NotFoundException =>
-                    auditResponse(failureReason = Some(AccountLockedForbiddenResponse.errorCode),
-                      nino = Some(nino.nino),
-                      residencyStatus = None)
-                    Logger.debug("[LookupController][getResidencyStatus] There was a problem with the individuals account.")
-                    Forbidden(toJson(AccountLockedForbiddenResponse))
-
-                  case th: Throwable =>
-                    auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
-                      nino = Some(nino.nino),
-                      residencyStatus = None)
-                    Logger.error(s"[LookupController][getResidencyStatus] Internal server error returned from DES. " +
-                      s"Exception message: ${th.getMessage}", th)
+                responseHandlerService.handleResidencyStatusResponse(nino).map {
+                  case Left(residencyStatus) => auditResponse(failureReason = None,
+                    nino = Some(nino.nino),
+                    residencyStatus = Some(residencyStatus))
+                    Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
+                    Ok(toJson(residencyStatus))
+                  case Right(_) => auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
+                    nino = Some(nino.nino),
+                    residencyStatus = None)
+                    Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES.")
                     InternalServerError(toJson(ErrorInternalServerError))
                 }
             }
@@ -162,7 +138,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 object LookupController extends LookupController {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val cachingConnector: CachingConnector = CachingConnector
-  override val desConnector: DesConnector = DesConnector
+  override val responseHandlerService: HttpResponseHandlerService = HttpResponseHandlerService
   override val auditService: AuditService = AuditService
   override val authConnector: AuthConnector = RasAuthConnector
   // $COVERAGE-ON$
