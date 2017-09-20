@@ -72,16 +72,6 @@ types:
                               "code" : "INVALID_FORMAT",
                               "message" : "Invalid UUID format. Use the UUID provided."
                             }
-                    401:
-                      body:
-                        application/json:
-                          type: !include schemas/ErrorCodes.schema.json
-                          description: Unauthorized
-                          example: |
-                            {
-                              "code" : "UNAUTHORIZED",
-                              "message" : "Not an authorised User to use matching API endpoint"
-                            }
                     403:
                       body:
                         application/json:
@@ -95,47 +85,4 @@ types:
                                 {
                                   "code": "INVALID_UUID",
                                   "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to repeated."
-                                }
-                            accountLocked:
-                              description: There is a problem with this member's account. Ask them to call HMRC.
-                              value: |
-                                {
-                                  "code": "INVALID_RESIDENCY_STATUS",
-                                  "message": "There is a problem with this member's account. Ask them to call HMRC."
-                                }
-                    404:
-                      body:
-                        application/json:
-                          type: !include schemas/ErrorCodes.schema.json
-                          examples:
-                            ResourceNotFound:
-                              description: Resource Not Found
-                              value: |
-                                {
-                                  "code" : "NOT_FOUND",
-                                  "message" : "Resource Not Found"
-                                }
-                    406:
-                      body:
-                        application/json:
-                          type: !include schemas/ErrorCodes.schema.json
-                          examples:
-                            headerInvalid:
-                              description: Accept header invalid
-                              value: |
-                                {
-                                  "code" : "ACCEPT_HEADER_INVALID",
-                                  "message" : "Accept header invalid"
-                                }
-                    500:
-                      body:
-                        application/json:
-                          type: !include schemas/ErrorCodes.schema.json
-                          examples:
-                           internalServerError :
-                              description: Internal Server Error
-                              value: |
-                                {
-                                  "code" : "INTERNAL_SERVER_ERROR",
-                                  "message" : "Internal Server Error"
                                 }

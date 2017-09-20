@@ -51,44 +51,5 @@
                 </p>
             </td>
         </tr>
-        <tr>
-                    <td><p>Request with a valid UUID, but the account has been locked</p><p class ="code--block">uuid: 76648d82-309e-484d-a310-d0ffd2997794</p></td>
-                    <td>
-                        <p>N/A</p>
-                    </td>
-                    <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
-                        <p class ="code--block"> {<br>
-                                                    "code": "ACCOUNT_LOCKED",<br>
-                                                    "message": "The account is locked, please ask your customer to get in touch with HMRC."<br>
-                                                 }<br>
-                        </p>
-                    </td>
-                </tr>
-        <tr>
-             <td><p>Request sent to incorrect endpoint</p><p class ="code--block">Endpoint: /relief-at-source/customer/mtch/2800a7ab-fe20-42ca-98d7-c33f4133cfc2/residency-status</p></td>
-            <td>
-                <p>N/A</p>
-            </td>
-            <td><p>HTTP status: <code class="code--slim">404 (Not Found)</code></p>
-                <p class ="code--block"> {<br>
-                                              "code": "MATCHING_RESOURCE_NOT_FOUND",<br>
-                                              "message": "A resource with the name in the request can not be found in the API"<br>
-                                            }
-                </p>
-            </td>
-        </tr>
-        <tr>
-            <td><p>Request with a valid UUID and an invalid 'Accept' header</p><p class ="code--block">uuid: 2800a7ab-fe20-42ca-98d7-c33f4133cfc2<br><br>Accept: application/vnd.hmrc.1.0</p></td>
-            <td>
-                <p>N/A</p>
-            </td>
-            <td><p>HTTP status: <code class="code--slim">406 (Not Acceptable)</code></p>
-                <p class ="code--block"> {<br>
-                                            "code": "ACCEPT_HEADER_INVALID",<br>
-                                            "message": "The accept header is missing or invalid"<br>
-                                          }
-                </p>
-            </td>
-        </tr>
 	</tbody>
 </table>

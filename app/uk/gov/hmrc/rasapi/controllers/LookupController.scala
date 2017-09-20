@@ -94,7 +94,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
           Future.successful(Unauthorized(toJson(Unauthorised)))
 
         case ex:NoActiveSession => Logger.warn("Inactive session")
-          Future.successful(Unauthorized(toJson(Unauthorised)))
+          Future.successful(Unauthorized(toJson(InvalidCredentials)))
 
         case e => Logger.warn(s"Internal Error ${e.getCause}" )
           Future.successful(InternalServerError(toJson(ErrorInternalServerError)))

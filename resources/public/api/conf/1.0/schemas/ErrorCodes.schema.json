@@ -14,10 +14,6 @@
       "type" : "string",
       "enum" :
       [
-        "INTERNAL_SERVER_ERROR",
-        "ACCEPT_HEADER_INVALID",
-        "UNAUTHORIZED",
-        "NOT_FOUND",
         "INVALID_UUID",
         "INVALID_RESIDENCY_STATUS",
         "INVALID_FORMAT"
