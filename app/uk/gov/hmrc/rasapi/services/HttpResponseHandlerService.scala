@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import play.api.Logger
 import play.api.libs.json.JsSuccess
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -40,13 +41,17 @@ trait HttpResponseHandlerService {
         case Success(JsSuccess(payload, _)) =>
           val resStatus = transformResidencyStatusValues(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
             nextYearForecastResidencyStatus = payload.nextYearResidencyStatus))
-          Future(desConnector.sendDataToEDH(userId, nino.nino, resStatus) map { httpResponse =>
+          desConnector.sendDataToEDH(userId, nino.nino, resStatus).map{ httpResponse =>
             auditEDHResponse(userId = userId, nino = nino.nino, auditSuccess = true)
           } recover {
-            case _ => auditEDHResponse(userId = userId, nino = nino.nino, auditSuccess = false)
-          })
+            case _ =>
+              Logger.error(s"HttpResponseHandlerService - handleResidencyStatusResponse: Error returned from EDH")
+              auditEDHResponse(userId = userId, nino = nino.nino, auditSuccess = false)
+          }
           Left(resStatus)
-        case _ => Right("")
+        case _ =>
+          Logger.error(s"HttpResponseHandlerService - handleResidencyStatusResponse: Error (${response.status}) returned from Des for residency status")
+          Right("")
       }
     }
   }
@@ -63,6 +68,10 @@ trait HttpResponseHandlerService {
     ResidencyStatus(transformResidencyStatusValue(residencyStatus.currentYearResidencyStatus),
                     transformResidencyStatusValue(residencyStatus.nextYearForecastResidencyStatus))
   }
+//
+//  private def is2xx(statusCode: Int): Boolean = {
+//    statusCode >= 200 && statusCode < 300
+//  }
 
   private def auditEDHResponse(userId: String, nino: String, auditSuccess: Boolean)
                               (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {

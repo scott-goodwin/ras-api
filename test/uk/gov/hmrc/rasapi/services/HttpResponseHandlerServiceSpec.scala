@@ -102,13 +102,15 @@ class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter {
         val desResponse = HttpResponse(responseStatus = 200, responseJson = Some(responseJson))
 
         when(mockDesConnector.getResidencyStatus(any())(any())).thenReturn(Future.successful(desResponse))
-        when(mockDesConnector.sendDataToEDH(any(), any(), any())(any())).thenReturn(
-          Future.failed(new Upstream5xxResponse("message", 500, 500)))
+
+        when(mockDesConnector.sendDataToEDH(any(), any(), any())(any())).thenReturn(Future.failed(Upstream5xxResponse("", 500, 500)))
 
         val nino = Nino("AB123456")
         val userId = "123456"
 
         await(SUT.handleResidencyStatusResponse(nino, userId))
+
+        Thread.sleep(1000) //Required to enable inner future to complete
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceAudit"),

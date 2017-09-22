@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import org.mockito.Matchers
+import org.mockito.Matchers._
 import org.mockito.Mockito.when
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{ShouldMatchers, WordSpec}
@@ -32,10 +32,12 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
   implicit val hc = HeaderCarrier()
 
-  val mockHttp = mock[HttpGet]
+  val mockHttpGet = mock[HttpGet]
+  val mockHttpPost = mock[HttpPost]
 
   object TestDesConnector extends DesConnector {
-    override val http: HttpGet = mockHttp
+    override val httpGet: HttpGet = mockHttpGet
+    override val httpPost: HttpPost = mockHttpPost
     override val desBaseUrl = ""
     override def getResidencyStatusUrl(nino: String) = ""
     override val edhUrl: String = "test-url"
@@ -53,7 +55,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
     "handle successful response when 200 is returned from des" in {
 
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpGet.GET[HttpResponse](any())(any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(residencyStatus))))
 
       val result = await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
@@ -62,7 +64,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
     "handle 404 error returned from des" in {
 
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpGet.GET[HttpResponse](any())(any(), any())).
         thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
@@ -72,7 +74,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
 
     "handle 500 error returned from des" in {
 
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpGet.GET[HttpResponse](any())(any(), any())).
         thenReturn(Future.successful(HttpResponse(500)))
 
       val result = TestDesConnector.getResidencyStatus(Nino("LE241131B"))
@@ -80,10 +82,11 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     }
   }
 
-  "DESConnector " should {
+  "DESConnector sendDataToEDH" should {
 
     "handle successful response when 200 is returned from EDH" in {
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+
+      when(mockHttpPost.POST[EDHAudit, HttpResponse](any(), any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(200)))
 
       val userId = "123456"
@@ -96,7 +99,7 @@ class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar wi
     }
 
     "handle successful response when 500 is returned from EDH" in {
-      when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpPost.POST[EDHAudit, HttpResponse](any(), any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(500)))
 
       val userId = "123456"
