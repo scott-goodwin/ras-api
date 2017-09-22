@@ -31,7 +31,13 @@ case object BadRequestResponse extends ErrorResponse(
 case object Unauthorised extends ErrorResponse(
   401,
   "UNAUTHORIZED",
-  "Not an authorised User to use matching API endpoint") with JsonFormats
+  "Supplied OAuth token not authorised to access data for given tax identifier(s)") with JsonFormats
+
+case object InvalidCredentials extends ErrorResponse(
+  401,
+  "INVALID_CREDENTIALS",
+  "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)") with JsonFormats
+
 
 case object BadRequestInvalidFormatResponse extends ErrorResponse(
   400,

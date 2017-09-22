@@ -264,10 +264,19 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "UNAUTHORIZED",
+            |  "message": "Supplied OAuth token not authorised to access data for given tax identifier(s)"
+            |}
+          """.stripMargin)
+
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
 
         status(result) shouldBe UNAUTHORIZED
+        contentAsJson(result) shouldBe expectedJsonResult
       }
 
       "a valid lookup request has been submitted with no authorization header present" in {
@@ -276,10 +285,19 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_CREDENTIALS",
+            |  "message": "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)"
+            |}
+          """.stripMargin)
+
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader))
 
         status(result) shouldBe UNAUTHORIZED
+        contentAsJson(result) shouldBe expectedJsonResult
       }
 
       "a valid lookup request has been submitted with no value declared in the authorization header" in {
@@ -290,10 +308,19 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_CREDENTIALS",
+            |  "message": "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)"
+            |}
+          """.stripMargin)
+
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
 
         status(result) shouldBe UNAUTHORIZED
+        contentAsJson(result) shouldBe expectedJsonResult
       }
 
       "a valid lookup request has been submitted with an expired bearer token in the authorization header" in {
@@ -305,10 +332,19 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_CREDENTIALS",
+            |  "message": "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)"
+            |}
+          """.stripMargin)
+
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
 
         status(result) shouldBe UNAUTHORIZED
+        contentAsJson(result) shouldBe expectedJsonResult
       }
 
       "a valid match request has been submitted with an invalid bearer token in the authorization header" in {
@@ -319,10 +355,19 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
         val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
 
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "INVALID_CREDENTIALS",
+            |  "message": "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)"
+            |}
+          """.stripMargin)
+
         val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
 
         status(result) shouldBe UNAUTHORIZED
+        contentAsJson(result) shouldBe expectedJsonResult
       }
     }
 
