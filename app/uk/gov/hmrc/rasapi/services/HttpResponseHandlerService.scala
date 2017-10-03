@@ -34,14 +34,14 @@ trait HttpResponseHandlerService {
   val desConnector: DesConnector
   val auditService: AuditService
 
-  def handleResidencyStatusResponse(nino: Nino, userId: String)(implicit request: Request[AnyContent], hc: HeaderCarrier) : Future[Either[ResidencyStatus, String]] = {
+  def handleResidencyStatusResponse(nino: Nino, userId: String)(implicit request: Request[AnyContent], hc: HeaderCarrier): Future[Either[ResidencyStatus, String]] = {
 
     desConnector.getResidencyStatus(nino).map { response =>
       Try(response.json.validate[ResidencyStatusSuccess]) match {
         case Success(JsSuccess(payload, _)) =>
           val resStatus = transformResidencyStatusValues(ResidencyStatus(currentYearResidencyStatus = payload.currentYearResidencyStatus,
             nextYearForecastResidencyStatus = payload.nextYearResidencyStatus))
-          desConnector.sendDataToEDH(userId, nino.nino, resStatus).map{ httpResponse =>
+          desConnector.sendDataToEDH(userId, nino.nino, resStatus).map { httpResponse =>
             auditEDHResponse(userId = userId, nino = nino.nino, auditSuccess = true)
           } recover {
             case _ =>
@@ -66,19 +66,16 @@ trait HttpResponseHandlerService {
     }
 
     ResidencyStatus(transformResidencyStatusValue(residencyStatus.currentYearResidencyStatus),
-                    transformResidencyStatusValue(residencyStatus.nextYearForecastResidencyStatus))
+      transformResidencyStatusValue(residencyStatus.nextYearForecastResidencyStatus))
   }
-//
-//  private def is2xx(statusCode: Int): Boolean = {
-//    statusCode >= 200 && statusCode < 300
-//  }
+
 
   private def auditEDHResponse(userId: String, nino: String, auditSuccess: Boolean)
                               (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val auditDataMap = Map("userId" -> userId,
-                           "nino" -> nino,
-                           "edhAuditSuccess" -> auditSuccess.toString)
+      "nino" -> nino,
+      "edhAuditSuccess" -> auditSuccess.toString)
 
     auditService.audit(auditType = "ReliefAtSourceAudit",
       path = request.path,

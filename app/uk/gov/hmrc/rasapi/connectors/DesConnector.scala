@@ -31,7 +31,9 @@ trait DesConnector extends ServicesConfig {
   val httpGet: HttpGet
   val httpPost: HttpPost
   val desBaseUrl: String
+
   def getResidencyStatusUrl(nino: String): String
+
   val edhUrl: String
 
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
@@ -48,21 +50,21 @@ trait DesConnector extends ServicesConfig {
       residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc))
   }
 
-//  private val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
-//    override def read(method: String, url: String, response: HttpResponse) = response
-//  }
 
   private def updateHeaderCarrier(headerCarrier: HeaderCarrier) =
     headerCarrier.copy(extraHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv),
       authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
 }
 
-object DesConnector extends DesConnector{
+object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val httpGet: HttpGet = WSHttp
   override val httpPost: HttpPost = WSHttp
   override val desBaseUrl = baseUrl("des")
-  override def getResidencyStatusUrl(nino: String) = String.format(AppContext.residencyStatusUrl, nino) //"/ras-stubs/get-residency-status"
+
+  override def getResidencyStatusUrl(nino: String) = String.format(AppContext.residencyStatusUrl, nino)
+
+  //"/ras-stubs/get-residency-status"
   override val edhUrl: String = desBaseUrl + AppContext.edhUrl
   // $COVERAGE-ON$
 }
