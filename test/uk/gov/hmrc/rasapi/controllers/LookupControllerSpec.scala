@@ -90,7 +90,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           auditData = Meq(Map("successfulLookup" -> "true",
                               "CYStatus" -> "otherUKResident",
                               "NextCYStatus" -> "otherUKResident",
-                              "nino" -> "LE241131B"))
+                              "nino" -> "LE241131B",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
     }
@@ -112,7 +113,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "false",
-                              "reason" -> "INVALID_UUID"))
+                              "reason" -> "INVALID_UUID",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
 
@@ -132,7 +134,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR"))
+                              "reason" -> "INTERNAL_SERVER_ERROR",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
 
@@ -154,7 +157,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR"))
+                              "reason" -> "INTERNAL_SERVER_ERROR",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
 
@@ -176,7 +180,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR"))
+                              "reason" -> "INTERNAL_SERVER_ERROR",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
 
@@ -198,7 +203,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR"))
+                              "reason" -> "INTERNAL_SERVER_ERROR",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
 
@@ -220,7 +226,8 @@ class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatcher
           path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR"))
+                              "reason" -> "INTERNAL_SERVER_ERROR",
+                              "userIdentifier" -> "Z123456"))
         )(any())
       }
     }

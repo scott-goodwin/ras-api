@@ -59,12 +59,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                 responseHandlerService.handleResidencyStatusResponse(nino, id).map {
                   case Left(residencyStatus) => auditResponse(failureReason = None,
                     nino = Some(nino.nino),
-                    residencyStatus = Some(residencyStatus))
+                    residencyStatus = Some(residencyStatus),
+                    userId = id)
                     Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
                     Ok(toJson(residencyStatus))
                   case Right(_) => auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
                     nino = Some(nino.nino),
-                    residencyStatus = None)
+                    residencyStatus = None,
+                    userId = id)
                     Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES.")
                     InternalServerError(toJson(ErrorInternalServerError))
                 }
@@ -73,14 +75,16 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             case _404: NotFoundException =>
               auditResponse(failureReason = Some(InvalidUUIDForbiddenResponse.errorCode),
                 nino = None,
-                residencyStatus = None)
+                residencyStatus = None,
+                userId = id)
               Logger.debug("[LookupController][getResidencyStatus] UUID has timed out.")
               Forbidden(toJson(InvalidUUIDForbiddenResponse))
 
             case th: Throwable =>
               auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
                 nino = None,
-                residencyStatus = None)
+                residencyStatus = None,
+                userId = id)
               Logger.error(s"[LookupController][getResidencyStatus] Error while calling cache. " +
                 s"Exception message: ${th.getMessage}", th)
               InternalServerError(toJson(ErrorInternalServerError))
@@ -116,7 +120,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
     * @param hc Headers
     */
   private def auditResponse(failureReason: Option[String], nino: Option[String],
-                            residencyStatus: Option[ResidencyStatus])
+                            residencyStatus: Option[ResidencyStatus], userId: String)
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
@@ -130,7 +134,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId)
     )
   }
 }
