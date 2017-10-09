@@ -22,6 +22,7 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpResponse }
 
 trait CachingConnector extends ServicesConfig {
 

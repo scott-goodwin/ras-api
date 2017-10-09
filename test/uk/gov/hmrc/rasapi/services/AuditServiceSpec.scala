@@ -24,7 +24,7 @@ import org.scalatest.{WordSpec, _}
 import org.scalatestplus.play.OneAppPerTest
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class AuditServiceSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerTest with BeforeAndAfter {
 

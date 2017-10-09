@@ -27,6 +27,7 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpPost, HttpResponse, NotFoundException }
 
 class DesConnectorSpec extends WordSpec with OneAppPerSuite with MockitoSugar with ShouldMatchers{
 

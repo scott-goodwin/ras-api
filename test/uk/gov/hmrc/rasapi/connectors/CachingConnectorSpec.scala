@@ -29,6 +29,7 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.models.Nino
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpResponse }
 
 class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
 

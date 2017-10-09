@@ -28,12 +28,12 @@ import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfter, ShouldMatchers, WordSpec}
 import uk.gov.hmrc.auth.core.ConfidenceLevel.L300
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, NotFoundException}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, NotFoundException }
 
 class LookupControllerSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite with BeforeAndAfter{
 
