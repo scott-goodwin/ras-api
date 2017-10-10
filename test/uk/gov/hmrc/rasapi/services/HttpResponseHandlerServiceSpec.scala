@@ -24,12 +24,13 @@ import org.scalatest.mock.MockitoSugar.mock
 import org.mockito.Mockito._
 import org.mockito.Matchers.{eq => Meq, _}
 import org.scalatest.BeforeAndAfter
+import org.scalatestplus.play.OneAppPerTest
 import play.api.test.{FakeRequest, Helpers}
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, Upstream5xxResponse }
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream5xxResponse}
 
-class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter {
+class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter with OneAppPerTest {
 
   val mockDesConnector = mock[DesConnector]
   val mockAuditService = mock[AuditService]

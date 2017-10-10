@@ -19,14 +19,15 @@ package uk.gov.hmrc.rasapi.services
 import org.mockito.ArgumentCaptor
 import org.mockito.Matchers._
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{WordSpec, _}
 import org.scalatestplus.play.OneAppPerTest
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.test.UnitSpec
 
-class AuditServiceSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerTest with BeforeAndAfter {
+trait AuditServiceSpec extends UnitSpec with MockitoSugar with OneAppPerTest with BeforeAndAfter {
 
   implicit val hc:HeaderCarrier = HeaderCarrier()
   val mockAuditConnector = mock[AuditConnector]
