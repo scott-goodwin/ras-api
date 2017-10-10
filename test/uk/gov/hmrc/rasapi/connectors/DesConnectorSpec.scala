@@ -26,19 +26,19 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpPost, HttpResponse, NotFoundException}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.test.UnitSpec
 
 class DesConnectorSpec extends UnitSpec with OneAppPerSuite with MockitoSugar {
 
   implicit val hc = HeaderCarrier()
 
-  val mockHttpGet = mock[HttpGet]
-  val mockHttpPost = mock[HttpPost]
+  val mockHttpGet = mock[CoreGet]
+  val mockHttpPost = mock[CorePost]
 
   object TestDesConnector extends DesConnector {
-    override val httpGet: HttpGet = mockHttpGet
-    override val httpPost: HttpPost = mockHttpPost
+    override val httpGet: CoreGet = mockHttpGet
+    override val httpPost: CorePost = mockHttpPost
     override val desBaseUrl = ""
     override def getResidencyStatusUrl(nino: String) = ""
     override val edhUrl: String = "test-url"
