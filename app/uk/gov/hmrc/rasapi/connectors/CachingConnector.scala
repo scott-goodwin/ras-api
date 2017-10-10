@@ -19,7 +19,7 @@ package uk.gov.hmrc.rasapi.connectors
 import play.api.Logger
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
-
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpGet, HttpResponse}
 

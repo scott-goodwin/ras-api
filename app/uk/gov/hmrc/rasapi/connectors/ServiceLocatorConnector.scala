@@ -22,7 +22,7 @@ import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{CorePost, HeaderCarrier, HttpPost}
+import uk.gov.hmrc.http.{CorePost, HeaderCarrier}
 
 trait ServiceLocatorConnector {
   val appName: String

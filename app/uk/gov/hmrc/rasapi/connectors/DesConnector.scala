@@ -25,6 +25,7 @@ import uk.gov.hmrc.rasapi.models._
 import scala.concurrent.Future
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 
 trait DesConnector extends ServicesConfig {
@@ -42,13 +43,13 @@ trait DesConnector extends ServicesConfig {
     val customerNino = nino.nino
     val uri = desBaseUrl + getResidencyStatusUrl(customerNino)
 
-    httpGet.GET(uri)(implicitly[HttpReads[HttpResponse]], hc = updateHeaderCarrier(hc))
+    httpGet.GET(uri)(implicitly[HttpReads[HttpResponse]], hc = updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
   }
 
   def sendDataToEDH(userId: String, nino: String, residencyStatus: ResidencyStatus)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     httpPost.POST[EDHAudit, HttpResponse](url = edhUrl, body = EDHAudit(userId, nino, residencyStatus.currentYearResidencyStatus,
-      residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc))
+      residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
   }
 
 

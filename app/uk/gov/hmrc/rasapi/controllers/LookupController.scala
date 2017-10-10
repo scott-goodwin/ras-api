@@ -26,15 +26,15 @@ import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
-import uk.gov.hmrc.auth.core.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
 import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
-
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ HeaderCarrier, NotFoundException }
+import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 
 trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
 
