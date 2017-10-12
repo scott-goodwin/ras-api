@@ -17,6 +17,7 @@
 package uk.gov.hmrc.rasapi.connectors
 
 import org.mockito.Matchers
+import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
@@ -32,45 +33,47 @@ import uk.gov.hmrc.rasapi.models.EDHAudit
 
 class ServiceLocatorConnectorSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
-  implicit val hc = HeaderCarrier()
-  val serviceLocatorException = new RuntimeException
+  trait Setup {
+    implicit val hc = HeaderCarrier()
+    val serviceLocatorException = new RuntimeException
 
-  val mockHttp = mock[CorePost]
-
-  object TestServiceLocatorConnector extends ServiceLocatorConnector {
-    override val http = mockHttp
-    override val appUrl: String = "http://api-microservice.service"
-    override val appName: String = "api-microservice"
-    override val serviceUrl: String = "https://SERVICE_LOCATOR"
-    override val handlerOK: () => Unit = mock[Function0[Unit]]
-    override val handlerError: Throwable => Unit = mock[Function1[Throwable, Unit]]
-    override val metadata: Option[Map[String, String]] = Some(Map("third-party-api" -> "true"))
+    val connector = new ServiceLocatorConnector {
+      override val http = mock[HttpPost]
+      override val appUrl: String = "http://api-microservice.service"
+      override val appName: String = "api-microservice"
+      override val serviceUrl: String = "https://SERVICE_LOCATOR"
+      override val handlerOK: () => Unit = mock[Function0[Unit]]
+      override val handlerError: Throwable => Unit = mock[Function1[Throwable, Unit]]
+      override val metadata: Option[Map[String, String]] = Some(Map("third-party-api" -> "true"))
+    }
   }
 
   "register" should {
-    "register the JSON API Definition into the Service Locator" in {
+    "register the JSON API Definition into the Service Locator" in new Setup {
 
       val registration = Registration(serviceName = "api-microservice", serviceUrl = "http://api-microservice.service", metadata = Some(Map("third-party-api" -> "true")))
 
-      when(mockHttp.POST[Registration,HttpResponse]("https://SERVICE_LOCATOR/registration", registration, Seq("Content-Type"-> "application/json"))).thenReturn(Future.successful(HttpResponse(200)))
+      when(connector.http.POST[Registration, HttpResponse](
+        Matchers.eq(s"${connector.serviceUrl}/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
 
-      TestServiceLocatorConnector.register.futureValue shouldBe true
-      verify(TestServiceLocatorConnector.http).POST("https://SERVICE_LOCATOR/registration", registration, Seq("Content-Type"-> "application/json"))
-      verify(TestServiceLocatorConnector.handlerOK).apply()
-      verify(TestServiceLocatorConnector.handlerError, never).apply(serviceLocatorException)
+      connector.register.futureValue shouldBe true
+      verify(connector.http).POST(Matchers.eq("https://SERVICE_LOCATOR/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any())
+      verify(connector.handlerOK).apply()
+      verify(connector.handlerError, never).apply(serviceLocatorException)
     }
 
 
-    "fail registering in service locator" in {
+    "fail registering in service locator" in new Setup {
 
       val registration = Registration(serviceName = "api-microservice", serviceUrl = "http://api-microservice.service", metadata = Some(Map("third-party-api" -> "true")))
+      when(connector.http.POST(Matchers.eq(s"${connector.serviceUrl}/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any()))
+        .thenReturn(Future.failed(serviceLocatorException))
 
-      when(mockHttp.POST("https://SERVICE_LOCATOR/registration", registration, Seq("Content-Type"-> "application/json"))).thenReturn(Future.failed(serviceLocatorException))
-
-      TestServiceLocatorConnector.register.futureValue shouldBe false
-      verify(TestServiceLocatorConnector.http).POST("https://SERVICE_LOCATOR/registration", registration, Seq("Content-Type"-> "application/json"))
-      verify(TestServiceLocatorConnector.handlerOK, never).apply()
-      verify(TestServiceLocatorConnector.handlerError).apply(serviceLocatorException)
+      connector.register.futureValue shouldBe false
+      verify(connector.http).POST(Matchers.eq("https://SERVICE_LOCATOR/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any())
+      verify(connector.handlerOK, never).apply()
+      verify(connector.handlerError).apply(serviceLocatorException)
     }
 
   }
