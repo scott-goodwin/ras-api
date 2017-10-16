@@ -1,1 +1,7 @@
-<p>You can test the defined resources for all possible success and failure responses using the testdata provided for each resource to test specific scenarios.</p>
+<p>You can <a href="https://test-developer.service.hmrc.gov.uk/api-documentation/docs/sandbox/introduction">use the HMRC Developer Sandbox to test the API</a>. The Sandbox is an enhanced testing service that functions as a simulator of HMRC’s production environment.</p>
+<p>The Sandbox for the RAS API does not currently support <a href="https://test-developer.service.hmrc.gov.uk/api-documentation/docs/sandbox/stateful-behaviour">stateful behaviour</a>, but you can use the payloads described in the resources to test specific scenarios.</p>
+<p>For all the scenarios you will need you to create your own test user. To create your own test user:</p>
+   
+   1\. Use the [Create Test User API](https://test-developer.service.hmrc.gov.uk/api-documentation/docs/api/service/api-platform-test-user/1.0#_create-a-test-user-which-is-an-organisation_post_accordion)
+   
+   2\. Then use the userId and password in the response to get an OAuth 2.0 access token.
