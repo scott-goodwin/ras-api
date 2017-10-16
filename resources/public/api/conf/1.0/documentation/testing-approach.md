@@ -4,4 +4,4 @@
    
    1\. Use the [Create Test User API](https://test-developer.service.hmrc.gov.uk/api-documentation/docs/api/service/api-platform-test-user/1.0#_create-a-test-user-which-is-an-organisation_post_accordion)
    
-   2\. Then use the userId and password in the response to get an OAuth 2.0 access token.
+   2\. Then use the userId and password in the response to get an OAuth 2.0 access token
