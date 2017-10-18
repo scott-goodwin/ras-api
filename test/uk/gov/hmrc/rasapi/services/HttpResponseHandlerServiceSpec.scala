@@ -77,6 +77,8 @@ class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter with O
 
         await(SUT.handleResidencyStatusResponse(nino, userId))
 
+        Thread.sleep(5000) //Required to enable inner future to complete
+
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceAudit"),
           path = Meq(uri),
@@ -111,7 +113,7 @@ class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter with O
 
         await(SUT.handleResidencyStatusResponse(nino, userId))
 
-        Thread.sleep(1000) //Required to enable inner future to complete
+        Thread.sleep(5000) //Required to enable inner future to complete
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceAudit"),
