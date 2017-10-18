@@ -18,23 +18,21 @@ package uk.gov.hmrc.rasapi.config
 
 import com.typesafe.config.Config
 import play.api._
-import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import net.ceedubs.ficus.Ficus._
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{RequestHeader, Result}
 import play.api.mvc.Results.{BadRequest, NotFound, Status}
 import uk.gov.hmrc.api.controllers.{ErrorInternalServerError, ErrorUnauthorized}
-import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 import uk.gov.hmrc.rasapi.models.{BadRequestResponse, ErrorNotFound}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter, MicroserviceFilterSupport }
 
 
 trait ServiceLocatorRegistration extends GlobalSettings with RunMode {

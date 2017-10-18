@@ -19,17 +19,19 @@ package uk.gov.hmrc.rasapi.connectors
 import play.api.libs.json.Writes
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.Authorization
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 
 trait DesConnector extends ServicesConfig {
 
-  val httpGet: HttpGet
-  val httpPost: HttpPost
+  val httpGet: CoreGet
+  val httpPost: CorePost
   val desBaseUrl: String
 
   def getResidencyStatusUrl(nino: String): String
@@ -41,13 +43,13 @@ trait DesConnector extends ServicesConfig {
     val customerNino = nino.nino
     val uri = desBaseUrl + getResidencyStatusUrl(customerNino)
 
-    httpGet.GET(uri)(implicitly[HttpReads[HttpResponse]], hc = updateHeaderCarrier(hc))
+    httpGet.GET(uri)(implicitly[HttpReads[HttpResponse]], hc = updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
   }
 
   def sendDataToEDH(userId: String, nino: String, residencyStatus: ResidencyStatus)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     httpPost.POST[EDHAudit, HttpResponse](url = edhUrl, body = EDHAudit(userId, nino, residencyStatus.currentYearResidencyStatus,
-      residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc))
+      residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
   }
 
 
@@ -58,13 +60,10 @@ trait DesConnector extends ServicesConfig {
 
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val httpGet: HttpGet = WSHttp
-  override val httpPost: HttpPost = WSHttp
+  override val httpGet: CoreGet = WSHttp
+  override val httpPost: CorePost = WSHttp
   override val desBaseUrl = baseUrl("des")
-
   override def getResidencyStatusUrl(nino: String) = String.format(AppContext.residencyStatusUrl, nino)
-
-  //"/ras-stubs/get-residency-status"
   override val edhUrl: String = desBaseUrl + AppContext.edhUrl
   // $COVERAGE-ON$
 }

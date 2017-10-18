@@ -17,7 +17,6 @@
 package uk.gov.hmrc.rasapi.services
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.models.{Nino, ResidencyStatus}
@@ -25,11 +24,13 @@ import org.scalatest.mock.MockitoSugar.mock
 import org.mockito.Mockito._
 import org.mockito.Matchers.{eq => Meq, _}
 import org.scalatest.BeforeAndAfter
+import org.scalatestplus.play.OneAppPerTest
 import play.api.test.{FakeRequest, Helpers}
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream5xxResponse}
 
-class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter {
+class HttpResponseHandlerServiceSpec extends UnitSpec with BeforeAndAfter with OneAppPerTest {
 
   val mockDesConnector = mock[DesConnector]
   val mockAuditService = mock[AuditService]

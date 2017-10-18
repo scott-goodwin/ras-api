@@ -18,11 +18,11 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
 import uk.gov.hmrc.api.domain.Registration
-import uk.gov.hmrc.rasapi.config.{WSHttp, AppContext}
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
+import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{CorePost, HeaderCarrier}
 
 trait ServiceLocatorConnector {
   val appName: String
@@ -34,7 +34,7 @@ trait ServiceLocatorConnector {
   val metadata: Option[Map[String, String]]
 
 
-  val http: HttpPost
+  val http: CorePost
 
 
   def register(implicit hc: HeaderCarrier): Future[Boolean] = {
@@ -57,7 +57,7 @@ object ServiceLocatorConnector extends ServiceLocatorConnector {
   override lazy val appName = AppContext.appName
   override lazy val appUrl = AppContext.appUrl
   override lazy val serviceUrl = AppContext.serviceLocatorUrl
-  override val http: HttpPost = WSHttp
+  override val http: CorePost = WSHttp
   override val handlerOK: () => Unit = () => Logger.info("Service is registered on the service locator")
   override val handlerError: Throwable => Unit = e => Logger.error(s"Service could not register on the service locator", e)
   override val metadata: Option[Map[String, String]] = Some(Map("third-party-api" -> "true"))

@@ -16,14 +16,20 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import org.mockito.Matchers
+import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
+import org.mockito.Mockito.when
 import uk.gov.hmrc.api.domain.Registration
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{CorePost, HeaderCarrier, HttpPost, HttpResponse}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.rasapi.models.EDHAudit
+
 
 class ServiceLocatorConnectorSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
@@ -47,10 +53,12 @@ class ServiceLocatorConnectorSpec extends UnitSpec with MockitoSugar with ScalaF
 
       val registration = Registration(serviceName = "api-microservice", serviceUrl = "http://api-microservice.service", metadata = Some(Map("third-party-api" -> "true")))
 
-      when(connector.http.POST(s"${connector.serviceUrl}/registration", registration, Seq("Content-Type"-> "application/json"))).thenReturn(Future.successful(HttpResponse(200)))
+      when(connector.http.POST[Registration, HttpResponse](
+        Matchers.eq(s"${connector.serviceUrl}/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse(200)))
 
       connector.register.futureValue shouldBe true
-      verify(connector.http).POST("https://SERVICE_LOCATOR/registration", registration, Seq("Content-Type"-> "application/json"))
+      verify(connector.http).POST(Matchers.eq("https://SERVICE_LOCATOR/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any())
       verify(connector.handlerOK).apply()
       verify(connector.handlerError, never).apply(serviceLocatorException)
     }
@@ -59,10 +67,11 @@ class ServiceLocatorConnectorSpec extends UnitSpec with MockitoSugar with ScalaF
     "fail registering in service locator" in new Setup {
 
       val registration = Registration(serviceName = "api-microservice", serviceUrl = "http://api-microservice.service", metadata = Some(Map("third-party-api" -> "true")))
-      when(connector.http.POST(s"${connector.serviceUrl}/registration", registration, Seq("Content-Type"-> "application/json"))).thenReturn(Future.failed(serviceLocatorException))
+      when(connector.http.POST(Matchers.eq(s"${connector.serviceUrl}/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any()))
+        .thenReturn(Future.failed(serviceLocatorException))
 
       connector.register.futureValue shouldBe false
-      verify(connector.http).POST("https://SERVICE_LOCATOR/registration", registration, Seq("Content-Type"-> "application/json"))
+      verify(connector.http).POST(Matchers.eq("https://SERVICE_LOCATOR/registration"), Matchers.eq(registration), Matchers.eq(Seq("Content-Type"-> "application/json")))(any(), any(), any(), any())
       verify(connector.handlerOK, never).apply()
       verify(connector.handlerError).apply(serviceLocatorException)
     }

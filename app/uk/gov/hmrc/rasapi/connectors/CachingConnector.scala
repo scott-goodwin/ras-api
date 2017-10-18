@@ -18,14 +18,14 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
-
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpGet, HttpResponse}
 
 trait CachingConnector extends ServicesConfig {
 
-  val httpGet: HttpGet
+  val http: CoreGet
   val cachingBaseUrl: String
   val cachingUrl: String
 
@@ -35,13 +35,13 @@ trait CachingConnector extends ServicesConfig {
 
     Logger.debug(s"[CachingConnector][getCachedData] making request to Customer Cache ($uri)")
 
-    httpGet.GET(uri)
+    http.GET(uri)
   }
 }
 
-object CachingConnector extends CachingConnector{
+object CachingConnector extends CachingConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val httpGet: HttpGet = WSHttp
+  override val http: CoreGet = WSHttp
   override val cachingBaseUrl = baseUrl("caching")
   override val cachingUrl = AppContext.cachingUrl
   // $COVERAGE-ON$

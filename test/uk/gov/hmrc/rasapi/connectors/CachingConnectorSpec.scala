@@ -21,7 +21,6 @@ import java.util.UUID
 import org.mockito.Matchers
 import org.mockito.Mockito.when
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{WordSpec, _}
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -29,26 +28,28 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.models.Nino
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.test.UnitSpec
 
-class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatchers with OneAppPerSuite {
+class CachingConnectorSpec extends UnitSpec with MockitoSugar with OneAppPerSuite {
 
   implicit val hc = HeaderCarrier()
 
-  val mockHttpGet = mock[HttpGet]
+  val mockHttpGet = mock[CoreGet]
   val uuid = UUID.randomUUID.toString
   val nino = Json.toJson(Nino("AB123456C"))
 
   object SUT extends CachingConnector {
     override val cachingBaseUrl = ""
     override val cachingUrl = ""
-    override val httpGet: HttpGet = mockHttpGet
+    override val http: CoreGet = mockHttpGet
   }
 
   "getCachedData" should {
 
     "handle successful response when 200 is returned from caching service" in {
 
-      when(mockHttpGet.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpGet.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).
         thenReturn(Future.successful(HttpResponse(200, Some(nino))))
 
       val result = SUT.getCachedData(uuid)
@@ -57,7 +58,7 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
     "handle 404 error returned from caching service" in {
 
-      when(mockHttpGet.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpGet.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).
         thenReturn(Future.successful(HttpResponse(404, None)))
 
       val result = SUT.getCachedData(uuid)
@@ -67,7 +68,7 @@ class CachingConnectorSpec extends WordSpec with MockitoSugar with ShouldMatcher
 
     "handle 500 error returned from caching service" in {
 
-      when(mockHttpGet.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any())).
+      when(mockHttpGet.GET[HttpResponse](Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).
         thenReturn(Future.successful(HttpResponse(500, None)))
 
 
