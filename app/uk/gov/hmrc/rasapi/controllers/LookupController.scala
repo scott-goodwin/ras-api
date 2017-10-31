@@ -33,8 +33,10 @@ import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
 import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.rasapi.metrics.Metrics
 
 trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
 
@@ -44,7 +46,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
   def getResidencyStatus(uuid: String): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
-
+      val apiMetrics = Metrics.responseTimer.time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
@@ -62,12 +64,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                     residencyStatus = Some(residencyStatus),
                     userId = id)
                     Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
+                    apiMetrics.stop()
                     Ok(toJson(residencyStatus))
                   case Right(_) => auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
                     nino = Some(nino.nino),
                     residencyStatus = None,
                     userId = id)
                     Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES.")
+                    Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                     InternalServerError(toJson(ErrorInternalServerError))
                 }
             }
@@ -78,6 +82,8 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                 residencyStatus = None,
                 userId = id)
               Logger.debug("[LookupController][getResidencyStatus] UUID has timed out.")
+              Metrics.registry.counter(FORBIDDEN.toString)
+
               Forbidden(toJson(InvalidUUIDForbiddenResponse))
 
             case th: Throwable =>
@@ -87,20 +93,25 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                 userId = id)
               Logger.error(s"[LookupController][getResidencyStatus] Error while calling cache. " +
                 s"Exception message: ${th.getMessage}", th)
+              Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
               InternalServerError(toJson(ErrorInternalServerError))
           }}
         else {
           Logger.debug("[LookupController][getResidencyStatus] invalid UUID specified")
-          Future.successful(BadRequest(toJson(BadRequestInvalidFormatResponse)))
+            Metrics.registry.counter(BAD_REQUEST.toString)
+            Future.successful(BadRequest(toJson(BadRequestInvalidFormatResponse)))
         }
       } recoverWith{
         case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
+          Metrics.registry.counter(UNAUTHORIZED.toString)
+
           Future.successful(Unauthorized(toJson(Unauthorised)))
 
         case ex:NoActiveSession => Logger.warn("Inactive session")
+          Metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(InvalidCredentials)))
+          case e => Logger.warn(s"Internal Error ${e.getCause}" )
 
-        case e => Logger.warn(s"Internal Error ${e.getCause}" )
           Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
       }
 

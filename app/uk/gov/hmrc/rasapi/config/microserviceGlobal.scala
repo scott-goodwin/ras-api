@@ -66,7 +66,7 @@ object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSu
 object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport with ServiceLocatorRegistration  {
   override val auditConnector = MicroserviceAuditConnector
 
-  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"metrics")
+  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
 
   override val loggingFilter = MicroserviceLoggingFilter
 
