@@ -20,8 +20,7 @@ sealed abstract class DesResponse(val residencyStatus: Option[ResidencyStatus])
 
 case class SuccessfulDesResponse(override val residencyStatus: Option[ResidencyStatus]) extends DesResponse(residencyStatus)
 
-case object AccountLockedResponse extends DesResponse(residencyStatus = None)
-
 case object InternalServerErrorResponse extends DesResponse(residencyStatus = None)
 
 case object NotFoundResponse extends DesResponse(residencyStatus = None)
+

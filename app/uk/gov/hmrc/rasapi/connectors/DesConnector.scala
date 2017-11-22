@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import play.api.libs.json.Writes
+import play.api.Logger
+import play.api.libs.json.{JsSuccess, Writes}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models._
 
@@ -26,6 +26,9 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import scala.util.{Failure, Success, Try}
 
 
 trait DesConnector extends ServicesConfig {
@@ -38,6 +41,11 @@ trait DesConnector extends ServicesConfig {
 
   val edhUrl: String
 
+   val uk = "UK"
+   val scot = "Scottish"
+   val otherUk = "otherUKResident"
+   val scotRes = "scotResident"
+
   def getResidencyStatus(nino: Nino)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     val customerNino = nino.nino
@@ -48,11 +56,37 @@ trait DesConnector extends ServicesConfig {
 
   def sendDataToEDH(userId: String, nino: String, residencyStatus: ResidencyStatus)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
-    httpPost.POST[EDHAudit, HttpResponse](url = edhUrl, body = EDHAudit(userId, nino, residencyStatus.currentYearResidencyStatus,
-      residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
+    httpPost.POST[EDHAudit, HttpResponse](url = edhUrl, body = EDHAudit(userId, nino,
+      residencyStatus.currentYearResidencyStatus,residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]],
+      implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
   }
 
+  def getResidencyStatus(member: IndividualDetails)(implicit hc: HeaderCarrier):
+    Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
 
+    val uri = desBaseUrl + String.format(AppContext.residencyStatusUrl,
+      member.nino,member.dateOfBirth,member.firstName,member.lastName)
+
+    val result = httpGet.GET(uri)(implicitly[HttpReads[HttpResponse]], hc = updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
+
+    result.map (response => resolveResponse(response))
+  }
+
+  private def resolveResponse(httpResponse: HttpResponse) :Either[ResidencyStatus, ResidencyStatusFailure] =   {
+    Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
+      case Success(payload) =>
+        val currentStatus = payload.currentYearResidencyStatus.replace(uk,otherUk).replace(scot,scotRes)
+        val nextYearSatus = payload.nextYearResidencyStatus.replace(uk,otherUk).replace(scot,scotRes)
+        Left(ResidencyStatus(currentStatus,nextYearSatus))
+      case Failure(_) =>
+        Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {
+          case Success(data) => Logger.info(s"DesFailureResponse from DES :${data}")
+            Right(data)
+          case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
+            Right(ResidencyStatusFailure("500","HODS NOTAVAILABLE"))
+        }
+    }
+  }
   private def updateHeaderCarrier(headerCarrier: HeaderCarrier) =
     headerCarrier.copy(extraHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv),
       authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))

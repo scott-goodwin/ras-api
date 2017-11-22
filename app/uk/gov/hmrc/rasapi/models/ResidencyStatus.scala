@@ -19,7 +19,9 @@ package uk.gov.hmrc.rasapi.models
 import play.api.libs.json.Json
 
 case class ResidencyStatus(currentYearResidencyStatus: String = "", nextYearForecastResidencyStatus: String = "")
-
+{
+  override def toString: String = s"${currentYearResidencyStatus}${if(!nextYearForecastResidencyStatus.trim.isEmpty)(","+nextYearForecastResidencyStatus)}"
+}
 object ResidencyStatus{
   implicit val format = Json.format[ResidencyStatus]
 }

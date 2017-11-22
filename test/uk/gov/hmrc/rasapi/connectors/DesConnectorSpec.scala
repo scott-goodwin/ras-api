@@ -16,8 +16,11 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import org.joda.time.DateTime
 import org.mockito.Matchers._
 import org.mockito.Mockito.when
+import org.mockito.Mockito.reset
+import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
@@ -29,12 +32,17 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.test.UnitSpec
 
-class DesConnectorSpec extends UnitSpec with OneAppPerSuite with MockitoSugar {
+class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter with MockitoSugar {
 
   implicit val hc = HeaderCarrier()
 
+  before{
+    reset(mockHttpGet)
+  }
+
   val mockHttpGet = mock[CoreGet]
   val mockHttpPost = mock[CorePost]
+  implicit val format = ResidencyStatusFormats.successFormats
 
   object TestDesConnector extends DesConnector {
     override val httpGet: CoreGet = mockHttpGet
@@ -112,5 +120,43 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with MockitoSugar {
       result.status shouldBe INTERNAL_SERVER_ERROR
     }
   }
+
+  "DESConnector getResidencyStatus with matching" should {
+
+    "handle successful response when 200 is returned from des" in {
+
+      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = false,
+        currentYearResidencyStatus = "UK",nextYearResidencyStatus = "Scottish")
+      when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
+        thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "SMITH", new DateTime("1990-02-21"))))
+      result.isLeft shouldBe true
+      result.left.get shouldBe ResidencyStatus("otherUKResident","scotResident")
+    }
+
+    "handle failure response from des" in {
+implicit val formatF = ResidencyStatusFormats.failureFormats
+      val errorResponse = ResidencyStatusFailure("NOT_MATCHED","matching failed")
+      when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
+        thenReturn(Future.successful(HttpResponse(403, Some(Json.toJson(errorResponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "Lewis", new DateTime("1990-02-21"))))
+      result.isLeft shouldBe false
+      result.right.get shouldBe errorResponse
+    }
+
+    "handle unexpected responses as 500 from des" in {
+
+      when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
+        thenReturn(Future.successful(HttpResponse(500)))
+      val errorResponse = ResidencyStatusFailure("500","HODS NOTAVAILABLE")
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "Lewis", new DateTime("1990-02-21"))))
+      result.isLeft shouldBe false
+      result.right.get shouldBe errorResponse
+    }
+  }
+
 }
 
