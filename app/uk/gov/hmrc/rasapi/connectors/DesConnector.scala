@@ -80,7 +80,7 @@ trait DesConnector extends ServicesConfig {
         Left(ResidencyStatus(currentStatus,nextYearSatus))
       case Failure(_) =>
         Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {
-          case Success(data) => Logger.info(s"DesFailureResponse from DES :${data}")
+          case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
             Right(data)
           case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
             Right(ResidencyStatusFailure("500","HODS NOTAVAILABLE"))

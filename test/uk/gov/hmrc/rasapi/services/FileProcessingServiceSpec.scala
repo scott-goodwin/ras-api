@@ -114,19 +114,19 @@ class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with Sca
           Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
         val inputRow = "AB123456C,John,Smith,1990-02-21"
         val result = await(SUT.fetchResult(inputRow))
-        result shouldBe "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident"
+        result.left.get shouldBe "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident"
       }
       "input row matching failed" in {
         when(mockDesConnector.getResidencyStatus(data)(hc)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure("NOT_MATCHED","matching failed"))))
         val inputRow = "AB123456C,John,Smith,1990-02-21"
         val result = await(SUT.fetchResult(inputRow))
-        result shouldBe "AB123456C,John,Smith,1990-02-21,NOT_MATCHED"
+        result.right.get shouldBe "AB123456C,John,Smith,1990-02-21,NOT_MATCHED"
       }
       "input row is inValid" in {
         val inputRow = "456C,John,Smith,1990-02-21"
         val result = await(SUT.fetchResult(inputRow))
-        result shouldBe "456C,John,Smith,1990-02-21,nino-INVALID_FORMAT"
+        result.right.get shouldBe "456C,John,Smith,1990-02-21,nino-INVALID_FORMAT"
       }
     }
   }

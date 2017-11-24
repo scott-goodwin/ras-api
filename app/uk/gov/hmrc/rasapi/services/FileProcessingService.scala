@@ -46,71 +46,61 @@ trait FileProcessingService {
   val fileUploadConnector: FileUploadConnector
   val desConnector:DesConnector
 
-  val arr= Array("firstName", "lastName", "nino","dateOfBirth")
+  val comma = ","
 
 
   def readFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Iterator[String]] = {
 
     fileUploadConnector.getFile(envelopeId, fileId).map{
       case Some(inputStream) => Source.fromInputStream(inputStream).getLines()
-      case None => throw new FileNotFoundException()
+      case None => Logger.error("File Processing: problem reading data in the file");throw new FileNotFoundException()
     }
   }
 
   def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier) = {
-    val sucessResults:ListBuffer[String] = ListBuffer.empty
-    val failurResults:ListBuffer[String] = ListBuffer.empty
+    lazy val sucessResults:ListBuffer[String] = ListBuffer.empty
+    lazy val failurResults:ListBuffer[String] = ListBuffer.empty
 
-    val res = readFile(envelopeId,fileId).map(res =>
-     for(row <- res) yield {
-       if(!row.isEmpty) fetchResult(row) //failurResults+=s"${row},${errors.mkString(",")}"
-      .map(res=> sucessResults+=s"${row},${res.toString}")
-     }
-    ).recover{case e: Throwable => "06" }
+    readFile(envelopeId,fileId).map { res =>
+      for (row <- res) yield {
+        if (!row.isEmpty) fetchResult(row).map(res => if (res.isLeft) sucessResults += res.left.get else failurResults += res.right.get)
+      }
+    }
+
 
   }
 
-  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):Future[String] = {
-    def getStatus(memberDetails:IndividualDetails) :Future[String]= desConnector.getResidencyStatus(memberDetails).map{ status =>
-      status match {
-        case Left(residencyStatus) => residencyStatus.toString
-        case Right(statusFailure) => statusFailure.code
-      }}.recover {
-      case e: Throwable => "05"
-    }
+  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):Future[Either[String,String]] = {
     createMatchingData(inputRow) match {
-      case Right(errors) => Future(s"${inputRow},${errors.mkString(",")}")
-      case Left(details) => getStatus(details).map(inputRow + ","+_)
+      case Right(errors) => Logger.debug("Json errors Exists" + errors.mkString(comma))
+                            Future(Right(s"${inputRow},${errors.mkString(comma)}"))
+      case Left(memberDetails) => desConnector.getResidencyStatus(memberDetails).map{ status =>
+        status match {
+          case Left(residencyStatus) => Left(inputRow + comma +residencyStatus.toString)
+          case Right(statusFailure) => Right(inputRow + comma +statusFailure.code)
+        }}.recover {
+        case e: Throwable => Logger.error("File processing: Failed getting residency status ")
+          throw new RuntimeException
+      }
     }
 
   }
-
-
-/*  private def inputStreamToString(is: InputStream) = {
-    val inputStreamReader = new InputStreamReader(is)
-    val bufferedReader = new BufferedReader(inputStreamReader)
-    Iterator continually bufferedReader.readLine takeWhile (_ != null) mkString
-  }*/
 
   def createMatchingData(inputRow:String): Either[IndividualDetails,Seq[String]] = {
-//    if (inputRow.isEmpty) None
      val arr = parseString(inputRow)
         Try(Json.toJson(arr).validate[IndividualDetails](IndividualDetails.customerDetailsReads)) match
           {
           case Success(JsSuccess(details, _)) => Left(details)
-          case Success(JsError(errors)) => Logger.debug(errors.mkString);
+          case Success(JsError(errors)) => Logger.debug(errors.mkString)
             Right(errors.map(err => s"${err._1.toString.substring(1)}-${err._2.head.message}"))
           case Failure(e) => Right(Seq("INVALID RECORD"))
         }
   }
 
   private def parseString(inputRow: String) = {
-
-    val cols = inputRow.split(",")
+    val cols = inputRow.split(comma)
     val res = cols ++ (for (x <- 0 until 4- cols.length ) yield "")
     RawMemberDetails(res(0),res(1),res(2),res(3))
-//    for { (x,y) <- (arr,res).zipped
-//    } yield (x,y)
   }
 
 }

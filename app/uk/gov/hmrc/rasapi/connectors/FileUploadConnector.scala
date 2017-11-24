@@ -54,6 +54,7 @@ trait FileUploadConnector extends ServicesConfig {
       }
     }
   }
+
 }
 
 object FileUploadConnector extends FileUploadConnector {
