@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.config
 
+import play.api.libs.ws.StreamedResponse
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -24,6 +25,8 @@ import uk.gov.hmrc.play.http.ws._
 import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 
+import scala.concurrent.Future
+
 trait WSHttp extends
   HttpGet with WSGet with
   HttpPut with WSPut with
@@ -31,6 +34,8 @@ trait WSHttp extends
   HttpDelete with WSDelete with
   HttpPatch with WSPatch with AppName {
   override val hooks: Seq[HttpHook] = NoneRequired
+
+  def buildRequestWithStream(uri: String)(implicit hc: HeaderCarrier): Future[StreamedResponse] = buildRequest(uri).stream()
 }
 
 object WSHttp extends WSHttp

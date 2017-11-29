@@ -20,11 +20,11 @@ import play.api.Logger
 import play.api.libs.json.JsSuccess
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.rasapi.connectors.DesConnector
-import uk.gov.hmrc.rasapi.models.{Nino, ResidencyStatus, ResidencyStatusSuccess}
+import uk.gov.hmrc.rasapi.models. _
 import uk.gov.hmrc.rasapi.models.ResidencyStatusFormats.successFormats
 
 import scala.concurrent.Future
-import scala.util.{Success, Try}
+import scala.util.{ Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.http.HeaderCarrier
 
