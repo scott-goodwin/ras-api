@@ -1,6 +1,6 @@
 package uk.gov.hmrc.rasapi.controllers
 
-import org.mockito.Matchers.{eq => Meq, any}
+import org.mockito.Matchers.{any, eq => Meq}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
@@ -9,22 +9,26 @@ import play.api.libs.json.Json
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.models.CallbackData
-import uk.gov.hmrc.rasapi.services.FileProcessingService
+import uk.gov.hmrc.rasapi.services.{FileProcessingService, RasFileOutputService}
 import play.api.http.Status.OK
 
 class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuite with BeforeAndAfter {
 
   val mockFileProcessingService = mock[FileProcessingService]
+  val mockRasFileOutputService = mock[RasFileOutputService]
+
   val SUT = new FileProcessingController {
     override val fileProcessingService: FileProcessingService = mockFileProcessingService
+    override val fileOutputService: RasFileOutputService = mockRasFileOutputService
   }
 
   before {
     reset(mockFileProcessingService)
+    reset(mockRasFileOutputService)
   }
 
   "statusCallback" should {
-    "return Ok and interact with FileProcessingService" when {
+    "return Ok and interact with FileProcessingService and RasFileOutputService" when {
       "an 'AVAILABLE' status is given" in {
 
         val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
@@ -37,6 +41,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
           .withJsonBody(Json.toJson(callbackData)))
 
         verify(mockFileProcessingService).processFile(Meq(envelopeId), Meq(fileId))(any())
+        verify(mockRasFileOutputService).outputResults(Meq(envelopeId), any())
 
         status(result) shouldBe OK
       }
@@ -54,6 +59,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
+        verifyZeroInteractions(mockRasFileOutputService)
 
         status(result) shouldBe OK
       }
@@ -69,6 +75,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
+        verifyZeroInteractions(mockRasFileOutputService)
 
         status(result) shouldBe OK
       }
@@ -84,6 +91,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
+        verifyZeroInteractions(mockRasFileOutputService)
 
         status(result) shouldBe OK
       }
@@ -99,6 +107,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
+        verifyZeroInteractions(mockRasFileOutputService)
 
         status(result) shouldBe OK
       }
