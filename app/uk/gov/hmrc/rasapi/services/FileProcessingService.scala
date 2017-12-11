@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.rasapi.services
 
-import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 object FileProcessingService extends FileProcessingService {
 
@@ -30,14 +31,18 @@ object FileProcessingService extends FileProcessingService {
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator{
 
-  def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier) = {
+  def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier)  = {
     lazy val results:ListBuffer[String] = ListBuffer.empty
 
-    readFile(envelopeId,fileId).map { res =>
-      for (row <- res) yield {
-        if (!row.isEmpty) fetchResult(row).map(results += _)
+    createResultsFile(readFile(envelopeId,fileId).map { res =>
+      res.map( row => if (!row.isEmpty) {fetchResult(row).map(results += _)})
+      }).onComplete{
+      case res =>  fileUploadConnector.uploadFile(envelopeId,fileId,res.get).onComplete {
+        case Success(response) => clearFile(res.get)
+        case Failure(_) =>
       }
     }
+    }
   }
-}
+
 

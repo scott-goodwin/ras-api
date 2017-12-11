@@ -27,14 +27,15 @@ import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, _}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.services.RASWsHelpers
 
 import scala.concurrent.Future
 
-class FileUploadConnectorSpec extends UnitSpec with OneAppPerSuite with MockitoSugar with ServicesConfig with WSHttp{
+class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerSuite with MockitoSugar with ServicesConfig with WSHttp{
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -69,9 +70,10 @@ class FileUploadConnectorSpec extends UnitSpec with OneAppPerSuite with MockitoS
       (Iterator continually reader.readLine takeWhile (_ != null) toList) should contain theSameElementsAs List("Test", "Passed")
 
     }
-
-
-
   }
 
+  "uploadFile" should {
+    "upload and return success response from file-upload fe service" in {
+    }
+  }
 }
