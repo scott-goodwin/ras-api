@@ -34,10 +34,14 @@ trait RasFileReader {
   val fileUploadConnector: FileUploadConnector
 
   def readFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Iterator[String]] = {
-    fileUploadConnector.getFile(envelopeId, fileId).map{
+    val result = fileUploadConnector.getFile(envelopeId, fileId).map{
       case Some(inputStream) => Source.fromInputStream(inputStream).getLines
       case None => Logger.error("File Processing: problem reading data in the file");throw new FileNotFoundException
     }
+
+    result.map(list => println(s"################################################## [RasFileReader] LIST SIZE: ${list.toList.size}"))
+
+    result
   }
 }
 

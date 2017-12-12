@@ -17,7 +17,6 @@
 package uk.gov.hmrc.rasapi.config
 
 import com.typesafe.config.Config
-import config.WSHttp
 import play.api._
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
@@ -120,6 +119,6 @@ object RasShortLivedCache extends ShortLivedCache {
 object RasSessionCache extends SessionCache with AppName with ServicesConfig {
   override lazy val http = WSHttp
   override lazy val defaultSource = appName
-  override lazy val baseUri = baseUrl("cachable.session-cache")
+  override lazy val baseUri = baseUrl("keystore")
   override lazy val domain = getConfString("cachable.session-cache.domain", throw new Exception(s"Could not find config 'cachable.session-cache.domain'"))
 }

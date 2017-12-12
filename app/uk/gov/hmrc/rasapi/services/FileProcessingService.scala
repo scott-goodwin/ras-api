@@ -21,6 +21,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object FileProcessingService extends FileProcessingService {
 
@@ -30,16 +31,22 @@ object FileProcessingService extends FileProcessingService {
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator{
 
-  def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): List[String] = {
+  def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[List[String]] = {
     lazy val results:ListBuffer[String] = ListBuffer.empty
 
     readFile(envelopeId,fileId).map { res =>
       for (row <- res) yield {
         if (!row.isEmpty) fetchResult(row).map(results += _)
       }
+      results.toList
     }
 
-    results.toList
+/*    val res = results.toList
+
+    println(Console.YELLOW + s" LIST SIZE: ${res.size}")
+    println(Console.WHITE)
+
+    res*/
   }
 }
 
