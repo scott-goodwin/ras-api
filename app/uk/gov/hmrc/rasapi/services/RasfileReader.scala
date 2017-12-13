@@ -44,6 +44,11 @@ trait RasFileReader {
 }
 
 trait RasFileWriter {
+  def createResultsFile1(futureIterator: Iterator[Any]) :Path = {
+
+    generateFile(futureIterator)
+  }
+
 
   def createResultsFile(futureIterator: Future[Iterator[Any]]) :Future[Path] = {
 

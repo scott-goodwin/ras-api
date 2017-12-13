@@ -27,7 +27,7 @@ import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.WSHttp
@@ -46,15 +46,16 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
     override val wsHttp: WSHttp = mockWsHttp
   }
 
+  val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
+  val fileId: String = "file-id-1"
+
+
   "getFile" should {
 
     "return an StreamedResponse from File-Upload service" in {
 
       implicit val system = ActorSystem()
       implicit val materializer = ActorMaterializer()
-
-      val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
-      val fileId: String = "file-id-1"
 
       val streamResponse:StreamedResponse = StreamedResponse(DefaultWSResponseHeaders(200, Map("CONTENT_TYPE" -> Seq("application/octet-stream"))),
         Source.apply[ByteString](Seq(ByteString("Test"),  ByteString("\r\n"), ByteString("Passed")).to[scala.collection.immutable.Iterable]) )
@@ -72,8 +73,16 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
     }
   }
 
-  "uploadFile" should {
-    "upload and return success response from file-upload fe service" in {
+  "deleteUploadedFile" should {
+    "submit delete request to file-upload service" in {
+      when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(200)))
+      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId))
+      result shouldBe true
+    }
+    "failed delete request to file-upload service" in {
+      when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(400)))
+      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId))
+      result shouldBe false
     }
   }
 }

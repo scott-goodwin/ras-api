@@ -20,9 +20,9 @@ import org.joda.time.DateTime
 import play.api.libs.json.Json
 import reactivemongo.bson.BSONValue
 
-case class FileDetails (envelopeId:String, FileId:String, fileName:String,resultsFilePath:String)
+case class FileDetails (envelopeId:String, FileId:String, fileName:String,resultsFilePath:String, status:String="success")
 
-case class ResultsFile(id:BSONValue, fileName:String, fileSize:Long, uploadDate:DateTime)
+case class ResultsFile(id:BSONValue, fileName:String, fileSize:Long, uploadDate:DateTime, status:String= "success")
 
 object FileDetails
 {
