@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rasapi.services
+package uk.gov.hmrc.rasapi.models
 
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.cache.client.SessionCache
-import uk.gov.hmrc.rasapi.config.RasSessionCache
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.joda.time.DateTime
+import play.api.libs.json.Json
+import reactivemongo.bson.BSONValue
 
-trait RasFileOutputService {
+case class FileDetails (envelopeId:String, FileId:String, fileName:String,resultsFilePath:String, status:String="success")
 
-  val sessionCache: SessionCache
+case class ResultsFile(id:BSONValue, fileName:String, fileSize:Long, uploadDate:DateTime, status:String= "success")
 
-  def outputResults(envelopeId: String, results: List[String])(implicit hc: HeaderCarrier): Unit = {
-    sessionCache.cache[List[String]](envelopeId, results)
-  }
+object FileDetails
+{
+  implicit val  fileFormats = Json.format[FileDetails]
 }
 
-object RasFileOutputService extends RasFileOutputService {
-  override val sessionCache: SessionCache = RasSessionCache
-}

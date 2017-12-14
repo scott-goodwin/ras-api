@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.rasapi.services
 
-import java.io.FileNotFoundException
+import java.io._
+import java.nio.file.{Files, Path}
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.FileUploadConnector
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.io.Source
@@ -42,7 +44,33 @@ trait RasFileReader {
 }
 
 trait RasFileWriter {
-  def writeFile(): Future[Int]= {
-    Future(1)
+  def createResultsFile1(futureIterator: Iterator[Any]) :Path = {
+
+    generateFile(futureIterator)
   }
+
+
+  def createResultsFile(futureIterator: Future[Iterator[Any]]) :Future[Path] = {
+
+    futureIterator.map{res => generateFile(res)}
+  }
+
+   def generateFile(data: Iterator[Any]) :Path = {
+     val file = Files.createTempFile("results",".csv")
+     val outputStream = new BufferedWriter(new FileWriter(file.toFile))
+    try {
+      data.foreach { line => outputStream.write(line.toString)
+        outputStream.newLine
+      }
+      file
+      //  FILE IS CREATED TEMPORARILY NEED TO SORT THIS OUT
+    }
+    catch {
+      case ex: Throwable => Logger.error("Error creating file")
+        outputStream.close ;throw new RuntimeException
+    }
+    finally outputStream.close
+  }
+
+  def clearFile(path:Path)  =  if (Files.deleteIfExists(path) == false) Logger.error(s"error deleting file or file ${path} doesn't exist")
 }

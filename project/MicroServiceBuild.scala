@@ -1,9 +1,6 @@
-import sbt._
-import play.sbt.PlayImport._
 import play.core.PlayVersion
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
+import play.sbt.PlayImport._
+import sbt._
 
 object MicroServiceBuild extends Build with MicroService {
 
@@ -12,6 +9,8 @@ object MicroServiceBuild extends Build with MicroService {
   override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
   private val apiPlatformlibVersion = "1.3.0"
+  private val playReactivemongoVersion = "5.2.0"
+  private val jsonEncryptionVersion = "3.2.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0",
@@ -19,6 +18,9 @@ object MicroServiceBuild extends Build with MicroService {
     "uk.gov.hmrc" %% "microservice-bootstrap" % "6.9.0",
     "uk.gov.hmrc" %% "auth-client" % "2.3.0",
     "uk.gov.hmrc" %% "domain" % "5.0.0",
+    "uk.gov.hmrc" %% "mongo-caching" % "4.0.0",
+    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
+    "uk.gov.hmrc" %% "json-encryption" % jsonEncryptionVersion,
     "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,
     "uk.gov.hmrc" %% "http-caching-client" % "7.0.0")
 
@@ -29,7 +31,9 @@ object MicroServiceBuild extends Build with MicroService {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1"  % scope,
     "org.mockito" % "mockito-core" % "1.9.0" % scope,
-    "com.typesafe.play" %% "play-specs2" % PlayVersion.current % scope
+    "com.typesafe.play" %% "play-specs2" % PlayVersion.current % scope,
+    "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope,
+    "de.leanovate.play-mockws" %% "play-mockws" % "2.6.2" % scope
   )
 
 }

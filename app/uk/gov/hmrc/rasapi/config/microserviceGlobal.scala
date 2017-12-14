@@ -17,7 +17,6 @@
 package uk.gov.hmrc.rasapi.config
 
 import com.typesafe.config.Config
-import config.WSHttp
 import play.api._
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal

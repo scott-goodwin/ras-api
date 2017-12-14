@@ -14,22 +14,27 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rasapi.services
+package uk.gov.hmrc.rasapi.repositories
 
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.cache.client.SessionCache
-import uk.gov.hmrc.rasapi.config.RasSessionCache
+import org.scalatest.BeforeAndAfter
+import org.scalatest.mock.MockitoSugar
+import org.scalatestplus.play.OneAppPerTest
+import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.repository.RasFileRepository
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait RasFileOutputService {
 
-  val sessionCache: SessionCache
+class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest with BeforeAndAfter with RepositoriesHelper {
 
-  def outputResults(envelopeId: String, results: List[String])(implicit hc: HeaderCarrier): Unit = {
-    sessionCache.cache[List[String]](envelopeId, results)
+  val rasFileRepository = new RasFileRepository(mongoConnector)
+
+"RasFileRepository" should {
+  "saveFile" in {
+    val file = await(rasFileRepository.saveFile(createFile))
+
+    file.fileName shouldBe "results.csv"
+
   }
 }
-
-object RasFileOutputService extends RasFileOutputService {
-  override val sessionCache: SessionCache = RasSessionCache
 }

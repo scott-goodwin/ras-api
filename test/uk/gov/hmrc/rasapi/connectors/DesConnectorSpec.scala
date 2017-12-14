@@ -18,19 +18,17 @@ package uk.gov.hmrc.rasapi.connectors
 
 import org.joda.time.DateTime
 import org.mockito.Matchers._
-import org.mockito.Mockito.when
-import org.mockito.Mockito.reset
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import play.api.test.Helpers.{await, _}
-import uk.gov.hmrc.play.http._
+import play.api.test.Helpers._
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.test.UnitSpec
 
 class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter with MockitoSugar {
 
@@ -74,9 +72,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     "handle 404 error returned from des" in {
 
       when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
-        thenReturn(Future.failed(new NotFoundException("")))
+        thenReturn(Future.failed(new uk.gov.hmrc.http.NotFoundException("")))
 
-      intercept[NotFoundException] {
+      intercept[uk.gov.hmrc.http.NotFoundException] {
         await(TestDesConnector.getResidencyStatus(Nino("LE241131B")))
       }
     }
