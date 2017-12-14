@@ -22,15 +22,4 @@ case class CallbackData(envelopeId: String, fileId: String, status: String, reas
 
 object CallbackData {
   implicit val formats = Json.format[CallbackData]
-  implicit val reads = Json.reads[CallbackData] //reads from json then converts to the class (Object)
-  implicit val writes =
-
-    """
-      {
-        "envelopeId": "Matty",
-        "fileId": "Harris",
-        "status": "1990-09-23",
-        "reason": "AA123456C"
-      }
-    """.stripMargin
 }

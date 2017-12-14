@@ -28,8 +28,13 @@ trait RasFileOutputService {
   val sessionCache: SessionCache
 
   def outputResults(envelopeId: String, results: Future[List[String]])(implicit hc: HeaderCarrier): Unit = {
-    println(Console.YELLOW + " ################# [RasFileOutputService] CAME INTO outputResults")
+    println(Console.YELLOW + " ################# [RasFileOutputService] CAME INTO outputResults" + envelopeId + "   " + results)
     println(Console.WHITE)
+
+    results.onSuccess{
+      case result => println(Console.YELLOW + s" List size: ${result.size}" + Console.WHITE)
+    }
+
     results.map{ res =>
       println("#######TEST PRINT  [RasFileOutputService]  ~~~~~~~~~~~~~~~~: " + res.head.orElse("LIST WAS EMPTY"))
       for(line <- results) {
@@ -38,8 +43,7 @@ trait RasFileOutputService {
         sessionCache.cache[List[String]](envelopeId, res)
       }
     }
-    sessionCache.cache[String](envelopeId, "SUCCESS")
-    Thread.sleep(10000)
+    sessionCache.cache[String]("12343", "SUCCESS")
   }
 }
 

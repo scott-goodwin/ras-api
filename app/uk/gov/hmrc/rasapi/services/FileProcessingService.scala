@@ -34,10 +34,48 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[List[String]] = {
     lazy val results:ListBuffer[String] = ListBuffer.empty
 
-    readFile(envelopeId,fileId).map { res =>
-      for (row <- res) yield {
-        if (!row.isEmpty) fetchResult(row).map(results += _)
+    println(Console.YELLOW + "[FileProcessingService] processFile" + Console.WHITE)
+
+//    val iterator1 = readFile(envelopeId,fileId)
+//
+//    for{
+//      iterator2 <- iterator1
+//    } yield {
+//      while (iterator2.hasNext) {
+//        for {
+//          result <- fetchResult(iterator2.next())
+//        } yield {
+//          results += result
+//          println(Console.YELLOW + "nkjsdhkjsd: " + result + Console.WHITE)
+//        }
+//      }
+//      results.toList
+//    }
+
+    //    readFile(envelopeId,fileId).map { res =>
+    //      for (row <- res) yield {
+    //        println(Console.YELLOW + s"row: ${row}" + Console.WHITE)
+    //        if (!row.isEmpty) fetchResult(row).map(results += _)
+//      }
+//      println(Console.YELLOW + s"------------------Results size: ${results.size}" + Console.WHITE)
+//      results.toList
+//    }
+
+    val iterator1 = readFile(envelopeId,fileId)
+
+    for{
+      iterator2 <- iterator1
+    } yield {
+      for (line <- iterator2) {
+        val futureResult: Future[String] = fetchResult(line)
+
+        for {
+          res <- futureResult
+        } yield {
+          results += res
+        }
       }
+
       results.toList
     }
 
@@ -48,5 +86,6 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
     res*/
   }
+
 }
 
