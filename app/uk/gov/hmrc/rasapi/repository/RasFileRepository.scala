@@ -19,7 +19,6 @@ package uk.gov.hmrc.rasapi.repository
 import java.io.FileInputStream
 import java.nio.file.Path
 
-import org.joda.time.DateTime
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.gridfs.Implicits._
 import reactivemongo.api.gridfs._
@@ -40,18 +39,18 @@ object RasRepository extends MongoDbConnection{
 }
 
 class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[FileDetails, BSONObjectID]("filedatastore", mongo, FileDetails.fileFormats, ReactiveMongoFormats.objectIdFormats) {
+  extends ReactiveRepository[FileDetails, BSONObjectID]("rasFileStore", mongo, FileDetails.fileFormats, ReactiveMongoFormats.objectIdFormats) {
 
   private val name = "results.csv"
   private val contentType =  "text/csv"
-  private val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
+  val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
   private val fileToSave = DefaultFileToSave(name, Some(contentType))
 
   def saveFile(filePath:Path) : Future[ResultsFile] =
   {
 
-    gridFSG.writeFromInputStream(fileToSave,new FileInputStream(filePath.toFile)).map{ res=> logger.warn("File length is "+ res.length);
-      ResultsFile(res.id,res.filename.get,res.length,new DateTime(res.uploadDate.get))
+    gridFSG.writeFromInputStream(fileToSave,new FileInputStream(filePath.toFile)).map{ res=> logger.warn("File length is " + res.length);
+      ResultsFile(res)
     }
       .recover{case ex:Throwable => throw new RuntimeException("failed to upload") }
   }

@@ -33,6 +33,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
 
   def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier)  = {
+
     lazy val results:ListBuffer[String] = ListBuffer.empty
 
     createResultsFile(readFile(envelopeId,fileId).map { res =>
@@ -40,9 +41,10 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       }).onComplete{
       case res =>  RasRepository.filerepo.saveFile(res.get).map{file=> clearFile(res.get)
         //delete file a future ind
+        fileUploadConnector.deleteUploadedFile(envelopeId,fileId)
         //update status as success for the envelope in session-cache to confirm it is processed
         //if exception mark status as error and save into session
-       file}
+       }
     }
     }
   }

@@ -19,21 +19,23 @@ package uk.gov.hmrc.rasapi.repositories
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerTest
+import play.api.Logger
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.repository.RasFileRepository
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest with BeforeAndAfter with RepositoriesHelper {
+class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest
+  with BeforeAndAfter with RepositoriesHelper {
 
-  val rasFileRepository = new RasFileRepository(mongoConnector)
 
 "RasFileRepository" should {
   "saveFile" in {
     val file = await(rasFileRepository.saveFile(createFile))
 
-    file.fileName shouldBe "results.csv"
+    file.fileDetails.filename.get shouldBe "results.csv"
+    val result =  await(rasFileRepository.getFile(file.fileDetails))
+      val actual = result.toArray
+    Logger.debug(actual.mkString)
+      actual shouldBe resultsArr
 
   }
 }
