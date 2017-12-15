@@ -16,16 +16,22 @@
 
 package uk.gov.hmrc.rasapi.models
 
-import org.joda.time.DateTime
 import play.api.libs.json.Json
+import reactivemongo.api.BSONSerializationPack
+import reactivemongo.api.gridfs.ReadFile
 import reactivemongo.bson.BSONValue
+import uk.gov.hmrc.rasapi.models.FileDetails.RASFile
 
 case class FileDetails (envelopeId:String, FileId:String, fileName:String,resultsFilePath:String, status:String="success")
 
-case class ResultsFile(id:BSONValue, fileName:String, fileSize:Long, uploadDate:DateTime, status:String= "success")
+case class ResultsFile(fileDetails:RASFile)
+
 
 object FileDetails
 {
+  type RASFile = ReadFile[BSONSerializationPack.type, BSONValue]
   implicit val  fileFormats = Json.format[FileDetails]
 }
+
+
 
