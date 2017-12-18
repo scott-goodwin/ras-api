@@ -21,13 +21,12 @@ import java.io.InputStream
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
-import uk.gov.hmrc.rasapi.config.WSHttp
 import play.api.Logger
-import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
+import uk.gov.hmrc.rasapi.config.WSHttp
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait FileUploadConnector extends ServicesConfig {
@@ -36,7 +35,7 @@ trait FileUploadConnector extends ServicesConfig {
   val wsHttp: WSHttp
 
   lazy val serviceUrl = baseUrl("file-upload")
-  lazy val fileUploadBaseUrl = baseUrl("file-upload")
+  lazy val fileUploadFEBaseUrl = baseUrl("file-upload-frontend")
   lazy val fileUploadUrlSuffix = getString("file-upload-url-suffix")
 
 
@@ -50,11 +49,22 @@ trait FileUploadConnector extends ServicesConfig {
     } recover {
       case ex: Throwable => {
         Logger.error("Exception thrown while retrieving file / converting to InputStream.", ex)
-        None
+        throw new RuntimeException("Error Streaming file from file-upload service")
       }
     }
   }
 
+  def deleteUploadedFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+
+    wsHttp.doDelete(s"$serviceUrl/$fileUploadUrlSuffix/${envelopeId}/files/${fileId}").map { res =>
+       if(res.status == 200) {Logger.warn("user file deleted successfully from file-upload"); true}
+       else {Logger.error(s"Failed to delete user file => envelopeID: ${envelopeId}/files/${fileId}" )
+       false}
+    }.recover{
+      case _ => Logger.error(s"failed to execute delete user file => envelopeID : ${envelopeId}/files/${fileId}")
+        false
+    }
+  }
 }
 
 object FileUploadConnector extends FileUploadConnector {
@@ -62,3 +72,7 @@ object FileUploadConnector extends FileUploadConnector {
   override val http: HttpPost = WSHttp
   override val wsHttp: WSHttp = WSHttp
 }
+
+
+
+

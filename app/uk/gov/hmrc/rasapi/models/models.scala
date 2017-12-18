@@ -20,12 +20,17 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
+import reactivemongo.api.BSONSerializationPack
+import reactivemongo.api.gridfs.ReadFile
+import reactivemongo.bson.BSONValue
+
 
 
 package object models {
 
   type NINO = String
   type Name = String
+  type ResultsFile = ReadFile[BSONSerializationPack.type, BSONValue]
 
   object JsonReads {
 
