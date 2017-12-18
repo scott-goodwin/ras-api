@@ -26,7 +26,7 @@ import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.{CacheMap, SessionCache}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.models.{CallbackData, RasSession, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
 
 import scala.concurrent.Future
 
@@ -37,17 +37,17 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   val reason: Option[String] = None
   val callbackData = CallbackData("1234", fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
-  val rasSession = RasSession("1234",Some(callbackData),Some(resultsFile),"userId")
+  val rasSession = FileSession("1234",Some(callbackData),Some(resultsFile),"userId")
   val json = Json.toJson(rasSession)
 
   val mockSessionCache = mock[SessionCache]
   val SUT = new SessionCacheService {
     override val sessionCache: SessionCache = mockSessionCache
-    when(sessionCache.fetchAndGetEntry[RasSession] (any(), any(),any())
+    when(sessionCache.fetchAndGetEntry[FileSession] (any(), any(),any())
       (any(),any(), any()))
       .thenReturn(Future.successful(Some(rasSession)))
-    when(sessionCache.cache[RasSession] (any(), any(),any(),any())
-      (any[Writes[RasSession]], any[HeaderCarrier], any()))
+    when(sessionCache.cache[FileSession] (any(), any(),any(),any())
+      (any[Writes[FileSession]], any[HeaderCarrier], any()))
       .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> json))))
 
   }

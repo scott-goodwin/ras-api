@@ -31,9 +31,9 @@ object ResultsFileMetaData {
 
 }
 
-case class RasSession(envelopeId:String, userFile:Option[CallbackData], resultsFile: Option[ResultsFileMetaData], userId:String)
+case class FileSession(envelopeId:String, userFile:Option[CallbackData], resultsFile: Option[ResultsFileMetaData], userId:String)
 
-object RasSession {
-  implicit val format = Json.format[RasSession]
+object FileSession {
+  implicit val format = Json.format[FileSession]
 }
 
