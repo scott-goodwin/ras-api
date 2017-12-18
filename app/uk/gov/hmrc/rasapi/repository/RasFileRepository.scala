@@ -26,7 +26,7 @@ import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.rasapi.models.{FileDetails, ResultsFile}
+import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,7 +39,7 @@ object RasRepository extends MongoDbConnection{
 }
 
 class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[FileDetails, BSONObjectID]("rasFileStore", mongo, FileDetails.fileFormats, ReactiveMongoFormats.objectIdFormats) {
+  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats, ReactiveMongoFormats.objectIdFormats) {
 
   private val name = "results.csv"
   private val contentType =  "text/csv"
@@ -50,8 +50,7 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
   {
 
     gridFSG.writeFromInputStream(fileToSave,new FileInputStream(filePath.toFile)).map{ res=> logger.warn("File length is " + res.length);
-      ResultsFile(res)
-    }
+      res    }
       .recover{case ex:Throwable => throw new RuntimeException("failed to upload") }
   }
 

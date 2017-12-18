@@ -31,8 +31,8 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
   "saveFile" in {
     val file = await(rasFileRepository.saveFile(createFile))
 
-    file.fileDetails.filename.get shouldBe "results.csv"
-    val result =  await(rasFileRepository.getFile(file.fileDetails))
+    file.filename.get shouldBe "results.csv"
+    val result =  await(rasFileRepository.getFile(file))
       val actual = result.toArray
     Logger.debug(actual.mkString)
       actual shouldBe resultsArr

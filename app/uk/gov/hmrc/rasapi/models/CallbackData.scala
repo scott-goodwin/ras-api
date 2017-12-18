@@ -23,3 +23,17 @@ case class CallbackData(envelopeId: String, fileId: String, status: String, reas
 object CallbackData {
   implicit val formats = Json.format[CallbackData]
 }
+
+case class ResultsFileMetaData (id: String, filename: Option[String],uploadDate: Option[Long], chunkSize: Int, length: Long)
+
+object ResultsFileMetaData {
+  implicit val formats = Json.format[ResultsFileMetaData]
+
+}
+
+case class RasSession(envelopeId:String, userFile:Option[CallbackData], resultsFile: Option[ResultsFileMetaData], userId:String)
+
+object RasSession {
+  implicit val format = Json.format[RasSession]
+}
+

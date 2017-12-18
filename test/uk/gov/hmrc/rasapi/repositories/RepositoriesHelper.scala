@@ -24,7 +24,7 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.models.FileDetails.RASFile
+import uk.gov.hmrc.rasapi.models.ResultsFile
 import uk.gov.hmrc.rasapi.repository.RasFileRepository
 import uk.gov.hmrc.rasapi.services.RasFileWriter
 
@@ -58,7 +58,7 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
     lazy val now = DateTime.now.withZone(DateTimeZone.UTC)
     val resultRows:ListBuffer[String] = new ListBuffer()
-    def getFile( storedFile: RASFile) ={
+    def getFile( storedFile: ResultsFile) ={
       val file = Files.createTempFile("results",".csv")
       def getAll: Iteratee[Array[Byte], Array[Byte]] = Iteratee.consume[Array[Byte]]()
 

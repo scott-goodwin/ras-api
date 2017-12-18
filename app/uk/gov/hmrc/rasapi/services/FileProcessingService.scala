@@ -18,6 +18,7 @@ package uk.gov.hmrc.rasapi.services
 
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
+import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.repository.RasRepository
 
 import scala.collection.mutable.ListBuffer
@@ -32,19 +33,22 @@ object FileProcessingService extends FileProcessingService {
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator{
 
 
-  def processFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier)  = {
+  def processFile(callbackData:CallbackData)(implicit hc: HeaderCarrier)  = {
 
     lazy val results:ListBuffer[String] = ListBuffer.empty
 
-    createResultsFile(readFile(envelopeId,fileId).map { res =>
+
+    createResultsFile(readFile(callbackData.envelopeId,callbackData.fileId).map { res =>
       res.map( row => if (!row.isEmpty) {fetchResult(row).map(results += _)})
       }).onComplete{
       case res =>  RasRepository.filerepo.saveFile(res.get).map{file=> clearFile(res.get)
         //delete file a future ind
-        fileUploadConnector.deleteUploadedFile(envelopeId,fileId)
+        fileUploadConnector.deleteUploadedFile(callbackData.envelopeId,callbackData.fileId)
         //update status as success for the envelope in session-cache to confirm it is processed
         //if exception mark status as error and save into session
-       }
+        SessionCacheService.updateRasSession(callbackData.envelopeId,callbackData,
+          Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate,file.chunkSize,file.length)))
+      }
     }
     }
   }

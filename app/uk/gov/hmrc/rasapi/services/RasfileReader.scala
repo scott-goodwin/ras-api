@@ -66,8 +66,8 @@ trait RasFileWriter {
       //  FILE IS CREATED TEMPORARILY NEED TO SORT THIS OUT
     }
     catch {
-      case ex: Throwable => Logger.error("Error creating file")
-        outputStream.close ;throw new RuntimeException
+      case ex: Throwable => Logger.error("Error creating file" + ex.getMessage)
+        outputStream.close ;throw new RuntimeException("Exception in generating file" + ex.getMessage)
     }
     finally outputStream.close
   }

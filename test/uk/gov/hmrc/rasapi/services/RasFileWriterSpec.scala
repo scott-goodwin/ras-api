@@ -35,7 +35,6 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
   "RasFileWriter" should {
     "write results to a file"  in {
       val res = await(fileWriter.createResultsFile(resultsArr.iterator))
-      println("split file path is"+ res)
 
       val lines = Source.fromFile(res.toFile).getLines.toArray
 
