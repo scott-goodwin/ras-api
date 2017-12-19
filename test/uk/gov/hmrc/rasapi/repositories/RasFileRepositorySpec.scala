@@ -22,6 +22,8 @@ import org.scalatestplus.play.OneAppPerTest
 import play.api.Logger
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest
   with BeforeAndAfter with RepositoriesHelper {
@@ -29,14 +31,22 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
 
 "RasFileRepository" should {
   "saveFile" in {
-    val file = await(rasFileRepository.saveFile(createFile))
+    val file = await(rasFileRepository.saveFile(createFile,"file-1234" ))
 
-    file.filename.get shouldBe "results.csv"
+    file.filename.get shouldBe "file-1234.csv"
     val result =  await(rasFileRepository.getFile(file))
       val actual = result.toArray
     Logger.debug(actual.mkString)
       actual shouldBe resultsArr
+  }
 
+  "get File" in {
+    val resultFile = await(saveTempFile)
+    Logger.debug("resultFile.id.toString  -> " + resultFile.id.toString)
+    val res = await(rasFileRepository.fetchFile(resultFile.filename.get))
+   // res.get.data. shouldBe tempFile
+    val result = ListBuffer[String]()
+    res.get.data run getAll map {bytes => result += new String(bytes)}
   }
 }
 }

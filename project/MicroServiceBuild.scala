@@ -11,6 +11,8 @@ object MicroServiceBuild extends Build with MicroService {
   private val apiPlatformlibVersion = "1.3.0"
   private val playReactivemongoVersion = "5.2.0"
   private val jsonEncryptionVersion = "3.2.0"
+  private val akkaVersion = "2.4.10"
+
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0",
@@ -22,6 +24,8 @@ object MicroServiceBuild extends Build with MicroService {
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "json-encryption" % jsonEncryptionVersion,
     "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,
+    "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
+    "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
     "uk.gov.hmrc" %% "http-caching-client" % "7.0.0")
 
   def test(scope: String = "test,it") = Seq(
@@ -33,6 +37,7 @@ object MicroServiceBuild extends Build with MicroService {
     "org.mockito" % "mockito-core" % "1.9.0" % scope,
     "com.typesafe.play" %% "play-specs2" % PlayVersion.current % scope,
     "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope,
+    "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion % scope,
     "de.leanovate.play-mockws" %% "play-mockws" % "2.6.2" % scope
   )
 
