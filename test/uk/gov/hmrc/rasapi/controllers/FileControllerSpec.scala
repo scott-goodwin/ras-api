@@ -18,28 +18,48 @@ package uk.gov.hmrc.rasapi.controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.mockito.Matchers.any
+import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status
 import play.api.libs.iteratee.Enumerator
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.repository.FileData
 
 import scala.concurrent.Future
 
 class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite with BeforeAndAfter {
 
+  implicit val hc = HeaderCarrier()
+
+  private val enrolmentIdentifier1 = EnrolmentIdentifier("PSAID", "Z123456")
+  private val enrolment1 = new Enrolment(key = "HMRC-PSA-ORG", identifiers = List(enrolmentIdentifier1), state = "Activated", None)
+  private val enrolmentIdentifier2 = EnrolmentIdentifier("PPID", "Z123456")
+  private val enrolment2 = new Enrolment(key = "HMRC-PP-ORG", identifiers = List(enrolmentIdentifier2), state = "Activated", None)
+  private val enrolments = new Enrolments(Set(enrolment1,enrolment2))
+
+  val successfulRetrieval: Future[Enrolments] = Future.successful(enrolments)
+  val mockAuthConnector = mock[RasAuthConnector]
+
   val fileData = FileData(length = 124L,Enumerator("TEST START ".getBytes))
 
   val fileController = new FileController{
+    override val authConnector: AuthConnector = mockAuthConnector
+
     override def getFile(name: String): Future[Option[FileData]] = Some(fileData)
   }
 
   "FileController" should(
     "serve a file" when {
       "valid filename is provided" in {
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+
         implicit val actorSystem = ActorSystem()
         implicit val materializer = ActorMaterializer()
 
