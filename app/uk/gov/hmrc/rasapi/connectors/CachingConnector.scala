@@ -42,7 +42,7 @@ trait CachingConnector extends ServicesConfig {
 object CachingConnector extends CachingConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val http: CoreGet = WSHttp
-  override val cachingBaseUrl = baseUrl("caching")
+  override val cachingBaseUrl = baseUrl("customer-caching")
   override val cachingUrl = AppContext.cachingUrl
   // $COVERAGE-ON$
 }
