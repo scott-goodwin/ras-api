@@ -19,13 +19,14 @@ package uk.gov.hmrc.rasapi.repository
 import java.io.FileInputStream
 import java.nio.file.Path
 
+import play.api.Logger
+import play.api.libs.iteratee.Enumerator
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.gridfs.Implicits._
 import reactivemongo.api.gridfs._
 import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,20 +39,36 @@ object RasRepository extends MongoDbConnection{
   lazy val filerepo: RasFileRepository = new RasFileRepository(connection)
 }
 
-class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats, ReactiveMongoFormats.objectIdFormats) {
+case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
-  private val name = "results.csv"
+class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
+  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats) {
+
   private val contentType =  "text/csv"
   val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
-  private val fileToSave = DefaultFileToSave(name, Some(contentType))
 
-  def saveFile(filePath:Path) : Future[ResultsFile] =
+  def saveFile(filePath: Path, fileId: String): Future[ResultsFile] =
   {
+    val fileToSave = DefaultFileToSave(s"${fileId}.csv", Some(contentType))
 
-    gridFSG.writeFromInputStream(fileToSave,new FileInputStream(filePath.toFile)).map{ res=> logger.warn("File length is " + res.length);
-      res    }
-      .recover{case ex:Throwable => throw new RuntimeException("failed to upload") }
+    gridFSG.writeFromInputStream(fileToSave,new FileInputStream(filePath.toFile)).map{ res=>
+      logger.warn("Saved File id is " + res.id)
+      res }
+      .recover{case ex:Throwable =>
+        Logger.error("error saving file -> " + fileId + " " + ex.getMessage)
+        throw new RuntimeException("failed to save file due to error" + ex.getMessage) }
+  }
+
+  def fetchFile(_fileName: String)(implicit ec: ExecutionContext): Future[Option[FileData]] = {
+      Logger.debug("id in repo input is " + _fileName)
+    gridFSG.find[BSONDocument, ResultsFile](BSONDocument("filename" -> _fileName)).headOption.map {
+      case Some(file) =>   logger.warn("file fetched "+ file.id); Some(FileData(file.length, gridFSG.enumerate(file)))
+      case None => logger.warn("file not found "); None
+    }.recover{
+      case ex:Throwable =>
+      Logger.error("error trying to fetch file " + _fileName + " " + ex.getMessage)
+      throw new RuntimeException("failed to fetch file due to error" + ex.getMessage)
+    }
   }
 
 }

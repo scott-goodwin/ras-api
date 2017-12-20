@@ -17,10 +17,7 @@
 package uk.gov.hmrc.rasapi.repositories
 
 import java.io.ByteArrayInputStream
-import java.nio.file.Files
 
-import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -28,7 +25,6 @@ import uk.gov.hmrc.rasapi.models.ResultsFile
 import uk.gov.hmrc.rasapi.repository.RasFileRepository
 import uk.gov.hmrc.rasapi.services.RasFileWriter
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.Source
@@ -45,34 +41,30 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
     "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
+  val tempFile = Array("TestMe START",1234345,"sdfjdkljfdklgj", "Test Me END")
+
   object fileWriter extends RasFileWriter
 
   lazy val createFile = {
-
     await(fileWriter.createResultsFile(resultsArr.iterator))
+  }
 
+  def saveTempFile() = {
+    val filePath = await(fileWriter.createResultsFile(tempFile.iterator))
+    rasFileRepository.saveFile(filePath, "file1")
   }
   case class FileData( data: Enumerator[Array[Byte]] = null)
 
-  class RasFileRepositoryTest(implicit ec: ExecutionContext) extends RasFileRepository(mongoConnector) with ScalaFutures{
+  def getAll: Iteratee[Array[Byte], Array[Byte]] = Iteratee.consume[Array[Byte]]()
 
-    lazy val now = DateTime.now.withZone(DateTimeZone.UTC)
-    val resultRows:ListBuffer[String] = new ListBuffer()
-    def getFile( storedFile: ResultsFile) ={
-      val file = Files.createTempFile("results",".csv")
-      def getAll: Iteratee[Array[Byte], Array[Byte]] = Iteratee.consume[Array[Byte]]()
+  class RasFileRepositoryTest(implicit ec: ExecutionContext) extends RasFileRepository(mongoConnector) {
 
-
-
+   def getFile( storedFile: ResultsFile) ={
     val inputStream = gridFSG.enumerate(storedFile) run getAll map { bytes =>
         new ByteArrayInputStream(bytes)
       }
-
       Source.fromInputStream(inputStream).getLines
-
-/*      gridFSG.find(BSONDocument("_id" -> id.toString)).headOption map {
-        file => file.map( f => FileData( gridFSG.enumerate(f)).data.map( row =>   new String(row)).run(Iteratee.consume[String]()).futureValue)
-      }*/
     }
+
   }
 }

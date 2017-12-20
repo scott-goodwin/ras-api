@@ -41,7 +41,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     createResultsFile(readFile(callbackData.envelopeId,callbackData.fileId).map { res =>
       res.map( row => if (!row.isEmpty) {fetchResult(row).map(results += _)})
       }).onComplete{
-      case res =>  RasRepository.filerepo.saveFile(res.get).map{file=> clearFile(res.get)
+      case res =>  RasRepository.filerepo.saveFile(res.get,callbackData.fileId ).map{file=> clearFile(res.get)
         //delete file a future ind
         fileUploadConnector.deleteUploadedFile(callbackData.envelopeId,callbackData.fileId)
         //update status as success for the envelope in session-cache to confirm it is processed

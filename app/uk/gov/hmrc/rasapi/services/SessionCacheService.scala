@@ -21,7 +21,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.SessionCache
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.rasapi.config.RasSessionCache
-import uk.gov.hmrc.rasapi.models.{CallbackData, RasSession, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -29,14 +29,23 @@ trait SessionCacheService {
 
   val sessionCache: SessionCache = RasSessionCache
   private val source = "ras"
-  private val cacheId = "fileUploadSession"
+  private val cacheId = "fileUpload"
   def updateRasSession(envelopeId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData])(implicit hc: HeaderCarrier) = {
     implicit val executionContext = MdcLoggingExecutionContext.fromLoggingDetails(hc)
-    sessionCache.fetchAndGetEntry[RasSession](source,cacheId,envelopeId).flatMap{session =>
-      sessionCache.cache[RasSession](source,cacheId,envelopeId,
-      RasSession(session.get.envelopeId, Some(userFile),resultsFile,session.get.userId) )
+    sessionCache.fetchAndGetEntry[FileSession](source,cacheId,envelopeId).flatMap{ session =>
+      sessionCache.cache[FileSession](source,cacheId,envelopeId,
+      FileSession(session.get.envelopeId, Some(userFile),resultsFile,session.get.userId) ).recover {
+        case ex: Throwable => Logger.error(s"unable to save FileSession to cache => " +
+          s"${envelopeId} , userFile : ${userFile.toString} , resultsFile id : " +
+          s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
+          throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
+        /*
+                Logger.warn("retrying to save cache")
+                updateRasSession(envelopeId,userFile,resultsFile)
+        */
+      }
     }.recover {
-      case ex: Throwable => Logger.error(s"Error while saving data to cache for RasSession => " +
+      case ex: Throwable => Logger.error(s"cannot fetch  data to cache for FileSession => " +
         s"${envelopeId} , userFile : ${userFile.toString} , resultsFile id : " +
         s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
         throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)

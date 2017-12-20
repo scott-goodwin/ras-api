@@ -3,3 +3,5 @@
 GET     /customer/:customerUUID/residency-status    uk.gov.hmrc.rasapi.controllers.LookupController.getResidencyStatus(customerUUID)
 
 POST    /ras-api/file-processing/status    uk.gov.hmrc.rasapi.controllers.FileProcessingController.statusCallback
+
+GET  /ras-api/file/getFile/:name          uk.gov.hmrc.rasapi.controllers.FileController.serveFile(name)
