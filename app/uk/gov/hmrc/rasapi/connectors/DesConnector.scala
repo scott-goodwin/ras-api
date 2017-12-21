@@ -17,24 +17,23 @@
 package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
-import play.api.libs.json.{JsSuccess, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models._
 
-import scala.concurrent.Future
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 
 trait DesConnector extends ServicesConfig {
 
-  val httpGet: CoreGet
-  val httpPost: CorePost
+  val httpGet: HttpGet
+  val httpPost: HttpPost
   val desBaseUrl: String
 
   def getResidencyStatusUrl(nino: String): String
@@ -64,10 +63,11 @@ trait DesConnector extends ServicesConfig {
   def getResidencyStatus(member: IndividualDetails)(implicit hc: HeaderCarrier):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
 
-    val uri = desBaseUrl + String.format(AppContext.residencyStatusUrl,
-      member.nino,member.dateOfBirth,member.firstName,member.lastName)
+    val uri = s"${desBaseUrl}/pension-scheme/customers/look-up"
 
-    val result = httpGet.GET(uri)(implicitly[HttpReads[HttpResponse]], hc = updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
+    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), Seq())
+    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc),
+      MdcLoggingExecutionContext.fromLoggingDetails(hc))
 
     result.map (response => resolveResponse(response))
   }
@@ -94,8 +94,8 @@ trait DesConnector extends ServicesConfig {
 
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val httpGet: CoreGet = WSHttp
-  override val httpPost: CorePost = WSHttp
+  override val httpGet: HttpGet = WSHttp
+  override val httpPost: HttpPost = WSHttp
   override val desBaseUrl = baseUrl("des")
   override def getResidencyStatusUrl(nino: String) = String.format(AppContext.residencyStatusUrl, nino)
   override val edhUrl: String = desBaseUrl + AppContext.edhUrl
