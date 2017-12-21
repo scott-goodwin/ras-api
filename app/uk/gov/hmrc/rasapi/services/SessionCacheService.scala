@@ -18,16 +18,16 @@ package uk.gov.hmrc.rasapi.services
 
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.cache.client.SessionCache
+import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
-import uk.gov.hmrc.rasapi.config.RasSessionCache
+import uk.gov.hmrc.rasapi.config.RasShortLivedHttpCaching
 import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait SessionCacheService {
 
-  val sessionCache: SessionCache = RasSessionCache
+  val sessionCache: ShortLivedHttpCaching = RasShortLivedHttpCaching
   private val source = "ras"
   private val cacheId = "fileUpload"
   def updateRasSession(envelopeId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData])(implicit hc: HeaderCarrier) = {
@@ -59,5 +59,5 @@ trait SessionCacheService {
 }
 
 object SessionCacheService extends SessionCacheService {
-  override val sessionCache: SessionCache = RasSessionCache
+  override val sessionCache: ShortLivedHttpCaching = RasShortLivedHttpCaching
 }
