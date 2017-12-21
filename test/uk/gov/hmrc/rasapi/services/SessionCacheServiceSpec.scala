@@ -24,7 +24,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.cache.client.{CacheMap, SessionCache}
+import uk.gov.hmrc.http.cache.client.{CacheMap, ShortLivedHttpCaching}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
 
@@ -40,16 +40,15 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   val rasSession = FileSession("1234",Some(callbackData),Some(resultsFile),"userId")
   val json = Json.toJson(rasSession)
 
-  val mockSessionCache = mock[SessionCache]
+  val mockSessionCache = mock[ShortLivedHttpCaching]
   val SUT = new SessionCacheService {
-    override val sessionCache: SessionCache = mockSessionCache
+    override val sessionCache: ShortLivedHttpCaching = mockSessionCache
     when(sessionCache.fetchAndGetEntry[FileSession] (any(), any(),any())
       (any(),any(), any()))
       .thenReturn(Future.successful(Some(rasSession)))
     when(sessionCache.cache[FileSession] (any(), any(),any(),any())
       (any[Writes[FileSession]], any[HeaderCarrier], any()))
       .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> json))))
-
   }
 
   "SessionCacheService" should {
