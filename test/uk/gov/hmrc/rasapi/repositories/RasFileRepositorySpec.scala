@@ -39,14 +39,23 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
     Logger.debug(actual.mkString)
       actual shouldBe resultsArr
   }
+  val resultFile = await(saveTempFile)
 
   "get File" in {
-    val resultFile = await(saveTempFile)
-    Logger.debug("resultFile.id.toString  -> " + resultFile.id.toString)
     val res = await(rasFileRepository.fetchFile(resultFile.filename.get))
    // res.get.data. shouldBe tempFile
     val result = ListBuffer[String]()
     res.get.data run getAll map {bytes => result += new String(bytes)}
+  }
+  "removeFile" in {
+    Logger.debug(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
+
+    val res = await(rasFileRepository.removeFile(resultFile.id))
+    res shouldBe false
+    val fileData = await(rasFileRepository.fetchFile(resultFile.filename.get))
+    Logger.debug("trying to fetch after removal --> " + fileData.get._id)
+
+    fileData shouldBe None
   }
 }
 }

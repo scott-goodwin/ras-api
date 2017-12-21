@@ -26,6 +26,7 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status
 import play.api.libs.iteratee.Enumerator
 import play.api.test.{FakeRequest, Helpers}
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -47,7 +48,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
   val successfulRetrieval: Future[Enrolments] = Future.successful(enrolments)
   val mockAuthConnector = mock[RasAuthConnector]
 
-  val fileData = FileData(length = 124L,Enumerator("TEST START ".getBytes))
+  val fileData = FileData(length = 124L,Enumerator("TEST START ".getBytes),BSONObjectID("123456789123456689123456"))
 
   val fileController = new FileController{
     override val authConnector: AuthConnector = mockAuthConnector
