@@ -31,7 +31,7 @@ object ResultsFileMetaData {
 
 }
 
-case class FileSession(envelopeId:String, userFile:Option[CallbackData], resultsFile: Option[ResultsFileMetaData], userId:String)
+case class FileSession(userFile: Option[CallbackData], resultsFile: Option[ResultsFileMetaData], userId: String)
 
 object FileSession {
   implicit val format = Json.format[FileSession]

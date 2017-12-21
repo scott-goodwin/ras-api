@@ -29,14 +29,13 @@ trait SessionCacheService {
 
   val sessionCache: ShortLivedHttpCaching = RasShortLivedHttpCaching
   private val source = "ras"
-  private val cacheId = "fileUpload"
-  def updateRasSession(envelopeId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData])(implicit hc: HeaderCarrier) = {
+  private val cacheId = "fileSession"
+  def updateFileSession(userId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData])(implicit hc: HeaderCarrier) = {
     implicit val executionContext = MdcLoggingExecutionContext.fromLoggingDetails(hc)
-    sessionCache.fetchAndGetEntry[FileSession](source,cacheId,envelopeId).flatMap{ session =>
-      sessionCache.cache[FileSession](source,cacheId,envelopeId,
-      FileSession(session.get.envelopeId, Some(userFile),resultsFile,session.get.userId) ).recover {
+      sessionCache.cache[FileSession](source,cacheId,userId,
+      FileSession(Some(userFile), resultsFile, userId) ).recover {
         case ex: Throwable => Logger.error(s"unable to save FileSession to cache => " +
-          s"${envelopeId} , userFile : ${userFile.toString} , resultsFile id : " +
+          s"${userId} , userFile : ${userFile.toString} , resultsFile id : " +
           s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
           throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
         /*
@@ -44,16 +43,7 @@ trait SessionCacheService {
                 updateRasSession(envelopeId,userFile,resultsFile)
         */
       }
-    }.recover {
-      case ex: Throwable => Logger.error(s"cannot fetch  data to cache for FileSession => " +
-        s"${envelopeId} , userFile : ${userFile.toString} , resultsFile id : " +
-        s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
-        throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
-/*
-        Logger.warn("retrying to save cache")
-        updateRasSession(envelopeId,userFile,resultsFile)
-*/
-    }
+
   }
 
 }
