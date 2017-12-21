@@ -46,7 +46,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
         fileUploadConnector.deleteUploadedFile(callbackData.envelopeId,callbackData.fileId)
         //update status as success for the envelope in session-cache to confirm it is processed
         //if exception mark status as error and save into session
-        SessionCacheService.updateRasSession(callbackData.envelopeId,callbackData,
+        SessionCacheService.updateFileSession(callbackData.envelopeId,callbackData,
           Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate,file.chunkSize,file.length)))
       }
     }

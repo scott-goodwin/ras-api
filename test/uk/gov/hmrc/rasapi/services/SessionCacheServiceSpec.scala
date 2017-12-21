@@ -37,15 +37,12 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   val reason: Option[String] = None
   val callbackData = CallbackData("1234", fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
-  val rasSession = FileSession("1234",Some(callbackData),Some(resultsFile),"userId")
+  val rasSession = FileSession(Some(callbackData), Some(resultsFile), "userId")
   val json = Json.toJson(rasSession)
 
   val mockSessionCache = mock[ShortLivedHttpCaching]
   val SUT = new SessionCacheService {
     override val sessionCache: ShortLivedHttpCaching = mockSessionCache
-    when(sessionCache.fetchAndGetEntry[FileSession] (any(), any(),any())
-      (any(),any(), any()))
-      .thenReturn(Future.successful(Some(rasSession)))
     when(sessionCache.cache[FileSession] (any(), any(),any(),any())
       (any[Writes[FileSession]], any[HeaderCarrier], any()))
       .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> json))))
@@ -54,7 +51,7 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   "SessionCacheService" should {
     "update session cache with processing status" in {
       val results = List("Nino, firstName, lastName, dob, cyResult, cy+1Result")
-      val res = await(SUT.updateRasSession("1234",callbackData,Some(resultsFile)))
+      val res = await(SUT.updateFileSession("1234",callbackData,Some(resultsFile)))
       res.data.get("1234").get shouldBe json}
 
     }

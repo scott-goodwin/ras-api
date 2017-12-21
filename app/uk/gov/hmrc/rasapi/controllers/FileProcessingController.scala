@@ -42,20 +42,21 @@ trait FileProcessingController extends BaseController {
   val fileProcessingService: FileProcessingService
   val sessionCacheService: SessionCacheService
 
-  def statusCallback(): Action[AnyContent] = Action.async {
+  def statusCallback(userId:String): Action[AnyContent] = Action.async {
     implicit request =>
+      Logger.warn(s"callback request  received : " )
       withValidJson.fold(Future.successful(BadRequest(""))){ callbackData =>
         callbackData.status match {
           case STATUS_AVAILABLE =>
             if(Try(Future(fileProcessingService.processFile(callbackData))).isFailure) {
-              sessionCacheService.updateRasSession(callbackData.envelopeId,callbackData,None)
+              sessionCacheService.updateFileSession(userId,callbackData,None)
             }
-          case STATUS_ERROR => Logger.error(s"There is a problem with the file (${callbackData.fileId}), the status is:" +
+          case STATUS_ERROR => Logger.error(s"There is a problem with the file ERROR (${callbackData.fileId}), the status is:" +
             s" ${callbackData.status} and the reason is: ${callbackData.reason.get}")
-            sessionCacheService.updateRasSession(callbackData.envelopeId,callbackData,None)
+            sessionCacheService.updateFileSession(userId,callbackData,None)
           case _ => Logger.error(s"There is a problem with the file (${callbackData.fileId}), the status is:" +
             s" ${callbackData.status}")
-            sessionCacheService.updateRasSession(callbackData.envelopeId,callbackData,None)
+            sessionCacheService.updateFileSession(userId,callbackData,None)
         }
 
         Future(Ok(""))

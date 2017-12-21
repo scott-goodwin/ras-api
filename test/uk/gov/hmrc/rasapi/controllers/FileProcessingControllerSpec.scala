@@ -28,6 +28,8 @@ import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.services.{FileProcessingService, SessionCacheService}
 import play.api.http.Status.OK
 
+import scala.util.Random
+
 class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuite with BeforeAndAfter {
 
   val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
@@ -36,6 +38,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
   val reason: Option[String] = None
   val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
+  val userId = Random.nextString(5)
 
   val mockFileProcessingService = mock[FileProcessingService]
   val mockSessionCacheService = mock[SessionCacheService]
@@ -54,7 +57,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
     "return Ok and interact with FileProcessingService and SessionCacheService" when {
       "an 'AVAILABLE' status is given" in {
 
-        val result = await(SUT.statusCallback().apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
+        val result = await(SUT.statusCallback(userId).apply(FakeRequest(Helpers.POST, s"/ras-api/file-processing/status")
           .withJsonBody(Json.toJson(callbackData))))
 
         verify(mockFileProcessingService).processFile(Meq(callbackData))(any())
@@ -71,11 +74,11 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
         val reason: Option[String] = Some("VirusDetected")
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback().apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
+        val result = SUT.statusCallback(userId).apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
-        verify(mockSessionCacheService).updateRasSession(Meq(envelopeId),Meq(callbackData),Meq(None))(any())
+        verify(mockSessionCacheService).updateFileSession(Meq(userId),Meq(callbackData),Meq(None))(any())
 
         status(result) shouldBe OK
       }
@@ -87,11 +90,11 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback().apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
+        val result = SUT.statusCallback(userId).apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
-        verify(mockSessionCacheService).updateRasSession(Meq(envelopeId),Meq(callbackData),Meq(None))(any())
+        verify(mockSessionCacheService).updateFileSession(Meq(userId),Meq(callbackData),Meq(None))(any())
 
         status(result) shouldBe OK
       }
@@ -103,11 +106,11 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback().apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
+        val result = SUT.statusCallback(userId).apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
-        verify(mockSessionCacheService).updateRasSession(Meq(envelopeId),Meq(callbackData),Meq(None))(any())
+        verify(mockSessionCacheService).updateFileSession(Meq(userId),Meq(callbackData),Meq(None))(any())
 
         status(result) shouldBe OK
       }
@@ -119,11 +122,11 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback().apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
+        val result = SUT.statusCallback(userId).apply(FakeRequest(Helpers.POST, "/ras-api/file-processing/status")
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
-        verify(mockSessionCacheService).updateRasSession(Meq(envelopeId),Meq(callbackData),Meq(None))(any())
+        verify(mockSessionCacheService).updateFileSession(Meq(userId),Meq(callbackData),Meq(None))(any())
 
         status(result) shouldBe OK
       }
