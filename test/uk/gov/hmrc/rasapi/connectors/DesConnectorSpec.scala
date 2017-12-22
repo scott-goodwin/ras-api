@@ -38,13 +38,13 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     reset(mockHttpGet)
   }
 
-  val mockHttpGet = mock[CoreGet]
-  val mockHttpPost = mock[CorePost]
+  val mockHttpGet = mock[HttpGet]
+  val mockHttpPost = mock[HttpPost]
   implicit val format = ResidencyStatusFormats.successFormats
 
   object TestDesConnector extends DesConnector {
-    override val httpGet: CoreGet = mockHttpGet
-    override val httpPost: CorePost = mockHttpPost
+    override val httpGet: HttpGet = mockHttpGet
+    override val httpPost: HttpPost = mockHttpPost
     override val desBaseUrl = ""
     override def getResidencyStatusUrl(nino: String) = ""
     override val edhUrl: String = "test-url"
@@ -125,7 +125,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
       val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = false,
         currentYearResidencyStatus = "UK",nextYearResidencyStatus = "Scottish")
-      when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
+      when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "SMITH", new DateTime("1990-02-21"))))
@@ -134,9 +134,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     }
 
     "handle failure response from des" in {
-implicit val formatF = ResidencyStatusFormats.failureFormats
+      implicit val formatF = ResidencyStatusFormats.failureFormats
       val errorResponse = ResidencyStatusFailure("NOT_MATCHED","matching failed")
-      when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
+      when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(403, Some(Json.toJson(errorResponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "Lewis", new DateTime("1990-02-21"))))
@@ -146,7 +146,7 @@ implicit val formatF = ResidencyStatusFormats.failureFormats
 
     "handle unexpected responses as 500 from des" in {
 
-      when(mockHttpGet.GET[HttpResponse](any())(any(),any(), any())).
+      when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(500)))
       val errorResponse = ResidencyStatusFailure("500","HODS NOTAVAILABLE")
 

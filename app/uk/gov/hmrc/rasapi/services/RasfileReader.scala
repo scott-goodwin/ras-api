@@ -67,5 +67,5 @@ trait RasFileWriter {
     finally outputStream.close
   }
 
-  def clearFile(path:Path)  =  if (Files.deleteIfExists(path) == false) Logger.error(s"error deleting file or file ${path} doesn't exist")
+  def clearFile(path:Path) :Unit =  if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist")
 }
