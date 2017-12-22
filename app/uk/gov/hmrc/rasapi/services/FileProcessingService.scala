@@ -32,7 +32,7 @@ object FileProcessingService extends FileProcessingService {
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator{
 
-  def processFile(callbackData:CallbackData)(implicit hc: HeaderCarrier)  = {
+  def processFile(userId:String, callbackData:CallbackData)(implicit hc: HeaderCarrier)  = {
 
     lazy val results:ListBuffer[String] = ListBuffer.empty
 
@@ -42,7 +42,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       case res =>  RasRepository.filerepo.saveFile(res.get,callbackData.fileId ).map{file=> clearFile(res.get)
         //update status as success for the envelope in session-cache to confirm it is processed
         //if exception mark status as error and save into session
-        SessionCacheService.updateFileSession(callbackData.envelopeId,callbackData,
+        SessionCacheService.updateFileSession(userId,callbackData,
           Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate,file.chunkSize,file.length)))
         //delete file a future ind
         fileUploadConnector.deleteUploadedFile(callbackData.envelopeId,callbackData.fileId)

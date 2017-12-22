@@ -19,7 +19,6 @@ package uk.gov.hmrc.rasapi.services
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.rasapi.config.RasShortLivedHttpCaching
 import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
 
@@ -31,9 +30,10 @@ trait SessionCacheService {
   private val source = "ras"
   private val cacheId = "fileSession"
   def updateFileSession(userId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData])(implicit hc: HeaderCarrier) = {
-    implicit val executionContext = MdcLoggingExecutionContext.fromLoggingDetails(hc)
-      sessionCache.cache[FileSession](source,cacheId,userId,
-      FileSession(Some(userFile), resultsFile, userId) ).recover {
+    sessionCache.fetchAndGetEntry[FileSession](source,cacheId,userId).flatMap{ session =>
+
+    sessionCache.cache[FileSession](source,cacheId,userId,
+      FileSession(Some(userFile), resultsFile, userId, session.get.uploadTimeStamp) ).recover {
         case ex: Throwable => Logger.error(s"unable to save FileSession to cache => " +
           s"${userId} , userFile : ${userFile.toString} , resultsFile id : " +
           s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
@@ -43,6 +43,12 @@ trait SessionCacheService {
                 updateRasSession(envelopeId,userFile,resultsFile)
         */
       }
+    }.recover {
+      case ex: Throwable => Logger.error(s"cannot fetch  data to cache for FileSession => " +
+        s"${userId} , userFile : ${userFile.toString} , resultsFile id : " +
+        s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
+        throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
+    }
 
   }
 

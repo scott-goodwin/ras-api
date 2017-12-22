@@ -60,7 +60,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
         val result = await(SUT.statusCallback(userId).apply(FakeRequest(Helpers.POST, s"/ras-api/file-processing/status")
           .withJsonBody(Json.toJson(callbackData))))
 
-        verify(mockFileProcessingService).processFile(Meq(callbackData))(any())
+        verify(mockFileProcessingService).processFile(Meq(userId),Meq(callbackData))(any())
 
         status(result) shouldBe OK
       }
