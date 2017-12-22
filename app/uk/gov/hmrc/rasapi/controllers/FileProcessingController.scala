@@ -48,7 +48,7 @@ trait FileProcessingController extends BaseController {
         Logger.warn(s"callback request received with status available: " )
         callbackData.status match {
           case STATUS_AVAILABLE =>
-            if(Try(Future(fileProcessingService.processFile(callbackData))).isFailure) {
+            if(Try(Future(fileProcessingService.processFile(userId,callbackData))).isFailure) {
               sessionCacheService.updateFileSession(userId,callbackData,None)
             }
           case STATUS_ERROR => Logger.error(s"There is a problem with the file ERROR (${callbackData.fileId}), the status is:" +

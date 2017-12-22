@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import org.joda.time.DateTime
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
@@ -37,12 +38,16 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   val reason: Option[String] = None
   val callbackData = CallbackData("1234", fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
-  val rasSession = FileSession(Some(callbackData), Some(resultsFile), "userId")
+  val rasSession = FileSession(Some(callbackData), Some(resultsFile), "userId", Some(DateTime.now().getMillis))
   val json = Json.toJson(rasSession)
 
   val mockSessionCache = mock[ShortLivedHttpCaching]
   val SUT = new SessionCacheService {
     override val sessionCache: ShortLivedHttpCaching = mockSessionCache
+    when(sessionCache.fetchAndGetEntry[FileSession] (any(), any(),any())
+      (any(),any(), any()))
+      .thenReturn(Future.successful(Some(rasSession)))
+
     when(sessionCache.cache[FileSession] (any(), any(),any(),any())
       (any[Writes[FileSession]], any[HeaderCarrier], any()))
       .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> json))))
