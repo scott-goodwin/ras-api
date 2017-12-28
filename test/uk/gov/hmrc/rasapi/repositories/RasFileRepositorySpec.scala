@@ -28,12 +28,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest
   with BeforeAndAfter with RepositoriesHelper {
 
+  before{
+    rasFileRepository.removeAll
+  }
+
 
 "RasFileRepository" should {
   "saveFile" in {
-    val file = await(rasFileRepository.saveFile(createFile,"file-1234" ))
+    val file = await(rasFileRepository.saveFile("user111","envelope111",createFile,"file111" ))
 
-    file.filename.get shouldBe "file-1234.csv"
+    file.filename.get shouldBe "file111"
     val result =  await(rasFileRepository.getFile(file))
       val actual = result.toArray
     Logger.debug(actual.mkString)
@@ -47,6 +51,17 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
    // res.get.data. shouldBe tempFile
     val result = ListBuffer[String]()
     res.get.data run getAll map {bytes => result += new String(bytes)}
+  }
+
+
+  "removeFile" in {
+    val resultFile = await(saveTempFileToRemove)
+    Logger.debug(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
+
+        val res = await(rasFileRepository.removeFile(resultFile.filename.get))
+        res shouldBe false
+        val fileData = await(rasFileRepository.fetchFile(resultFile.filename.get))
+        fileData.isDefined shouldBe false
   }
 }
 }
