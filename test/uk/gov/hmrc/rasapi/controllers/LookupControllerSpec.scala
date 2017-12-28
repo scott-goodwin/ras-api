@@ -26,10 +26,8 @@ import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
-import uk.gov.hmrc.auth.core.ConfidenceLevel.L300
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.Retrievals._
-import uk.gov.hmrc.auth.core.retrieve._
+
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}

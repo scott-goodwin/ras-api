@@ -33,10 +33,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 object RasRepository extends MongoDbConnection{
-
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   private implicit val connection = mongoConnector.db
 
   lazy val filerepo: RasFileRepository = new RasFileRepository(connection)
+  // $COVERAGE-ON$
 }
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
@@ -67,18 +68,17 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
       case None => logger.warn("file not found "); None
     }.recover{
       case ex:Throwable =>
-      Logger.error("error trying to fetch file " + _fileName + " " + ex.getMessage)
-      throw new RuntimeException("failed to fetch file due to error" + ex.getMessage)
+        Logger.error("error trying to fetch file " + _fileName + " " + ex.getMessage)
+        throw new RuntimeException("failed to fetch file due to error" + ex.getMessage)
     }
   }
 
-  def  removeFile(fileName:String): Future[Boolean] = {
+  def removeFile(fileName:String): Future[Boolean] = {
         Logger.debug("file to remove => fileName : " + fileName)
-
-  gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map(res => res.hasErrors).recover {
-      case ex: Throwable =>
-        Logger.error("error trying to remove file " + fileName + " " + ex.getMessage)
-        throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
+      gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map(res => res.hasErrors).recover {
+        case ex: Throwable =>
+          Logger.error("error trying to remove file " + fileName + " " + ex.getMessage)
+          throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
     }
   }
 
