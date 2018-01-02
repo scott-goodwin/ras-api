@@ -51,7 +51,12 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
   def saveTempFile() = {
     val filePath = await(fileWriter.createResultsFile(tempFile.iterator))
-    rasFileRepository.saveFile(filePath, "file1")
+    rasFileRepository.saveFile("user123","envelope123",filePath, "file123")
+  }
+
+  def saveTempFileToRemove() = {
+    val filePath = await(fileWriter.createResultsFile(tempFile.iterator))
+    rasFileRepository.saveFile("user222","envelope222",filePath, "file222")
   }
   case class FileData( data: Enumerator[Array[Byte]] = null)
 
@@ -66,5 +71,13 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
       Source.fromInputStream(inputStream).getLines
     }
 
+    def removeAll: Unit = {
+      removeFile("file111")
+      removeFile("file123")
+      removeFile("file222")
+
+    }
   }
+
+
 }

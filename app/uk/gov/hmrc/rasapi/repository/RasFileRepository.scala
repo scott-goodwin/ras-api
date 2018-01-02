@@ -33,10 +33,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 object RasRepository extends MongoDbConnection{
-
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   private implicit val connection = mongoConnector.db
 
   lazy val filerepo: RasFileRepository = new RasFileRepository(connection)
+  // $COVERAGE-ON$
 }
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
@@ -47,9 +48,10 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
   private val contentType =  "text/csv"
   val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
 
-  def saveFile(filePath: Path, fileId: String): Future[ResultsFile] =
+  def saveFile(userId:String, envelopeId: String, filePath: Path, fileId: String): Future[ResultsFile] =
   {
-    val fileToSave = DefaultFileToSave(s"${fileId}.csv", Some(contentType))
+    val fileToSave = DefaultFileToSave(s"${fileId}", Some(contentType),
+      metadata = BSONDocument("envelopeId" -> envelopeId, "fileId" -> fileId, "userId" -> userId))
 
     gridFSG.writeFromInputStream(fileToSave,new FileInputStream(filePath.toFile)).map{ res=>
       logger.warn("Saved File id is " + res.id)
@@ -61,13 +63,22 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
 
   def fetchFile(_fileName: String)(implicit ec: ExecutionContext): Future[Option[FileData]] = {
       Logger.debug("id in repo input is " + _fileName)
-    gridFSG.find[BSONDocument, ResultsFile](BSONDocument("filename" -> _fileName)).headOption.map {
+      gridFSG.find[BSONDocument, ResultsFile](BSONDocument("filename" -> _fileName)).headOption.map {
       case Some(file) =>   logger.warn("file fetched "+ file.id); Some(FileData(file.length, gridFSG.enumerate(file)))
       case None => logger.warn("file not found "); None
     }.recover{
       case ex:Throwable =>
-      Logger.error("error trying to fetch file " + _fileName + " " + ex.getMessage)
-      throw new RuntimeException("failed to fetch file due to error" + ex.getMessage)
+        Logger.error("error trying to fetch file " + _fileName + " " + ex.getMessage)
+        throw new RuntimeException("failed to fetch file due to error" + ex.getMessage)
+    }
+  }
+
+  def removeFile(fileName:String): Future[Boolean] = {
+        Logger.debug("file to remove => fileName : " + fileName)
+      gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map(res => res.hasErrors).recover {
+        case ex: Throwable =>
+          Logger.error("error trying to remove file " + fileName + " " + ex.getMessage)
+          throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
     }
   }
 

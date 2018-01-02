@@ -22,10 +22,10 @@ import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.libs.json.Json.toJson
 import play.api.libs.streams.Streams
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, Request, Result}
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
-import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
@@ -71,20 +71,48 @@ trait FileController extends BaseController with AuthorisedFunctions{
               InternalServerError
           }
       } recoverWith{
-            case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
-              Metrics.registry.counter(UNAUTHORIZED.toString)
-
-              Future.successful(Unauthorized(toJson(Unauthorised)))
-
-            case ex:NoActiveSession => Logger.warn("Inactive session")
-              Metrics.registry.counter(UNAUTHORIZED.toString)
-              Future.successful(Unauthorized(toJson(InvalidCredentials)))
-            case e => Logger.warn(s"Internal Error ${e.getCause}" )
-
-              Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
+        handleAuthFailure
           }
   }
+
+  def remove(fileName:String):  Action[AnyContent] = Action.async {
+    implicit request =>
+      val apiMetrics = Metrics.register("file-remove-timer").time
+      authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
+        enrols =>
+          deleteFile(fileName).map{res=>  apiMetrics.stop()
+            if(res) Ok("") else InternalServerError
+          }.recover {
+            case ex: Throwable => Logger.error("Request failed with Exception " + ex.getMessage + " for file -> " + fileName)
+              InternalServerError
+          }
+      } recoverWith{
+        handleAuthFailure
+      }
+  }
+
+  private def handleAuthFailure(implicit request: Request[_]): PartialFunction[Throwable, Future[Result]] =
+    PartialFunction[Throwable, Future[Result]]
+  {
+      case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
+        Metrics.registry.counter(UNAUTHORIZED.toString)
+
+        Future.successful(Unauthorized(toJson(Unauthorised)))
+
+      case ex:NoActiveSession => Logger.warn("Inactive session")
+        Metrics.registry.counter(UNAUTHORIZED.toString)
+        Future.successful(Unauthorized(toJson(InvalidCredentials)))
+      case e => Logger.warn(s"Internal Error ${e.getCause}" )
+
+        Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
+    }
+
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
+
   def getFile(name:String) = RasRepository.filerepo.fetchFile(name)
+
+  def deleteFile(name:String):Future[Boolean] = RasRepository.filerepo.removeFile(name)
+  // $COVERAGE-ON$
 
 
 }
