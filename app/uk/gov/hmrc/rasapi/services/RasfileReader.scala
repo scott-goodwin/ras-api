@@ -25,6 +25,7 @@ import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.FileUploadConnector
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.io.Source
@@ -48,6 +49,23 @@ trait RasFileWriter {
   def createResultsFile(futureIterator: Future[Iterator[Any]]) :Future[Path] = {
 
     futureIterator.map{res => generateFile(res)}
+  }
+
+  def generateFile1(data:ListBuffer[String]) :Path = {
+    val file = Files.createTempFile("results",".csv")
+    val outputStream = new BufferedWriter(new FileWriter(file.toFile))
+    try {
+      data.foreach { line => outputStream.write(line.toString)
+        outputStream.newLine
+      }
+      file
+      //  FILE IS CREATED TEMPORARILY NEED TO SORT THIS OUT
+    }
+    catch {
+      case ex: Throwable => Logger.error("Error creating file" + ex.getMessage)
+        outputStream.close ;throw new RuntimeException("Exception in generating file" + ex.getMessage)
+    }
+    finally outputStream.close
   }
 
    def generateFile(data: Iterator[Any]) :Path = {

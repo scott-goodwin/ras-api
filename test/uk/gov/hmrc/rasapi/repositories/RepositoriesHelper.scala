@@ -32,7 +32,7 @@ import scala.io.Source
 trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
   private val hostPort = System.getProperty("mongoHostPort", "127.0.0.1:27017")
-  override val databaseName = "rasFileStore"
+  override val databaseName = "ras-api"
   private val mongoConnector = MongoConnector(s"mongodb://$hostPort/$databaseName").db
 
   val rasFileRepository = new RasFileRepositoryTest
