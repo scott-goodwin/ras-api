@@ -44,7 +44,7 @@ object FileController extends FileController{
 
 trait FileController extends BaseController with AuthorisedFunctions{
 
-  private val _contentType =   "application/octet-stream"
+  private val _contentType =   "application/csv"
 
   def serveFile(fileName:String):  Action[AnyContent] = Action.async {
     implicit request =>

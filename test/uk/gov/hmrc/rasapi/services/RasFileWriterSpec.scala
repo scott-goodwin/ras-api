@@ -24,6 +24,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
@@ -32,9 +33,22 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
     "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
+  val resultsList = ListBuffer("456C,John,Smith,1990-02-21,nino-INVALID_FORMAT",
+    "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
+    "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
+
   "RasFileWriter" should {
-    "write results to a file"  in {
-      val res = await(fileWriter.createResultsFile(resultsArr.iterator))
+    "write results to a file when the input is ListBuffer"  in {
+      val res = await(fileWriter.generateResultsFile(resultsList))
+
+      val lines = Source.fromFile(res.toFile).getLines.toArray
+
+      lines should contain theSameElementsAs resultsArr
+      lines.size shouldBe 3
+      Files.deleteIfExists(res)
+    }
+    "write results to a file when the input is iterator"  in {
+      val res = await(fileWriter.generateFile(resultsArr.iterator))
 
       val lines = Source.fromFile(res.toFile).getLines.toArray
 

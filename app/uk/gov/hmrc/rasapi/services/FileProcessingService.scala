@@ -38,12 +38,11 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier): Unit = {
 
     lazy val results: ListBuffer[String] = ListBuffer.empty
-    // val inputFileData = Await.result(readFile(callbackData.envelopeId,callbackData.fileId), 30 second)
     readFile(callbackData.envelopeId, callbackData.fileId).onComplete {
       inputFileData =>
-        val data = inputFileData.get.foreach(row => if (!row.isEmpty) results += fetchResult1(row))
+        val data = inputFileData.get.foreach(row => if (!row.isEmpty) results += fetchResult(row))
 
-        val tempFilePath = generateFile1(results)
+        val tempFilePath = generateResultsFile(results)
         RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, tempFilePath, callbackData.fileId).onComplete {
           result =>
             clearFile(tempFilePath)
@@ -51,8 +50,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
               case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
                 Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
 
-                fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
-              case Failure(ex) => Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+             case Failure(ex) => Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
               //delete result  a future ind
             }
             fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
@@ -60,26 +58,6 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     }
   }
 
-  /*  def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier) = {
-
-      lazy val results: ListBuffer[String] = ListBuffer.empty
-
-      createResultsFile(readFile(callbackData.envelopeId, callbackData.fileId).map { res =>
-        res.map(row => if (!row.isEmpty) {
-          fetchResult(row).map(results += _)
-        })
-      }).onComplete {
-        case res => RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, res.get, callbackData.fileId).map { file =>
-          clearFile(res.get)
-          //update status as success for the envelope in session-cache to confirm it is processed
-          //if exception mark status as error and save into session
-          SessionCacheService.updateFileSession(userId, callbackData,
-            Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
-          //delete file a future ind
-          fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
-        }
-      }
-    }*/
 }
 
 

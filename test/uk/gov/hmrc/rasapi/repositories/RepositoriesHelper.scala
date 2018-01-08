@@ -46,16 +46,16 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
   object fileWriter extends RasFileWriter
 
   lazy val createFile = {
-    await(fileWriter.createResultsFile(resultsArr.iterator))
+    await(fileWriter.generateFile(resultsArr.iterator))
   }
 
   def saveTempFile() = {
-    val filePath = await(fileWriter.createResultsFile(tempFile.iterator))
+    val filePath = await(fileWriter.generateFile(tempFile.iterator))
     rasFileRepository.saveFile("user123","envelope123",filePath, "file123")
   }
 
   def saveTempFileToRemove() = {
-    val filePath = await(fileWriter.createResultsFile(tempFile.iterator))
+    val filePath = await(fileWriter.generateFile(tempFile.iterator))
     rasFileRepository.saveFile("user222","envelope222",filePath, "file222")
   }
   case class FileData( data: Enumerator[Array[Byte]] = null)

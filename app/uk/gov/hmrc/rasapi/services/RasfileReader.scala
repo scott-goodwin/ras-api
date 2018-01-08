@@ -46,12 +46,8 @@ trait RasFileReader {
 
 trait RasFileWriter {
 
-  def createResultsFile(futureIterator: Future[Iterator[Any]]) :Future[Path] = {
 
-    futureIterator.map{res => generateFile(res)}
-  }
-
-  def generateFile1(data:ListBuffer[String]) :Path = {
+  def generateResultsFile(data:ListBuffer[String]) :Path = {
     val file = Files.createTempFile("results",".csv")
     val outputStream = new BufferedWriter(new FileWriter(file.toFile))
     try {

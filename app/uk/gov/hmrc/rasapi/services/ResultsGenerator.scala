@@ -22,32 +22,16 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 trait ResultsGenerator {
   val comma = ","
 
   val desConnector:DesConnector
 
-  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):Future[String] = {
-    createMatchingData(inputRow) match {
-      case Right(errors) => Logger.debug("Json errors Exists" + errors.mkString(comma))
-        Future(s"${inputRow},${errors.mkString(comma)}")
-      case Left(memberDetails) => desConnector.getResidencyStatus(memberDetails).map{ status =>
-        status match {
-          case Left(residencyStatus) => inputRow + comma +residencyStatus.toString
-          case Right(statusFailure) => inputRow + comma +statusFailure.code
-        }}.recover {
-        case e: Throwable => Logger.error("File processing: Failed getting residency status ")
-          throw new RuntimeException
-      }
-    }
-  }
-
-  def fetchResult1(inputRow:String)(implicit hc: HeaderCarrier):String = {
+  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):String = {
     createMatchingData(inputRow) match {
       case Right(errors) => Logger.debug("Json errors Exists" + errors.mkString(comma))
         s"${inputRow},${errors.mkString(comma)}"

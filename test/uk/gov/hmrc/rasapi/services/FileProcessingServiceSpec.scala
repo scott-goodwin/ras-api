@@ -36,7 +36,6 @@ import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
@@ -56,12 +55,12 @@ val mockSessionCache = mock[SessionCacheService]
   val inputStreamfromFile = {
     object fileWriter extends RasFileWriter
 
-    val resultsArr = Array("LE241131B,Jim,Jimson,1990-02-21",
+    val resultsArr = ListBuffer("LE241131B,Jim,Jimson,1990-02-21",
       "LE241131B,GARY,BRAVO,1990-02-21",
       "LE241131B,SIMON,DAWSON,1990-02-21",
       "LE241131B,MICHEAL,SLATER,1990-02-21"
     )
-    val res = await(fileWriter.createResultsFile(Future(resultsArr.iterator)))
+    val res = await(fileWriter.generateResultsFile(resultsArr))
     new FileInputStream(res.toFile)
   }
 
@@ -160,7 +159,7 @@ val mockSessionCache = mock[SessionCacheService]
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails])(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
-          await(SUT.processFile("user1234",callbackData), 30 second)
+          await(SUT.processFile("user1234",callbackData))
         Thread.sleep(500)
         val res = await(rasFileRepository.fetchFile(fileId))
         val result = ListBuffer[String]()
