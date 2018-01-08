@@ -21,8 +21,9 @@ import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 trait ResultsGenerator {
@@ -30,18 +31,19 @@ trait ResultsGenerator {
 
   val desConnector:DesConnector
 
-  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):Future[String] = {
+  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):String = {
     createMatchingData(inputRow) match {
       case Right(errors) => Logger.debug("Json errors Exists" + errors.mkString(comma))
-        Future(s"${inputRow},${errors.mkString(comma)}")
-      case Left(memberDetails) => desConnector.getResidencyStatus(memberDetails).map{ status =>
-        status match {
+        s"${inputRow},${errors.mkString(comma)}"
+      case Left(memberDetails) =>
+        //this needs to be sequential / blocking and at the max 30 TPS
+        val res = Await.result(desConnector.getResidencyStatus(memberDetails),20 second)
+
+        res match {
           case Left(residencyStatus) => inputRow + comma +residencyStatus.toString
           case Right(statusFailure) => inputRow + comma +statusFailure.code
-        }}.recover {
-        case e: Throwable => Logger.error("File processing: Failed getting residency status ")
-          throw new RuntimeException
-      }
+
+        }
     }
   }
 

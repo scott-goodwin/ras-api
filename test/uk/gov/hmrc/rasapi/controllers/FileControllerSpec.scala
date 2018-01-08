@@ -69,7 +69,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         result.header.status shouldBe Status.OK
         val headers = result.header.headers
         headers("Content-Length") shouldBe "124"
-        headers("Content-Type") shouldBe "application/octet-stream"
+        headers("Content-Type") shouldBe "application/csv"
         headers("Content-Disposition") shouldBe "attachment; filename=\"testFile.csv\""
 
         /*            val stream = result.body.dataStream.runWith(StreamConverters.asInputStream())(materializer)

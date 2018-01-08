@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.rasapi.services
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, FileInputStream}
 
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
 import org.joda.time.DateTime
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -27,28 +25,45 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
-import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, ResidencyStatus, ResidencyStatusFailure}
+import uk.gov.hmrc.rasapi.models.{CallbackData, IndividualDetails, ResidencyStatus, ResidencyStatusFailure}
+import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
+class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val mockFileUploadConnector = mock[FileUploadConnector]
 
   val mockDesConnector = mock[DesConnector]
-
+val mockSessionCache = mock[SessionCacheService]
 
   val SUT = new FileProcessingService {
 
     override val fileUploadConnector = mockFileUploadConnector
     override val desConnector = mockDesConnector
   }
+
+  val inputStreamfromFile = {
+    object fileWriter extends RasFileWriter
+
+    val resultsArr = ListBuffer("LE241131B,Jim,Jimson,1990-02-21",
+      "LE241131B,GARY,BRAVO,1990-02-21",
+      "LE241131B,SIMON,DAWSON,1990-02-21",
+      "LE241131B,MICHEAL,SLATER,1990-02-21"
+    )
+    val res = await(fileWriter.generateResultsFile(resultsArr))
+    new FileInputStream(res.toFile)
+  }
+
 
   "FileProcessingService" should {
     "readFile" when {
@@ -59,10 +74,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with Sca
 
         val row1 = "John,Smith,AB123456C,1990-02-21".getBytes
         val inputStream = new ByteArrayInputStream(row1)
-
-        val streamResponse: StreamedResponse = StreamedResponse(DefaultWSResponseHeaders(200, Map("CONTENT_TYPE" -> Seq("application/octet-stream"))),
-          Source.apply[ByteString](List(ByteString("John, "), ByteString("Smith, "),
-            ByteString("AB123456C, "), ByteString("1990-02-21"))))
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStream)))
 
@@ -127,6 +138,34 @@ class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with Sca
         val inputRow = "456C,John,Smith,1990-02-21"
         val result = await(SUT.fetchResult(inputRow))
         result shouldBe "456C,John,Smith,1990-02-21,nino-INVALID_FORMAT"
+      }
+    }
+
+    "process file and generate results file " when {
+      "valid file is submitted by user" in {
+
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStreamfromFile)))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
+        val fileId = "file-id-1"
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        when(mockSessionCache.updateFileSession(any(), any(),any())(any()))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> Json.toJson(callbackData)))))
+
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails])(any())).thenReturn(
+          Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
+          await(SUT.processFile("user1234",callbackData))
+        Thread.sleep(500)
+        val res = await(rasFileRepository.fetchFile(fileId))
+        val result = ListBuffer[String]()
+        val temp = await(res.get.data run getAll map {bytes => result += new String(bytes)})
+        result.foreach(println)
+
       }
     }
   }
