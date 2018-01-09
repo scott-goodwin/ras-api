@@ -40,7 +40,7 @@ trait DesConnector extends ServicesConfig {
 
   val edhUrl: String
 
-   val uk = "UK"
+   val uk = "Uk"
    val scot = "Scottish"
    val otherUk = "otherUKResident"
    val scotRes = "scotResident"
