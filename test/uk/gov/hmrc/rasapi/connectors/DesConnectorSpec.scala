@@ -124,7 +124,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     "handle successful response when 200 is returned from des" in {
 
       val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = false,
-        currentYearResidencyStatus = "UK",nextYearResidencyStatus = "Scottish")
+        currentYearResidencyStatus = "Uk",nextYearResidencyStatus = "Scottish")
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
