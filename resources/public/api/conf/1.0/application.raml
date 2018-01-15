@@ -23,12 +23,6 @@ uses:
 
 mediaType: [ application/json, application/hal+json ]
 
-types:
-  UUID:
-    type: string
-    pattern: "^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$"
-    example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
-
 /relief-at-source:
       /customer:
             /{customer-uuid}:
