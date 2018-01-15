@@ -1,7 +1,7 @@
 
 
-Use this API to check HMRC records to see if a customer is a Scottish resident for tax purposes.
+Use this API to check HMRC records to see if an individual is a Scottish resident for tax purposes.
 
 ##Before you start
 
-You’ll need the customer’s UUID number. You can get this by using the [customer lookup API](/api-documentation/docs/api/service/customer-api/).
+You’ll need the individuals’s name, date of birth and National Insurance number.
