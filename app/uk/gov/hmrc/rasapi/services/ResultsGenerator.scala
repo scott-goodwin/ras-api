@@ -49,7 +49,7 @@ trait ResultsGenerator {
 
   def createMatchingData(inputRow:String): Either[IndividualDetails,Seq[String]] = {
     val arr = parseString(inputRow)
-    Try(Json.toJson(arr).validate[IndividualDetails](IndividualDetails.customerDetailsReads)) match
+    Try(Json.toJson(arr).validate[IndividualDetails](IndividualDetails.individualDetailsReads)) match
     {
       case Success(JsSuccess(details, _)) => Left(details)
       case Success(JsError(errors)) => Logger.debug(errors.mkString)

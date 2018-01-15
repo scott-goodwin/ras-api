@@ -16,27 +16,29 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
-import play.api.mvc.{Action, AnyContent, Request}
+import play.api.mvc.{Action, AnyContent, Request, Result}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.rasapi.models.InvalidUUIDForbiddenResponse
 import uk.gov.hmrc.rasapi.connectors.CachingConnector
 import uk.gov.hmrc.rasapi.models._
 import play.api.libs.json.Json._
 import play.api.Logger
+import play.api.data.validation.ValidationError
+import play.api.libs.json.{JsError, JsPath, JsSuccess}
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
-import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.rasapi.metrics.Metrics
+
+import scala.util.{Failure, Success, Try}
 
 trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
 
@@ -120,6 +122,31 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   private def getEnrolmentIdentifier(enrols:Enrolments) = {
     enrols.enrolments.filter(res => (res.key == PSA_ENROLMENT || res.key == PP_ENROLMENT)).map(
       res => res.identifiers.head.value).head
+  }
+
+  private def withValidJson (onSuccess: (IndividualDetails) => Future[Result],
+                             invalidCallback: (Seq[(JsPath, Seq[ValidationError])]) => Future[Result])
+                            (implicit request: Request[AnyContent]): Future[Result] = {
+
+    request.body.asJson match {
+      case Some(json) =>
+        Try(json.validate[IndividualDetails](IndividualDetails.individualDetailsReads)) match {
+          case Success(JsSuccess(payload, _)) => {
+
+            Try(onSuccess(payload)) match {
+              case Success(result) => result
+              case Failure(ex: Exception) =>
+                Logger.error(s"CustomerMatchingController An error occurred in Json payload validation ${ex.getMessage}")
+                Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
+            }
+          }
+          case Success(JsError(errors)) =>
+            invalidCallback(errors)
+          case Failure(e) => Logger.error(s"CustomerMatchingController: An error occurred in customer-api due to ${e.getMessage} returning internal server error")
+            Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
+        }
+      case None => Future.successful(BadRequest(toJson(BadRequestResponse)))
+    }
   }
 
   /**

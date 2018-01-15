@@ -29,14 +29,14 @@ object RawMemberDetails {
 case class IndividualDetails(nino: NINO, firstName: Name, lastName: Name, dateOfBirth: DateTime)
 
 object IndividualDetails {
-  implicit val customerDetailsReads: Reads[IndividualDetails] = (
+  implicit val individualDetailsReads: Reads[IndividualDetails] = (
     (JsPath \ "nino").read[NINO](JsonReads.nino) and
       (JsPath \ "firstName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
       (JsPath \ "lastName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
       (JsPath \ "dateOfBirth").read[DateTime](JsonReads.isoDate("yyyy-MM-dd")).map(new DateTime(_))
     )(IndividualDetails.apply _)
 
-  implicit val customerDetailsWrites: Writes[IndividualDetails] = (
+  implicit val individualDetailssWrites: Writes[IndividualDetails] = (
     (JsPath \ "nino").write[String] and
       (JsPath \ "firstName").write[String] and
       (JsPath \ "lastName").write[String] and
