@@ -147,6 +147,11 @@ val mockSessionCache = mock[SessionCacheService]
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStreamfromFile)))
         when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
 
+        val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,scotResident"+
+          "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident,scotResident"+
+          "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident,scotResident"+
+          "LE241131B,MICHEAL,SLATER,1990-02-21,otherUKResident,scotResident"
+
 
         val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
         val fileId = "file-id-1"
@@ -162,9 +167,9 @@ val mockSessionCache = mock[SessionCacheService]
           await(SUT.processFile("user1234",callbackData))
         Thread.sleep(2000)
         val res = await(rasFileRepository.fetchFile(fileId))
-        val result = ListBuffer[String]()
-        val temp = await(res.get.data run getAll map {bytes => result += new String(bytes)})
-        result should contain theSameElementsAs resultsArr
+        var result = new String("")
+        val temp = await(res.get.data run getAll map {bytes => result = result.concat(new String(bytes))})
+        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
 
       }
     }

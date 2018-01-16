@@ -43,7 +43,6 @@ class GridFsTTLIndexingSpec extends UnitSpec with MockitoSugar with OneAppPerTes
 
     GridFsRepo.addAllTTLs(rasFileRepository.gridFSG)
    val res =  await(rasFileRepository.gridFSG.files.indexesManager.list())
-    res.size shouldBe 2
     res.head.name.get shouldBe "lastUpdatedIndex"
     res.head.options.get("expireAfterSeconds").get.leftSideValue shouldBe BSONLong(60)
     val res1 =  await(rasFileRepository.gridFSG.chunks.indexesManager.list())
