@@ -27,23 +27,45 @@ import reactivemongo.api.gridfs._
 import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-object RasRepository extends MongoDbConnection{
+object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
+  private implicit val connection = mongoConnector.db
+  override val expireAfterSeconds = AppContext.resultsExpriyTime
+
+  lazy val filerepo: RasFileRepository = {
+    val repo = new RasFileRepository(connection)
+    addAllTTLs(repo.gridFSG)
+    repo
+  }
+
+
+  // $COVERAGE-ON$
+}
+
+/*object RasFileRepository extends MongoDbConnection {
+
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   private implicit val connection = mongoConnector.db
 
-  lazy val filerepo: RasFileRepository = new RasFileRepository(connection)
+  def apply(mongo: () => DB with DBMetaCommands,  expireAfterSeconds: Long) ( implicit ec: ExecutionContext)= {
+    Logger.debug("repository creation started with TTL indexing")
+    val filerepo: RasFileRepository = new RasFileRepository(mongo,30)
+    filerepo.addAllTTLs(filerepo.gridFSG)
+    filerepo
+  }
   // $COVERAGE-ON$
-}
+}*/
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
 class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats) {
+  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats){
 
   private val contentType =  "text/csv"
   val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")

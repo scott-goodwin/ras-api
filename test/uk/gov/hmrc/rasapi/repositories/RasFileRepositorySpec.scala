@@ -29,7 +29,7 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
   with BeforeAndAfter with RepositoriesHelper {
 
   before{
-    rasFileRepository.removeAll
+    rasFileRepository.removeAll()
   }
 
 

@@ -24,7 +24,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.OneServerPerSuite
+import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
@@ -37,7 +37,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class FileProcessingServiceSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
+class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -160,11 +160,11 @@ val mockSessionCache = mock[SessionCacheService]
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails])(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
           await(SUT.processFile("user1234",callbackData))
-        Thread.sleep(500)
+        Thread.sleep(2000)
         val res = await(rasFileRepository.fetchFile(fileId))
         val result = ListBuffer[String]()
         val temp = await(res.get.data run getAll map {bytes => result += new String(bytes)})
-        result.foreach(println)
+        result should contain theSameElementsAs resultsArr
 
       }
     }
