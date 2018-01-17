@@ -48,20 +48,6 @@ object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
   // $COVERAGE-ON$
 }
 
-/*object RasFileRepository extends MongoDbConnection {
-
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  private implicit val connection = mongoConnector.db
-
-  def apply(mongo: () => DB with DBMetaCommands,  expireAfterSeconds: Long) ( implicit ec: ExecutionContext)= {
-    Logger.debug("repository creation started with TTL indexing")
-    val filerepo: RasFileRepository = new RasFileRepository(mongo,30)
-    filerepo.addAllTTLs(filerepo.gridFSG)
-    filerepo
-  }
-  // $COVERAGE-ON$
-}*/
-
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
 class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
