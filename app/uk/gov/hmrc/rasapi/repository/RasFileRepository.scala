@@ -27,31 +27,23 @@ import reactivemongo.api.gridfs._
 import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
+object RasRepository extends MongoDbConnection{
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   private implicit val connection = mongoConnector.db
-  override val expireAfterSeconds = AppContext.resultsExpriyTime
 
-  lazy val filerepo: RasFileRepository = {
-    val repo = new RasFileRepository(connection)
-    addAllTTLs(repo.gridFSG)
-    repo
-  }
-
-
+  lazy val filerepo: RasFileRepository = new RasFileRepository(connection)
   // $COVERAGE-ON$
 }
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
 class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats){
+  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats) {
 
   private val contentType =  "text/csv"
   val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")

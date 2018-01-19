@@ -64,8 +64,8 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
   class RasFileRepositoryTest(implicit ec: ExecutionContext) extends RasFileRepository(mongoConnector) {
 
-    def getFile(storedFile: ResultsFile) = {
-      val inputStream = gridFSG.enumerate(storedFile) run getAll map { bytes =>
+   def getFile( storedFile: ResultsFile) ={
+    val inputStream = gridFSG.enumerate(storedFile) run getAll map { bytes =>
         new ByteArrayInputStream(bytes)
       }
       Source.fromInputStream(inputStream).getLines
