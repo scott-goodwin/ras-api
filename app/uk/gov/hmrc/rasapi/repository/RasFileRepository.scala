@@ -83,7 +83,15 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
 
   def removeFile(fileName:String): Future[Boolean] = {
         Logger.debug("file to remove => fileName : " + fileName)
-      gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map(res => res.hasErrors).recover {
+      gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map{
+        res => res.writeErrors.isEmpty match {
+        case true =>
+          Logger.warn("Results file removed successfully "+ fileName)
+          true
+        case false =>  Logger.error("error while removing file "+ res.writeErrors.toString)
+          false
+          }
+      }.recover {
         case ex: Throwable =>
           Logger.error("error trying to remove file " + fileName + " " + ex.getMessage)
           throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
