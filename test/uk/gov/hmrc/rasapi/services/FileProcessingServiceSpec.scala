@@ -165,7 +165,7 @@ val mockSessionCache = mock[SessionCacheService]
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails])(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
           await(SUT.processFile("user1234",callbackData))
-        Thread.sleep(2000)
+        Thread.sleep(3000)
         val res = await(rasFileRepository.fetchFile(fileId))
         var result = new String("")
         val temp = await(res.get.data run getAll map {bytes => result = result.concat(new String(bytes))})

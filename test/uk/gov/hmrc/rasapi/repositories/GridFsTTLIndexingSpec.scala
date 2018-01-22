@@ -33,23 +33,18 @@ class GridFsTTLIndexingSpec extends UnitSpec with MockitoSugar with OneAppPerTes
   }
 
 
-
-"GridFsTTLIndexingSpec" should {
+  "GridFsTTLIndexingSpec" should {
   "ensure indexes and create if not available" in {
     object GridFsRepo extends GridFsTTLIndexing
     {
       override lazy val expireAfterSeconds: Long = 60
     }
 
-    GridFsRepo.addAllTTLs(rasFileRepository.gridFSG)
+    val update = await(GridFsRepo.addAllTTLs(rasFileRepository.gridFSG))
+    Thread.sleep(2000)
    val res =  await(rasFileRepository.gridFSG.files.indexesManager.list())
-    res.head.name.get shouldBe "lastUpdatedIndex"
-    res.head.options.get("expireAfterSeconds").get.leftSideValue shouldBe BSONLong(60)
-    val res1 =  await(rasFileRepository.gridFSG.chunks.indexesManager.list())
-    res1.size shouldBe 2
+    res.filter(_.name.get == "lastUpdatedIndex").head.options.get("expireAfterSeconds").get shouldBe BSONLong(60)
 
   }
-
-
 }
 }
