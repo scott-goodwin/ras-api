@@ -97,7 +97,7 @@ val mockSessionCache = mock[SessionCacheService]
 
         val result = SUT.createMatchingData(inputData)
 
-        result shouldBe Right(List("nino-INVALID_FORMAT", "lastName-INVALID_FORMAT"))
+        result shouldBe Right(List("nino-MISSING_FIELD", "lastName-INVALID_FORMAT"))
       }
 
       "parse line as raw data and convert to RawMemberDetails object when there are less than 3 columns" in {
@@ -105,7 +105,7 @@ val mockSessionCache = mock[SessionCacheService]
 
         val result = SUT.createMatchingData(inputData)
 
-        result shouldBe Right(List("nino-INVALID_FORMAT", "lastName-INVALID_FORMAT", "dateOfBirth-INVALID_FORMAT", "firstName-INVALID_FORMAT"))
+        result shouldBe Right(List("nino-INVALID_FORMAT", "lastName-INVALID_FORMAT", "dateOfBirth-MISSING_FIELD", "firstName-INVALID_FORMAT"))
       }
 
       "parse empty line as raw data and convert to RawMemberDetails object" in {
@@ -113,7 +113,7 @@ val mockSessionCache = mock[SessionCacheService]
 
         val result = SUT.createMatchingData(inputData)
 
-        result shouldBe Right(List("nino-INVALID_FORMAT", "lastName-MISSING_FIELD", "dateOfBirth-INVALID_FORMAT", "firstName-MISSING_FIELD"))
+        result shouldBe Right(List("nino-MISSING_FIELD", "lastName-MISSING_FIELD", "dateOfBirth-MISSING_FIELD", "firstName-MISSING_FIELD"))
       }
     }
 
