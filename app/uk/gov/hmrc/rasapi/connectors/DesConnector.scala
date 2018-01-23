@@ -28,6 +28,7 @@ import uk.gov.hmrc.rasapi.models._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+import play.api.http.Status.INTERNAL_SERVER_ERROR
 
 
 trait DesConnector extends ServicesConfig {
@@ -69,7 +70,11 @@ trait DesConnector extends ServicesConfig {
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc),
       MdcLoggingExecutionContext.fromLoggingDetails(hc))
 
-    result.map (response => resolveResponse(response))
+    result.map (response => resolveResponse(response)).recover {
+      case ex: Upstream4xxResponse if(ex.upstreamResponseCode == 403) => Right(ResidencyStatusFailure("MATCHING_FAILED", "The customer details provided did not match with HMRC’s records."))
+      case _ => Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
+
+    }
   }
 
   private def resolveResponse(httpResponse: HttpResponse) :Either[ResidencyStatus, ResidencyStatusFailure] =   {
