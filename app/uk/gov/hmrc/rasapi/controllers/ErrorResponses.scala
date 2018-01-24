@@ -53,6 +53,11 @@ case object InvalidCredentials extends ErrorResponse(
   "INVALID_CREDENTIALS",
   "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)")
 
+case object IndividualNotFound extends ErrorResponse(
+  403,
+  "MATCHING_FAILED",
+  "The individual's details provided did not match with HMRC’s records.")
+
 // START OF TO BE DELETED
 case object BadRequestInvalidFormatResponse extends ErrorResponse(
   400,

@@ -16,25 +16,26 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.rasapi.connectors.CachingConnector
+import uk.gov.hmrc.rasapi.connectors.DesConnector
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import uk.gov.hmrc.auth.core._
-
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.models._
-import uk.gov.hmrc.rasapi.services.{AuditService, HttpResponseHandlerService}
+import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.utils.ErrorConverter
 
 class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuite with BeforeAndAfter{
 
@@ -42,26 +43,28 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
   val acceptHeader: (String, String) = (HeaderNames.ACCEPT, "application/vnd.hmrc.1.0+json")
 
-  val mockHttpResponseHandlerService = mock[HttpResponseHandlerService]
-  val mockCachingConnector = mock[CachingConnector]
+  val mockDesConnector = mock[DesConnector]
   val mockAuditService = mock[AuditService]
   val mockAuthConnector = mock[RasAuthConnector]
+//  val mockErrorConverter = mock[ErrorConverter]
 
   val expectedNino: Nino = Nino("LE241131B")
 
-  private val enrolmentIdentifier1 = EnrolmentIdentifier("PSAID", "Z123456")
+  private val enrolmentIdentifier1 = EnrolmentIdentifier("PSAID", "A123456")
   private val enrolment1 = new Enrolment(key = "HMRC-PSA-ORG", identifiers = List(enrolmentIdentifier1), state = "Activated", None)
-  private val enrolmentIdentifier2 = EnrolmentIdentifier("PPID", "Z123456")
+  private val enrolmentIdentifier2 = EnrolmentIdentifier("PPID", "A123456")
   private val enrolment2 = new Enrolment(key = "HMRC-PP-ORG", identifiers = List(enrolmentIdentifier2), state = "Activated", None)
   private val enrolments = new Enrolments(Set(enrolment1,enrolment2))
 
   val successfulRetrieval: Future[Enrolments] = Future.successful(enrolments)
 
+  val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
+
   object TestLookupController extends LookupController {
-    override val responseHandlerService: HttpResponseHandlerService = mockHttpResponseHandlerService
-    override val cachingConnector = mockCachingConnector
+    override val desConnector = mockDesConnector
     override val auditService: AuditService = mockAuditService
     override val authConnector: AuthConnector = mockAuthConnector
+    override val errorConverter: ErrorConverter = ErrorConverter
   }
 
   before{
@@ -71,164 +74,52 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
   "The lookup controller endpoint" should {
 
     "audit a successful lookup response" when {
-      "a valid uuid has been submitted" in {
+      "a valid request has been submitted" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
         val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-          .withHeaders(acceptHeader)))
+        await(TestLookupController.getResidencyStatus()
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
                               "CYStatus" -> "otherUKResident",
                               "NextCYStatus" -> "otherUKResident",
                               "nino" -> "LE241131B",
-                              "userIdentifier" -> "Z123456"))
+                              "userIdentifier" -> "A123456"))
         )(any())
       }
     }
 
-    "audit an unsuccessful lookup response" when {
-      "an invalid uuid is given" in {
-
+    "audit a unsuccessful lookup response" when {
+      "a problem has occurred in the Head of Duty (HoD) system" in {
+  
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
+        val residencyStatusFailure = ResidencyStatusFailure("", "")
 
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.failed(new NotFoundException("")))
-
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-          .withHeaders(acceptHeader)))
-
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+  
+        await(TestLookupController.getResidencyStatus()
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails))))
+  
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("successfulLookup" -> "false",
-                              "reason" -> "INVALID_UUID",
-                              "userIdentifier" -> "Z123456"))
-        )(any())
-      }
-
-      "a problem occurred while trying to call caching service" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR)))
-
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-          .withHeaders(acceptHeader)))
-
-        verify(mockAuditService).audit(
-          auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "Z123456"))
-        )(any())
-      }
-
-      "there is corrupted data held in the Head of Duty (HoD) system" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Right("")))
-
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-          .withHeaders(acceptHeader)))
-
-        verify(mockAuditService).audit(
-          auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
                               "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "Z123456"))
-        )(any())
-      }
-
-      "a problem occurred while trying to call the Head of Duty (HoD) system" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Right("")))
-
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-          .withHeaders(acceptHeader)))
-
-        verify(mockAuditService).audit(
-          auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("nino" -> "LE241131B",
-                              "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "Z123456"))
-        )(any())
-      }
-
-      "A 403 is returned from DES Connector (HoD)" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Right("")))
-
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-            .withHeaders(acceptHeader)))
-
-        verify(mockAuditService).audit(
-          auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("nino" -> "LE241131B",
-                              "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "Z123456"))
-        )(any())
-      }
-
-      "an unexpected 4xx response is returned from DES Connector (HoD)" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Right("")))
-
-        await(TestLookupController.getResidencyStatus(uuid)
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/$uuid/residency-status")
-            .withHeaders(acceptHeader)))
-
-        verify(mockAuditService).audit(
-          auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/$uuid/residency-status"),
-          auditData = Meq(Map("nino" -> "LE241131B",
-                              "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "Z123456"))
+                              "userIdentifier" -> "A123456"))
         )(any())
       }
     }
@@ -238,11 +129,10 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
     "return status 200 with correct residency status json" when {
 
-      "a valid UUID is given" in {
+      "a valid request payload is given" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
         val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
         val expectedJsonResult = Json.parse(
@@ -253,10 +143,10 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             }
           """.stripMargin)
 
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
@@ -270,8 +160,6 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "Bearer ABC")
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -280,7 +168,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").
           withHeaders(acceptHeader, authorisationHeader))
 
         status(result) shouldBe UNAUTHORIZED
@@ -291,8 +179,6 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         when(mockAuthConnector.authorise[Option[String]](any(), any())(any(),any())).thenReturn(Future.failed(new MissingBearerToken))
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -301,8 +187,9 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
-          withHeaders(acceptHeader))
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -314,8 +201,6 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "")
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -324,8 +209,9 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
-          withHeaders(acceptHeader, authorisationHeader))
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader, authorisationHeader)
+          .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -338,8 +224,6 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "")
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -348,8 +232,9 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
-          withHeaders(acceptHeader, authorisationHeader))
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader, authorisationHeader)
+          .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -361,8 +246,6 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val authorisationHeader: (String, String) = (HeaderNames.AUTHORIZATION, "Bearer ABC")
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc2"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -371,55 +254,57 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").
-          withHeaders(acceptHeader, authorisationHeader))
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader, authorisationHeader)
+          .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
-
-    "return status 403" when {
-
-      "a timed out UUID is given" in {
-
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc1"
-
-        val expectedJsonResult = Json.parse(
-          """
-            |{
-            |  "code": "INVALID_UUID",
-            |  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to be repeated."
-            |}
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.failed(new NotFoundException("")))
-
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-
-        status(result) shouldBe FORBIDDEN
-        contentAsJson(result) shouldBe expectedJsonResult
-      }
-    }
-
     "return status 400" when {
-      "an invalid UUID is given (non conforming to regex: ^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$" in {
+      "an invalid payload is provided" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val uuid: String = "2800a7ab-fe20-42ca-98d7-c33f4133cfc"
+        val invalidPayload = Json.parse(
+          """
+            |{
+            |   "firstName": "Joe",
+            |   "nino": "BG123243C",
+            |   "dob": ""
+            |}
+          """.stripMargin
+        )
 
         val expectedJsonResult = Json.parse(
           """
             |{
-            |  "code": "INVALID_FORMAT",
-            |  "message": "Invalid UUID format. Use the UUID provided."
+            |  "code": "BAD_REQUEST",
+            |  "message": "Bad Request",
+            |  "errors": [
+            |     {
+            |       "code": "INVALID_FORMAT",
+            |       "message": "Invalid format has been used",
+            |       "path": "/nino"
+            |     },
+            |     {
+            |       "code": "MISSING_FIELD",
+            |       "message": "This field is required",
+            |       "path": "/lastName"
+            |     },
+            |     {
+            |       "code": "MISSING_FIELD",
+            |       "message": "This field is required",
+            |       "path": "/dateOfBirth"
+            |     }
+            |  ]
             |}
           """.stripMargin)
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader)
+          .withJsonBody(invalidPayload))
 
         status(result) shouldBe BAD_REQUEST
         contentAsJson(result) shouldBe expectedJsonResult
@@ -428,35 +313,10 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
     "return status 500" when {
 
-      when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-      "something goes wrong in the caching service" in {
-
-        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997795"
-
-        val expectedJsonResult = Json.parse(
-          """
-            |{
-            |  "code": "INTERNAL_SERVER_ERROR",
-            |  "message": "Internal server error"
-            |}
-          """.stripMargin)
-
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR)))
-
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
-
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-        contentAsJson(result) shouldBe expectedJsonResult
-      }
-
       "when residency status is not returned from the response handler service" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val nino = Nino("LE241131B")
-        val uuid: String = "76648d82-309e-484d-a310-d0ffd2997794"
-
         val expectedJsonResult = Json.parse(
           """
             |{
@@ -465,10 +325,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        when(mockCachingConnector.getCachedData(any())(any())).thenReturn(Future.successful(HttpResponse(OK, Some(Json.toJson(expectedNino)))))
-        when(mockHttpResponseHandlerService.handleResidencyStatusResponse(any(), any())(any(), any())).thenReturn(Future.successful(Right("")))
+        val residencyStatusFailure = ResidencyStatusFailure("", "")
 
-        val result = TestLookupController.getResidencyStatus(uuid).apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader))
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe INTERNAL_SERVER_ERROR
         contentAsJson(result) shouldBe expectedJsonResult

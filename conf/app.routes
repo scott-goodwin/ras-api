@@ -1,6 +1,6 @@
 # microservice specific routes
 
-GET     /customer/:customerUUID/residency-status    uk.gov.hmrc.rasapi.controllers.LookupController.getResidencyStatus(customerUUID)
+GET     /customer/residency-status    uk.gov.hmrc.rasapi.controllers.LookupController.getResidencyStatus()
 
 POST    /ras-api/file-processing/status/:userId    uk.gov.hmrc.rasapi.controllers.FileProcessingController.statusCallback(userId)
 

@@ -24,8 +24,6 @@ import reactivemongo.api.BSONSerializationPack
 import reactivemongo.api.gridfs.ReadFile
 import reactivemongo.bson.BSONValue
 
-
-
 package object models {
 
   type NINO = String
@@ -39,11 +37,23 @@ package object models {
     private val missing = "MISSING_FIELD"
     private val invalidDateValidationMessage = "INVALID_DATE"
     private val dateRegex = "^[\\d]{4}-[\\d]{2}-[\\d]{2}$"
+    private val ninoRegex = "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"
 
+    val nino: Reads[NINO] = ninoReads()
 
-    val nino: Reads[NINO] = Reads.pattern(
-      "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$".r,
-      invalidFormat)
+    private def ninoReads(): Reads[NINO] = new Reads[NINO] {
+
+      def reads(json: JsValue): JsResult[NINO] = {
+        json match {
+          case JsString(data) => data match {
+            case strValue if strValue.trim.isEmpty => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
+            case strValue if !strValue.matches(ninoRegex) => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
+            case strValue => JsSuccess(strValue)
+          }
+          case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
+        }
+      }
+    }
 
     val name: Reads[Name] = nameReads()
 
@@ -61,8 +71,8 @@ package object models {
 
         json match {
           case JsString(data) => data match {
-            case strValue if (strValue.trim.isEmpty) => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
-            case strValue if (!strValue.matches("^[a-zA-Z &`\\-\\'^]{1,35}$")) => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
+            case strValue if strValue.trim.isEmpty => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
+            case strValue if !strValue.matches("^[a-zA-Z &`\\-\\'^]{1,35}$") => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
             case strValue => JsSuccess(strValue)
           }
           case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
@@ -78,22 +88,26 @@ package object models {
     private def isoDateReads(dateFormat: String): Reads[DateTime] = new Reads[DateTime] {
 
       def reads(json: JsValue): JsResult[DateTime] = json match {
-        case JsString(s) => parseDate(s) match {
-          case Some(d: DateTime) => {
-            if (d.isAfterNow) {
-              JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidationMessage))))
-            }
-            else {
-              JsSuccess(d)
+        case JsString(s) =>
+          if (s.trim.isEmpty) JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
+          else {
+            parseDate(s) match {
+              case Some(d: DateTime) => {
+                if (d.isAfterNow) {
+                  JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidationMessage))))
+                }
+                else {
+                  JsSuccess(d)
+                }
+              }
+              case None =>
+                s.matches(dateRegex) match {
+                  case true => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidationMessage))))
+                  case false => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
+                }
             }
           }
-          case None =>
-            s.matches(dateRegex) match {
-              case true => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidationMessage))))
-              case false => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
-            }
-        }
-        case _ => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
+        case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
       }
 
       private def parseDate(input: String): Option[DateTime] =

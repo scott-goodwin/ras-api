@@ -8,18 +8,18 @@ object MicroServiceBuild extends Build with MicroService {
 
   override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
-  private val apiPlatformlibVersion = "1.3.0"
-  private val playReactivemongoVersion = "5.2.0"
+  private val apiPlatformlibVersion = "2.1.0"
+  private val playReactivemongoVersion = "6.1.0"
   private val jsonEncryptionVersion = "3.2.0"
   private val akkaVersion = "2.4.10"
 
 
   val compile = Seq(
    ws,
-    "uk.gov.hmrc" %% "microservice-bootstrap" % "6.9.0",
+    "uk.gov.hmrc" %% "microservice-bootstrap" % "6.15.0",
     "uk.gov.hmrc" %% "auth-client" % "2.3.0",
     "uk.gov.hmrc" %% "domain" % "5.0.0",
-    "uk.gov.hmrc" %% "mongo-caching" % "4.0.0",
+    "uk.gov.hmrc" %% "mongo-caching" % "5.3.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "json-encryption" % jsonEncryptionVersion,
     "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,

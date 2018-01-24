@@ -40,7 +40,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     lazy val results: ListBuffer[String] = ListBuffer.empty
     readFile(callbackData.envelopeId, callbackData.fileId).onComplete {
       inputFileData =>
-        val data = inputFileData.get.foreach(row => if (!row.isEmpty) results += fetchResult(row))
+        val data = inputFileData.get.foreach(row => if (!row.isEmpty) results += fetchResult(row, userId))
 
         val tempFilePath = generateResultsFile(results)
         RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, tempFilePath, callbackData.fileId).onComplete {
