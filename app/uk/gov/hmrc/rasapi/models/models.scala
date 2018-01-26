@@ -91,14 +91,14 @@ package object models {
       *
       * @return
       */
-    private def isoDateReads(allowFutureDates: Boolean = true): Reads[DateTime] = new Reads[DateTime] {
+    private def isoDateReads(): Reads[DateTime] = new Reads[DateTime] {
 
       def reads(json: JsValue): JsResult[DateTime] = json match {
         case JsString(s) => if (s.trim.isEmpty) JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
         else {
           parseDate(s) match {
             case Some(d: DateTime) => {
-              if (!allowFutureDates && d.isAfterNow) {
+              if (d.isAfterNow) {
                 JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
               }
               else {
