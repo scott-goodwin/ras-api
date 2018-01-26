@@ -35,9 +35,10 @@ package object models {
     private val invalidDataType = "INVALID_DATA_TYPE"
     private val invalidFormat = "INVALID_FORMAT"
     private val missing = "MISSING_FIELD"
-    private val invalidDateValidationMessage = "INVALID_DATE"
+    private val invalidDateValidation = "INVALID_DATE"
     private val dateRegex = "^[\\d]{4}-[\\d]{2}-[\\d]{2}$"
     private val ninoRegex = "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"
+    val dateFormat = "yyyy-MM-dd"
 
     val nino: Reads[NINO] = ninoReads()
 
@@ -58,11 +59,12 @@ package object models {
     val name: Reads[Name] = nameReads()
 
     // ISO Date is a date which is not in the future.
-    def isoDate(dateFormat: String = "yyyy-MM-dd"): Reads[DateTime] = isoDateReads(dateFormat)
+    def isoDate(dateFormat: String = "yyyy-MM-dd"): Reads[DateTime] = isoDateReads()
 
     /**
       * Ensures that a name only contains specific characters and is between 1 and 35 characters long,
       * and does not contain solo blank spaces e.g. " ".
+      *
       * @return
       */
     private def nameReads(): Reads[Name] = new Reads[Name] {
@@ -83,36 +85,35 @@ package object models {
     /**
       * Reads a JSON value as a joda.org.time.DateTime object.
       * This date cannot be in the future.
+      *
       * @return
       */
-    private def isoDateReads(dateFormat: String): Reads[DateTime] = new Reads[DateTime] {
+    private def isoDateReads(): Reads[DateTime] = new Reads[DateTime] {
 
       def reads(json: JsValue): JsResult[DateTime] = json match {
-        case JsString(s) =>
-          if (s.trim.isEmpty) JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
-          else {
-            parseDate(s) match {
-              case Some(d: DateTime) => {
-                if (d.isAfterNow) {
-                  JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidationMessage))))
-                }
-                else {
-                  JsSuccess(d)
-                }
+        case JsString(s) => if (s.trim.isEmpty) JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
+        else {
+          parseDate(s) match {
+            case Some(d: DateTime) => {
+              if (d.isAfterNow) {
+                JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
               }
-              case None =>
-                s.matches(dateRegex) match {
-                  case true => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidationMessage))))
-                  case false => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
-                }
+              else {
+                JsSuccess(d)
+              }
             }
+            case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
           }
+        }
         case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
       }
 
-      private def parseDate(input: String): Option[DateTime] =
-        scala.util.control.Exception.allCatch[DateTime] opt DateTime.parse(input, DateTimeFormat.forPattern(dateFormat))
-
+      private def parseDate(input: String): Option[DateTime] = {
+        input.matches(dateRegex) match {
+          case true => scala.util.control.Exception.allCatch[DateTime] opt (DateTime.parse(input, DateTimeFormat.forPattern(dateFormat)))
+          case _ => None
+        }
+      }
     }
   }
 }

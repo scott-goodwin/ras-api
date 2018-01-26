@@ -30,6 +30,7 @@ import uk.gov.hmrc.rasapi.services.AuditService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+import play.api.http.Status.INTERNAL_SERVER_ERROR
 
 
 trait DesConnector extends ServicesConfig {
@@ -65,7 +66,11 @@ trait DesConnector extends ServicesConfig {
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc),
       MdcLoggingExecutionContext.fromLoggingDetails(hc))
 
-    result.map (response => resolveResponse(response, userId, member.nino))
+    result.map (response => resolveResponse(response, userId, member.nino)).recover {
+      case ex: Upstream4xxResponse if(ex.upstreamResponseCode == 403) => Right(ResidencyStatusFailure("MATCHING_FAILED", "The customer details provided did not match with HMRC’s records."))
+      case _ => Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
+
+    }
   }
 
   private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] =   {
@@ -86,7 +91,7 @@ trait DesConnector extends ServicesConfig {
         Left(ResidencyStatus(currentStatus,nextYearStatus))
       case Failure(_) =>
         Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {
-          case Success(data) => Logger.debug(s"DesFailureResponse from DES, Code: ${data.code } & reason: ${data.reason}")
+          case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
             Right(data)
           case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
             Right(ResidencyStatusFailure("500","HODS NOT AVAILABLE"))
