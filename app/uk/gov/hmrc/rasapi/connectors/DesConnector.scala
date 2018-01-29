@@ -69,7 +69,7 @@ trait DesConnector extends ServicesConfig {
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector")
-        Right(ResidencyStatusFailure("MATCHING_FAILED", "The customer details provided did not match with HMRC’s records."))
+        Right(ResidencyStatusFailure("MATCHING_FAILED", "The individual's details provided did not match with HMRC’s records."))
       case th: Throwable =>
         Logger.error("[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD", th)
         Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))

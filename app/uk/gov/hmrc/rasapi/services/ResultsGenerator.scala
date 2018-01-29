@@ -41,7 +41,7 @@ trait ResultsGenerator {
 
         res match {
           case Left(residencyStatus) => inputRow + comma + residencyStatus.toString
-          case Right(statusFailure) => inputRow + comma + statusFailure.code
+          case Right(statusFailure) => inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
 
         }
     }
