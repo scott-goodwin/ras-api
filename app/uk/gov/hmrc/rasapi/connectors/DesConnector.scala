@@ -70,34 +70,43 @@ trait DesConnector extends ServicesConfig {
       case ex: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector")
         Right(ResidencyStatusFailure("MATCHING_FAILED", "The customer details provided did not match with HMRC’s records."))
-      case th: Throwable => Logger.error("[DesConnector] [getResidencyStatus] ERROR OCURRED WHEN PARSING JSON", th)
+      case th: Throwable =>
+        Logger.error("[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD", th)
         Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
-      case _ => Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
+      case _ =>
+        Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD")
+        Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
     }
   }
 
   private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] =   {
     Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
       case Success(payload) =>
-        val currentStatus = payload.currentYearResidencyStatus.replace(uk,otherUk).replace(scot,scotRes)
-        val nextYearStatus = payload.nextYearResidencyStatus.replace(uk,otherUk).replace(scot,scotRes)
 
-        sendDataToEDH(userId, nino, ResidencyStatus(currentStatus,nextYearStatus)).map { httpResponse =>
-          Logger.info("DesConnector - resolveResponse: Audited EDH response")
-          auditEDHResponse(userId, nino, auditSuccess = true)
-        } recover {
-          case _ =>
-            Logger.error("DesConnector - resolveResponse: Error returned from EDH")
-            auditEDHResponse(userId, nino, auditSuccess = false)
+        if (payload.deseasedIndicator) {
+
+          Right(ResidencyStatusFailure("DECEASED", "Individual is deceased"))
+        } else {
+          val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
+          val nextYearStatus = payload.nextYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
+
+          sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
+            Logger.info("DesConnector - resolveResponse: Audited EDH response")
+            auditEDHResponse(userId, nino, auditSuccess = true)
+          } recover {
+            case _ =>
+              Logger.error("DesConnector - resolveResponse: Error returned from EDH")
+              auditEDHResponse(userId, nino, auditSuccess = false)
+          }
+
+          Left(ResidencyStatus(currentStatus, nextYearStatus))
         }
-
-        Left(ResidencyStatus(currentStatus,nextYearStatus))
       case Failure(_) =>
         Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {
           case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
             Right(data)
           case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
-            Right(ResidencyStatusFailure("500","HODS NOT AVAILABLE"))
+            Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"HODS NOT AVAILABLE"))
         }
     }
   }

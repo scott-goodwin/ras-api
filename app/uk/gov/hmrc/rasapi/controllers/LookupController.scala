@@ -67,6 +67,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                   Ok(toJson(residencyStatus))
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
+                    case "DECEASED" =>
+                      auditResponse(failureReason = Some(IndividualNotFound.errorCode),
+                        nino = Some(individualDetails.nino),
+                        residencyStatus = None,
+                        userId = id)
+                      Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
+                      Metrics.registry.counter(FORBIDDEN.toString)
+                      Forbidden(toJson(IndividualNotFound))
                     case "MATCHING_FAILED" =>
                       auditResponse(failureReason = Some(IndividualNotFound.errorCode),
                         nino = Some(individualDetails.nino),

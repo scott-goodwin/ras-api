@@ -111,15 +111,26 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       result.left.get shouldBe ResidencyStatus("otherUKResident","scotResident")
     }
 
-    "handle failure response from des" in {
+    "handle failure response (no match) from des" in {
       implicit val formatF = ResidencyStatusFormats.failureFormats
-      val errorResponse = ResidencyStatusFailure("NOT_MATCHED","matching failed")
+      val errorResponse = ResidencyStatusFailure("MATCHING_FAILED","matching failed")
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
-        thenReturn(Future.successful(HttpResponse(403, Some(Json.toJson(errorResponse)))))
+        thenReturn(Future.successful(HttpResponse(404, Some(Json.toJson(errorResponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "Lewis", new DateTime("1990-02-21")), userId))
       result.isLeft shouldBe false
       result.right.get shouldBe errorResponse
+    }
+
+    "handle success response but the person is deceased from des" in {
+      val successResponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some("2017-12-25"), deathDateStatus = Some("Confirmed"),
+        deseasedIndicator = true, currentYearResidencyStatus = "Uk", nextYearResidencyStatus = "Uk")
+      when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
+        thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
+      val expectedResult = ResidencyStatusFailure("DECEASED","Individual is deceased")
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+      result.isLeft shouldBe false
+      result.right.get shouldBe expectedResult
     }
 
     "handle unexpected responses as 500 from des" in {

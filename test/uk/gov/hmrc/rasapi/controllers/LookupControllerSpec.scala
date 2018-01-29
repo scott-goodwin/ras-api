@@ -338,7 +338,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     }
 
     "return status 403" when {
-      "an individual's details cannot be matched against HMRC records" in {
+      "MATCHING_FAILED is returned from the connector" in {
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
         val expectedJsonResult = Json.parse(
