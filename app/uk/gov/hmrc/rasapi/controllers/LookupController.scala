@@ -65,22 +65,26 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                   Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
                   apiMetrics.stop()
                   Ok(toJson(residencyStatus))
-                case Right(_) => auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
-                  nino = Some(individualDetails.nino),
-                  residencyStatus = None,
-                  userId = id)
-                  Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES.")
-                  Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
-                  InternalServerError(toJson(ErrorInternalServerError))
+                case Right(matchingFailed) =>
+                  matchingFailed.code match {
+                    case "MATCHING_FAILED" =>
+                      auditResponse(failureReason = Some(IndividualNotFound.errorCode),
+                        nino = Some(individualDetails.nino),
+                        residencyStatus = None,
+                        userId = id)
+                      Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
+                      Metrics.registry.counter(FORBIDDEN.toString)
+                      Forbidden(toJson(IndividualNotFound))
+                    case _ =>
+                      auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
+                        nino = Some(individualDetails.nino),
+                        residencyStatus = None,
+                        userId = id)
+                      Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES.")
+                      Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
+                      InternalServerError(toJson(ErrorInternalServerError))
+                  }
               } recover {
-                case _404: NotFoundException =>
-                  auditResponse(failureReason = Some(IndividualNotFound.errorCode),
-                    nino = None,
-                    residencyStatus = None,
-                    userId = id)
-                  Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
-                  Metrics.registry.counter(FORBIDDEN.toString)
-                  Forbidden(toJson(IndividualNotFound))
 
                 case th: Throwable =>
                   auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),

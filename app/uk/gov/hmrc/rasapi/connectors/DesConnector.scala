@@ -67,9 +67,12 @@ trait DesConnector extends ServicesConfig {
       MdcLoggingExecutionContext.fromLoggingDetails(hc))
 
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
-      case ex: Upstream4xxResponse if(ex.upstreamResponseCode == 403) => Right(ResidencyStatusFailure("MATCHING_FAILED", "The customer details provided did not match with HMRC’s records."))
+      case ex: NotFoundException =>
+        Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector")
+        Right(ResidencyStatusFailure("MATCHING_FAILED", "The customer details provided did not match with HMRC’s records."))
+      case th: Throwable => Logger.error("[DesConnector] [getResidencyStatus] ERROR OCURRED WHEN PARSING JSON", th)
+        Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
       case _ => Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
-
     }
   }
 

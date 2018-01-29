@@ -76,7 +76,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     "audit a successful lookup response" when {
       "a valid request has been submitted" in {
 
-        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
 
         val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
 
@@ -84,27 +84,52 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
-          .withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails))))
+            .withHeaders(acceptHeader)
+            .withJsonBody(Json.toJson(individualDetails))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
-                              "CYStatus" -> "otherUKResident",
-                              "NextCYStatus" -> "otherUKResident",
-                              "nino" -> "LE241131B",
-                              "userIdentifier" -> "A123456"))
+            "CYStatus" -> "otherUKResident",
+            "NextCYStatus" -> "otherUKResident",
+            "nino" -> "LE241131B",
+            "userIdentifier" -> "A123456"))
         )(any())
       }
     }
 
+
     "audit a unsuccessful lookup response" when {
+
+      "a no match is returned" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+
+        val residencyStatusFailure = ResidencyStatusFailure("MATCHING_FAILED", "")
+
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+
+        await(TestLookupController.getResidencyStatus()
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+            .withHeaders(acceptHeader)
+            .withJsonBody(Json.toJson(individualDetails))))
+
+        verify(mockAuditService).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("nino" -> "LE241131B",
+            "successfulLookup" -> "false",
+            "reason" -> "MATCHING_FAILED",
+            "userIdentifier" -> "A123456"))
+        )(any())
+      }
+
       "a problem has occurred in the Head of Duty (HoD) system" in {
   
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val residencyStatusFailure = ResidencyStatusFailure("", "")
+        val residencyStatusFailure = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "")
 
         when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
   
@@ -149,6 +174,55 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           .withJsonBody(Json.toJson(individualDetails)))
 
         status(result) shouldBe OK
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
+
+    "return status 400" when {
+      "an invalid payload is provided" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+
+        val invalidPayload = Json.parse(
+          """
+            |{
+            |   "firstName": "Joe",
+            |   "nino": "BG123243C",
+            |   "dob": ""
+            |}
+          """.stripMargin
+        )
+
+        val expectedJsonResult = Json.parse(
+          """
+            |{
+            |  "code": "BAD_REQUEST",
+            |  "message": "Bad Request",
+            |  "errors": [
+            |     {
+            |       "code": "INVALID_FORMAT",
+            |       "message": "Invalid format has been used",
+            |       "path": "/nino"
+            |     },
+            |     {
+            |       "code": "MISSING_FIELD",
+            |       "message": "This field is required",
+            |       "path": "/lastName"
+            |     },
+            |     {
+            |       "code": "MISSING_FIELD",
+            |       "message": "This field is required",
+            |       "path": "/dateOfBirth"
+            |     }
+            |  ]
+            |}
+          """.stripMargin)
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader)
+          .withJsonBody(invalidPayload))
+
+        status(result) shouldBe BAD_REQUEST
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
@@ -262,51 +336,28 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
-    "return status 400" when {
-      "an invalid payload is provided" in {
 
+    "return status 403" when {
+      "an individual's details cannot be matched against HMRC records" in {
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
-
-        val invalidPayload = Json.parse(
-          """
-            |{
-            |   "firstName": "Joe",
-            |   "nino": "BG123243C",
-            |   "dob": ""
-            |}
-          """.stripMargin
-        )
 
         val expectedJsonResult = Json.parse(
           """
             |{
-            |  "code": "BAD_REQUEST",
-            |  "message": "Bad Request",
-            |  "errors": [
-            |     {
-            |       "code": "INVALID_FORMAT",
-            |       "message": "Invalid format has been used",
-            |       "path": "/nino"
-            |     },
-            |     {
-            |       "code": "MISSING_FIELD",
-            |       "message": "This field is required",
-            |       "path": "/lastName"
-            |     },
-            |     {
-            |       "code": "MISSING_FIELD",
-            |       "message": "This field is required",
-            |       "path": "/dateOfBirth"
-            |     }
-            |  ]
+            |  "code": "MATCHING_FAILED",
+            |  "message": "The individual's details provided did not match with HMRC’s records."
             |}
           """.stripMargin)
 
+        val residencyStatusFailure = ResidencyStatusFailure("MATCHING_FAILED", "")
+
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader)
-          .withJsonBody(invalidPayload))
+          .withJsonBody(Json.toJson(individualDetails)))
 
-        status(result) shouldBe BAD_REQUEST
+        status(result) shouldBe FORBIDDEN
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }
@@ -325,7 +376,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             |}
           """.stripMargin)
 
-        val residencyStatusFailure = ResidencyStatusFailure("", "")
+        val residencyStatusFailure = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "")
 
         when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
