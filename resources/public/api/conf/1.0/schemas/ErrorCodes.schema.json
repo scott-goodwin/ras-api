@@ -14,9 +14,8 @@
       "type" : "string",
       "enum" :
       [
-        "INVALID_UUID",
-        "INVALID_RESIDENCY_STATUS",
-        "INVALID_FORMAT"
+        "BAD_REQUEST",
+        "MATCHING_FAILED"
       ]
     }
   }

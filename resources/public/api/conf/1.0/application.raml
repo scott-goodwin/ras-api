@@ -1,7 +1,7 @@
 #%RAML 1.0
 ---
 
-title: Relief at source residency checker
+title: Relief at source indvidual residency checker
 version: 1.0
 protocols: [ HTTPS ]
 baseUri: http://api.service.hmrc.gov.uk
@@ -23,35 +23,27 @@ uses:
 
 mediaType: [ application/json, application/hal+json ]
 
-types:
-  UUID:
-    type: string
-    pattern: "^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$"
-    example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
-
 /relief-at-source:
-      /customer:
-            /{customer-uuid}:
+      /individual:
               /residency-status:
-                description: Check if the customer is resident in Scotland for tax purposes.
+                description: Check if an individual is resident in Scotland for tax purposes.
 
                              If you’re a pension scheme administrator, you need to know this to make the correct
                              relief at source claims.
-                displayName: Check if a customer is a Scottish resident
-                uriParameters:
-                  customer-uuid:
-                    type: UUID
-                    example: "6b853b58-625f-4e64-955e-43a7cdff5c03"
-                get:
-                  description: Check if the customer is resident in Scotland for tax purposes.
-
+                displayName: Check if an individual is a Scottish resident
+                post:
+                  description: Check if an individual is a resident in Scotland for tax purposes.
                                If you’re a pension scheme administrator, you need to know this to make the correct
                                relief at source claims.
-                  displayName: Check if a customer is a Scottish resident
+                  displayName: Check if an individual is a Scottish resident
                   is: [headers.acceptHeader]
                   (annotations.scope): "read:ras"
                   securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
                   (annotations.sandboxData): !include testdata/get-residency-status.md
+                  body:
+                    application/json:
+                        example: !include examples/residency_status_request.ex.json
+                        type: !include schemas/residency_status.schema.json
                   responses:
                     200:
                       body:
@@ -66,23 +58,19 @@ types:
                       body:
                         application/json:
                           type: !include schemas/ErrorCodes.schema.json
-                          description: Invalid UUID format. Use the UUID provided.
+                          description: Bad Request
                           example: |
                             {
-                              "code" : "INVALID_FORMAT",
-                              "message" : "Invalid UUID format. Use the UUID provided."
+                              "code" : "BAD_REQUEST",
+                              "message" : "Bad Request"
                             }
                     403:
                       body:
                         application/json:
+                          description: The indvidual's details provided did not match with HMRC’s records.
                           type: !include schemas/ErrorCodes.schema.json
-                          examples:
-                            invalidUUID:
-                              description: |
-                                  The match has timed out and the UUID is no longer valid.
-                                  The match (POST to /match) will need to repeated.
-                              value: |
-                                {
-                                  "code": "INVALID_UUID",
-                                  "message": "The match has timed out and the UUID is no longer valid. The match (POST to /match) will need to repeated."
-                                }
+                          example: |
+                            {
+                              "code": "MATCHING_FAILED",
+                              "message": "The indvidual's details provided did not match with HMRC’s records."
+                            }
