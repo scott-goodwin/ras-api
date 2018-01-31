@@ -187,7 +187,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           """
             |{
             |   "firstName": "Joe",
-            |   "nino": "BG123243C",
+            |   "nino": "AA123243",
             |   "dob": ""
             |}
           """.stripMargin

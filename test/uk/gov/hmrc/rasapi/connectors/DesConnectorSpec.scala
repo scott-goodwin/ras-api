@@ -137,7 +137,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(500)))
-      val errorResponse = ResidencyStatusFailure("500", "HODS NOT AVAILABLE")
+      val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error")
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C","JOHN", "Lewis", new DateTime("1990-02-21")), userId))
       result.isLeft shouldBe false
