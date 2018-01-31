@@ -45,10 +45,13 @@ trait DesConnector extends ServicesConfig {
 
   val edhUrl: String
 
-   val uk = "Uk"
-   val scot = "Scottish"
-   val otherUk = "otherUKResident"
-   val scotRes = "scotResident"
+  val uk = "Uk"
+  val scot = "Scottish"
+  val otherUk = "otherUKResident"
+  val scotRes = "scotResident"
+  val error_InternalServerError = "INTERNAL_SERVER_ERROR"
+  val error_Deceased = "DECEASED"
+  val error_MatchingFailed = "MATCHING_FAILED"
 
   def sendDataToEDH(userId: String, nino: String, residencyStatus: ResidencyStatus)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
@@ -69,13 +72,13 @@ trait DesConnector extends ServicesConfig {
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector")
-        Right(ResidencyStatusFailure("MATCHING_FAILED", "The individual's details provided did not match with HMRC’s records."))
+        Right(ResidencyStatusFailure(error_MatchingFailed, "The individual's details provided did not match with HMRC’s records."))
       case th: Throwable =>
         Logger.error("[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD", th)
-        Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
+        Right(ResidencyStatusFailure(error_InternalServerError,"Internal server error"))
       case _ =>
         Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD")
-        Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"Internal server error"))
+        Right(ResidencyStatusFailure(error_InternalServerError,"Internal server error"))
     }
   }
 
@@ -85,7 +88,7 @@ trait DesConnector extends ServicesConfig {
 
         if (payload.deseasedIndicator) {
 
-          Right(ResidencyStatusFailure("DECEASED", "Individual is deceased"))
+          Right(ResidencyStatusFailure(error_Deceased, "Individual is deceased"))
         } else {
           val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
           val nextYearStatus = payload.nextYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
@@ -106,7 +109,7 @@ trait DesConnector extends ServicesConfig {
           case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
             Right(data)
           case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
-            Right(ResidencyStatusFailure(INTERNAL_SERVER_ERROR.toString,"HODS NOT AVAILABLE"))
+            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
         }
     }
   }
