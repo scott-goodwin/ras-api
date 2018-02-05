@@ -29,7 +29,7 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
   with BeforeAndAfter with RepositoriesHelper {
 
   before{
-    rasFileRepository.removeAll
+    rasFileRepository.removeAll()
   }
 
 
@@ -59,7 +59,7 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
     Logger.debug(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
 
         val res = await(rasFileRepository.removeFile(resultFile.filename.get))
-        res shouldBe false
+        res shouldBe true
         val fileData = await(rasFileRepository.fetchFile(resultFile.filename.get))
         fileData.isDefined shouldBe false
   }

@@ -30,31 +30,36 @@ import scala.io.Source
 class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
   object fileWriter extends RasFileWriter
   val resultsArr = Array("456C,John,Smith,1990-02-21,nino-INVALID_FORMAT",
-    "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
+    "AB123456C,John,Smith,1990-02-21,MATCHING_FAILED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
   val resultsList = ListBuffer("456C,John,Smith,1990-02-21,nino-INVALID_FORMAT",
-    "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
+    "AB123456C,John,Smith,1990-02-21,MATCHING_FAILED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
   "RasFileWriter" should {
-    "write results to a file when the input is ListBuffer"  in {
-      val res = await(fileWriter.generateResultsFile(resultsList))
+    "create a FileWriter for a tempFile" in {
+      val res = fileWriter.createFileWriter()
+      Files.exists(res._1) shouldBe true
+      Files.deleteIfExists(res._1)
 
-      val lines = Source.fromFile(res.toFile).getLines.toArray
-
-      lines should contain theSameElementsAs resultsArr
-      lines.size shouldBe 3
-      Files.deleteIfExists(res)
     }
-    "write results to a file when the input is iterator"  in {
-      val res = await(fileWriter.generateFile(resultsArr.iterator))
-
-      val lines = Source.fromFile(res.toFile).getLines.toArray
-
-      lines should contain theSameElementsAs resultsArr
+    "writes data to the file " in {
+      val res = fileWriter.createFileWriter()
+      Files.exists(res._1) shouldBe true
+      resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str))
+      fileWriter.closeWriter(res._2)
+      val lines = Source.fromFile(res._1.toFile).getLines.toArray
       lines.size shouldBe 3
-      Files.deleteIfExists(res)
+      lines should contain theSameElementsAs resultsArr
+      Files.deleteIfExists(res._1)
+    }
+    "closes fileWriter " in {
+      val res = fileWriter.createFileWriter()
+      Files.exists(res._1) shouldBe true
+      resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str))
+      fileWriter.closeWriter(res._2) shouldBe true
+
     }
   }
 

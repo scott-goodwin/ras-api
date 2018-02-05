@@ -27,10 +27,8 @@ import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.rasapi.auth.AuthConstants.{PP_ENROLMENT, PSA_ENROLMENT}
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models.{ErrorInternalServerError, ErrorNotFound, InvalidCredentials, Unauthorised}
 import uk.gov.hmrc.rasapi.repository.RasRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global

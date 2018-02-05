@@ -27,9 +27,9 @@ object AppContext extends ServicesConfig {
   lazy val apiContext = current.configuration.getString(s"api.context").getOrElse(throw new RuntimeException(s"Missing Key $env.api.context"))
   lazy val baseUrl = current.configuration.getString(s"$env.baseUrl").getOrElse(throw new RuntimeException(s"Missing Key $env.baseUrl"))
   lazy val apiStatus = current.configuration.getString("api.status").getOrElse(throw new RuntimeException(s"Missing Key $env.api.status"))
-  lazy val cachingUrl = current.configuration.getString("endpoints.customer-caching.url").getOrElse(throw new RuntimeException(s"Missing Key $env.endpoints.customer-caching.store-nino"))
   lazy val residencyStatusUrl = current.configuration.getString("endpoints.residency-status.url").getOrElse(throw new RuntimeException(s"Missing Key $env.endpoints.residency-status.url"))
   lazy val desAuthToken = current.configuration.getString("desauthtoken").getOrElse(throw new RuntimeException(s"Missing Key $env.desauthtoken"))
   lazy val desUrlHeaderEnv: String =  current.configuration.getString("environment").getOrElse(throw new RuntimeException(s"Missing Key $env.environment"))
   lazy val edhUrl: String = current.configuration.getString("endpoints.edh.url").getOrElse(throw new RuntimeException(s"Missing Key $env.edhUrl"))
+  lazy val resultsExpriyTime: Long = current.configuration.getLong("results.expiry.time").getOrElse(259200)
 }
