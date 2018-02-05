@@ -119,23 +119,24 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     val data = IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1992-02-21"))
 
     "fetch result" when {
+      val userId = "A123456"
       "input row is valid" in {
-        when(mockDesConnector.getResidencyStatus(data)(hc)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", "scotResident"))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
-        val result = await(SUT.fetchResult(inputRow))
+        val result = await(SUT.fetchResult(inputRow, userId))
         result shouldBe "AB123456C,John,Smith,1992-02-21,otherUKResident,scotResident"
       }
       "input row matching failed" in {
-        when(mockDesConnector.getResidencyStatus(data)(hc)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure("NOT_MATCHED", "matching failed"))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
-        val result = await(SUT.fetchResult(inputRow))
+        val result = await(SUT.fetchResult(inputRow, userId))
         result shouldBe "AB123456C,John,Smith,1992-02-21,NOT_MATCHED"
       }
       "input row is inValid" in {
         val inputRow = "456C,John,Smith,1994-02-21"
-        val result = await(SUT.fetchResult(inputRow))
+        val result = await(SUT.fetchResult(inputRow, userId))
         result shouldBe "456C,John,Smith,1994-02-21,nino-INVALID_FORMAT"
       }
     }
@@ -161,9 +162,9 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails])(any())).thenReturn(
-          Future.successful(Left(ResidencyStatus("otherUKResident", "scotResident"))))
-        await(SUT.processFile("user1234", callbackData))
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
+          Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
+          await(SUT.processFile("user1234",callbackData))
         Thread.sleep(3000)
         val res = await(rasFileRepository.fetchFile(fileId))
         var result = new String("")

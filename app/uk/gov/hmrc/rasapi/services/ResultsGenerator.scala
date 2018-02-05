@@ -31,17 +31,17 @@ trait ResultsGenerator {
 
   val desConnector:DesConnector
 
-  def fetchResult(inputRow:String)(implicit hc: HeaderCarrier):String = {
+  def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier):String = {
     createMatchingData(inputRow) match {
       case Right(errors) => Logger.debug("Json errors Exists" + errors.mkString(comma))
-        s"${inputRow},${errors.mkString(comma)}"
+        s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) =>
         //this needs to be sequential / blocking and at the max 30 TPS
-        val res = Await.result(desConnector.getResidencyStatus(memberDetails),20 second)
+        val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
 
         res match {
-          case Left(residencyStatus) => inputRow + comma +residencyStatus.toString
-          case Right(statusFailure) => inputRow + comma +statusFailure.code
+          case Left(residencyStatus) => inputRow + comma + residencyStatus.toString
+          case Right(statusFailure) => inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
 
         }
     }
@@ -49,7 +49,7 @@ trait ResultsGenerator {
 
   def createMatchingData(inputRow:String): Either[IndividualDetails,Seq[String]] = {
     val arr = parseString(inputRow)
-    Try(Json.toJson(arr).validate[IndividualDetails](IndividualDetails.customerDetailsReads)) match
+    Try(Json.toJson(arr).validate[IndividualDetails](IndividualDetails.individualDetailsReads)) match
     {
       case Success(JsSuccess(details, _)) => Left(details)
       case Success(JsError(errors)) => Logger.debug(errors.mkString)

@@ -1,9 +1,9 @@
 # microservice specific routes
 
-GET     /customer/:customerUUID/residency-status    uk.gov.hmrc.rasapi.controllers.LookupController.getResidencyStatus(customerUUID)
+POST     /individual/residency-status              uk.gov.hmrc.rasapi.controllers.LookupController.getResidencyStatus()
 
 POST    /ras-api/file-processing/status/:userId    uk.gov.hmrc.rasapi.controllers.FileProcessingController.statusCallback(userId)
 
 GET  /ras-api/file/getFile/:name                   uk.gov.hmrc.rasapi.controllers.FileController.serveFile(name)
 
-DELETE /ras-api/file/remove/:name                 uk.gov.hmrc.rasapi.controllers.FileController.remove(name)
+DELETE /ras-api/file/remove/:name                  uk.gov.hmrc.rasapi.controllers.FileController.remove(name)
