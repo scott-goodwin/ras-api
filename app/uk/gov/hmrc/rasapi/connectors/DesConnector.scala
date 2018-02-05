@@ -91,7 +91,7 @@ trait DesConnector extends ServicesConfig {
           val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
           val nextYearStatus = payload.nextYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
 
-          sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
+          sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, Some(nextYearStatus))).map { httpResponse =>
             Logger.info("DesConnector - resolveResponse: Audited EDH response")
             auditEDHResponse(userId, nino, auditSuccess = true)
           } recover {
@@ -100,7 +100,7 @@ trait DesConnector extends ServicesConfig {
               auditEDHResponse(userId, nino, auditSuccess = false)
           }
 
-          Left(ResidencyStatus(currentStatus, nextYearStatus))
+          Left(ResidencyStatus(currentStatus, Some(nextYearStatus)))
         }
       case Failure(_) =>
         Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {

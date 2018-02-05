@@ -20,6 +20,7 @@ import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
+import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails}
 
 import scala.concurrent.Await
@@ -30,6 +31,7 @@ trait ResultsGenerator {
   val comma = ","
 
   val desConnector:DesConnector
+  val residencyYearResolver: ResidencyYearResolver
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier):String = {
     createMatchingData(inputRow) match {
@@ -40,7 +42,11 @@ trait ResultsGenerator {
         val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
 
         res match {
-          case Left(residencyStatus) => inputRow + comma + residencyStatus.toString
+          case Left(residencyStatus) => {
+            val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) residencyStatus
+                            else residencyStatus.copy(nextYearForecastResidencyStatus = None)
+            inputRow + comma + resStatus.toString
+          }
           case Right(statusFailure) => inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
 
         }

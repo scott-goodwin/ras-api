@@ -36,6 +36,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.utils.ErrorConverter
 
@@ -46,6 +47,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   val desConnector: DesConnector
   val auditService: AuditService
   val errorConverter: ErrorConverter
+  val residencyYearResolver: ResidencyYearResolver
 
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
@@ -58,13 +60,17 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             (individualDetails) => {
 
               desConnector.getResidencyStatus(individualDetails, id).map {
-                case Left(residencyStatus) => auditResponse(failureReason = None,
-                  nino = Some(individualDetails.nino),
-                  residencyStatus = Some(residencyStatus),
-                  userId = id)
+                case Left(residencyStatusResponse) =>
+                  val residencyStatus = if (residencyYearResolver.isBetweenJanAndApril()) residencyStatusResponse
+                                        else residencyStatusResponse.copy(nextYearForecastResidencyStatus = None)
+                  auditResponse(failureReason = None,
+                    nino = Some(individualDetails.nino),
+                    residencyStatus = Some(residencyStatus),
+                    userId = id)
                   Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
                   apiMetrics.stop()
                   Ok(toJson(residencyStatus))
+
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
                     case "DECEASED" =>
@@ -113,14 +119,13 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       } recoverWith{
         case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
           Metrics.registry.counter(UNAUTHORIZED.toString)
-
           Future.successful(Unauthorized(toJson(Unauthorised)))
 
         case ex:NoActiveSession => Logger.warn("Inactive session")
           Metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(InvalidCredentials)))
-          case e => Logger.warn(s"Internal Error ${e.getCause}" )
 
+        case e => Logger.warn(s"Internal Error ${e.getCause}" )
           Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
       }
 
@@ -169,13 +174,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
+    val nextYearStatusMap: Map[String, String] = if (residencyStatus.nonEmpty) residencyStatus.get.nextYearForecastResidencyStatus
+                                                    .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
+                                                 else Map()
     val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
                                                                             "reason" -> reason) ++ ninoMap).
                                               getOrElse(Map(
                                                 "successfulLookup" -> "true",
-                                                "CYStatus" -> residencyStatus.get.currentYearResidencyStatus,
-                                                "NextCYStatus" -> residencyStatus.get.nextYearForecastResidencyStatus
-                                              ) ++ ninoMap)
+                                                "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
+                                              ) ++ nextYearStatusMap ++ ninoMap)
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
@@ -190,5 +197,6 @@ object LookupController extends LookupController {
   override val auditService: AuditService = AuditService
   override val authConnector: AuthConnector = RasAuthConnector
   override val errorConverter: ErrorConverter = ErrorConverter
+  override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
   // $COVERAGE-ON$
 }
