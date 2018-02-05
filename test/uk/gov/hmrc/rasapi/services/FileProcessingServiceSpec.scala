@@ -32,8 +32,8 @@ import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.models.{CallbackData, IndividualDetails, ResidencyStatus, ResidencyStatusFailure}
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
@@ -52,14 +52,12 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   }
 
   val inputStreamfromFile = {
-    object fileWriter extends RasFileWriter
-
-    val resultsArr = ListBuffer("LE241131B,Jim,Jimson,1990-02-21",
+    val resultsArr = Array("LE241131B,Jim,Jimson,1990-02-21",
       "LE241131B,GARY,BRAVO,1990-02-21",
       "LE241131B,SIMON,DAWSON,1990-02-21",
       "LE241131B,MICHEAL,SLATER,1990-02-21"
     )
-    val res = await(fileWriter.generateResultsFile(resultsArr))
+    val res = await(TestFileWriter.generateFile(resultsArr.iterator))
     new FileInputStream(res.toFile)
   }
 

@@ -57,7 +57,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
   val userId = "A123456"
 
   val residencyStatus = ResidencyStatus(currentYearResidencyStatus = "scotResident",
-                                        nextYearForecastResidencyStatus = "scotResident")
+    nextYearForecastResidencyStatus = "scotResident")
 
   val residencyStatusFailure = ResidencyStatusFailure("500","HODS NOT AVAILABLE")
 
@@ -78,7 +78,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
       val nino = "LE241131B"
       val resStatus = ResidencyStatus(currentYearResidencyStatus = "scotResident",
-                                      nextYearForecastResidencyStatus = "scotResident")
+        nextYearForecastResidencyStatus = "scotResident")
 
       val result = await(TestDesConnector.sendDataToEDH(userId, nino, resStatus))
       result.status shouldBe OK
@@ -90,7 +90,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
       val nino = "LE241131B"
       val resStatus = ResidencyStatus(currentYearResidencyStatus = "scotResident",
-                                      nextYearForecastResidencyStatus = "scotResident")
+        nextYearForecastResidencyStatus = "scotResident")
 
       val result = await(TestDesConnector.sendDataToEDH(userId, nino, resStatus))
       result.status shouldBe INTERNAL_SERVER_ERROR
