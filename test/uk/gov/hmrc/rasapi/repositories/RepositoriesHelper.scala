@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.rasapi.repositories
 
-import java.io.ByteArrayInputStream
+import java.io.{BufferedWriter, ByteArrayInputStream, FileWriter}
+import java.nio.file.{Files, Path}
 
+import play.api.Logger
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -43,19 +45,36 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
   val tempFile = Array("TestMe START",1234345,"sdfjdkljfdklgj", "Test Me END")
 
-  object fileWriter extends RasFileWriter
+  object TestFileWriter extends RasFileWriter
+  {
+    def generateFile(data: Iterator[Any]) :Path = {
+      val file = Files.createTempFile("results",".csv")
+      val outputStream = new BufferedWriter(new FileWriter(file.toFile))
+      try {
+        data.foreach { line => outputStream.write(line.toString)
+          outputStream.newLine
+        }
+        file
+      }
+      catch {
+        case ex: Throwable => Logger.error("Error creating file" + ex.getMessage)
+          outputStream.close ;throw new RuntimeException("Exception in generating file" + ex.getMessage)
+      }
+      finally outputStream.close
+    }
+  }
 
   lazy val createFile = {
-    await(fileWriter.generateFile(resultsArr.iterator))
+    await(TestFileWriter.generateFile(resultsArr.iterator))
   }
 
   def saveTempFile() = {
-    val filePath = await(fileWriter.generateFile(tempFile.iterator))
+    val filePath = await(TestFileWriter.generateFile(tempFile.iterator))
     rasFileRepository.saveFile("user123","envelope123",filePath, "file123")
   }
 
   def saveTempFileToRemove() = {
-    val filePath = await(fileWriter.generateFile(tempFile.iterator))
+    val filePath = await(TestFileWriter.generateFile(tempFile.iterator))
     rasFileRepository.saveFile("user222","envelope222",filePath, "file222")
   }
   case class FileData( data: Enumerator[Array[Byte]] = null)
