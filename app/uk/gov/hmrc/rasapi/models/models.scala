@@ -24,7 +24,6 @@ import reactivemongo.api.BSONSerializationPack
 import reactivemongo.api.gridfs.ReadFile
 import reactivemongo.bson.BSONValue
 
-
 package object models {
 
   type NINO = String
@@ -38,10 +37,8 @@ package object models {
     private val missing = "MISSING_FIELD"
     private val invalidDateValidation = "INVALID_DATE"
     private val dateRegex = "^[\\d]{4}-[\\d]{2}-[\\d]{2}$"
-
     private val ninoRegex = "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"
     val dateFormat = "yyyy-MM-dd"
-
 
     val nino: Reads[NINO] = ninoReads()
 
@@ -76,8 +73,8 @@ package object models {
 
         json match {
           case JsString(data) => data match {
-            case strValue if (strValue.trim.isEmpty) => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
-            case strValue if (!strValue.matches("^[a-zA-Z &`\\-\\'^]{1,35}$")) => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
+            case strValue if strValue.trim.isEmpty => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
+            case strValue if !strValue.matches("^[a-zA-Z &`\\-\\'^]{1,35}$") => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
             case strValue => JsSuccess(strValue)
           }
           case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
@@ -119,5 +116,4 @@ package object models {
       }
     }
   }
-
 }

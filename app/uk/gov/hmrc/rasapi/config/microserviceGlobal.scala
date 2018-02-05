@@ -21,20 +21,19 @@ import play.api._
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import net.ceedubs.ficus.Ficus._
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{RequestHeader, Result}
 import play.api.mvc.Results.{BadRequest, NotFound, Status}
-import uk.gov.hmrc.api.controllers.{ErrorInternalServerError, ErrorUnauthorized}
 import uk.gov.hmrc.crypto.ApplicationCrypto
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
-import uk.gov.hmrc.rasapi.models.{BadRequestResponse, ErrorNotFound}
+import uk.gov.hmrc.rasapi.controllers.{BadRequestResponse, ErrorInternalServerError, ErrorNotFound, Unauthorised}
 import uk.gov.hmrc.http.cache.client.{SessionCache, ShortLivedCache, ShortLivedHttpCaching}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
-
 
 trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
 
@@ -82,22 +81,28 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Mi
   override lazy val registrationEnabled = AppContext.registrationEnabled
 
   override def onBadRequest(request: RequestHeader, error: String) = {
+
     Future.successful {
+      Logger.info("MicroserviceGlobal onBadRequest called")
       BadRequest(toJson(BadRequestResponse))
     }
   }
 
   override def onHandlerNotFound(request: RequestHeader) = {
+
     Future.successful {
+      Logger.info("MicroserviceGlobal onHandlerNotFound called")
       NotFound(toJson(ErrorNotFound))
     }
   }
 
   override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
+
+    Logger.info("MicroserviceGlobal onError called")
+
     super.onError(request, ex) map (res => {
-      res.header.status
-      match {
-        case 401 => Status(ErrorUnauthorized.httpStatusCode)(toJson(ErrorUnauthorized))
+      res.header.status match {
+        case 401 => Status(Unauthorised.httpStatusCode)(Json.toJson(Unauthorised))
         case _ => Status(ErrorInternalServerError.httpStatusCode)(toJson(ErrorInternalServerError))
       }
     })

@@ -30,11 +30,11 @@ import scala.io.Source
 class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
   object fileWriter extends RasFileWriter
   val resultsArr = Array("456C,John,Smith,1990-02-21,nino-INVALID_FORMAT",
-    "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
+    "AB123456C,John,Smith,1990-02-21,MATCHING_FAILED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
   val resultsList = ListBuffer("456C,John,Smith,1990-02-21,nino-INVALID_FORMAT",
-    "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
+    "AB123456C,John,Smith,1990-02-21,MATCHING_FAILED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
   "RasFileWriter" should {
