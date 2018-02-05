@@ -18,7 +18,6 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -30,7 +29,6 @@ import uk.gov.hmrc.rasapi.services.AuditService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-import play.api.http.Status.INTERNAL_SERVER_ERROR
 
 
 trait DesConnector extends ServicesConfig {

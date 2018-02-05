@@ -25,10 +25,10 @@ import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.FileUploadConnector
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.io.Source
+import scala.util.Try
 
 trait RasFileReader {
   implicit val system = ActorSystem()
@@ -46,39 +46,35 @@ trait RasFileReader {
 
 trait RasFileWriter {
 
+  type FILE_INFO = (Path,BufferedWriter)
 
-  def generateResultsFile(data:ListBuffer[String]) :Path = {
-    val file = Files.createTempFile("results",".csv")
-    val outputStream = new BufferedWriter(new FileWriter(file.toFile))
-    try {
-      data.foreach { line => outputStream.write(line.toString)
-        outputStream.newLine
-      }
-      file
-      //  FILE IS CREATED TEMPORARILY NEED TO SORT THIS OUT
+  def createFileWriter() : FILE_INFO = {
+    val file = Try(Files.createTempFile("results",".csv"))
+    file.isSuccess match {
+      case true =>  (file.get, new BufferedWriter(new FileWriter(file.get.toFile)))
+      case false => Logger.error("Error creating temp file for writing results"); throw new FileNotFoundException
     }
-    catch {
-      case ex: Throwable => Logger.error("Error creating file" + ex.getMessage)
-        outputStream.close ;throw new RuntimeException("Exception in generating file" + ex.getMessage)
-    }
-    finally outputStream.close
   }
 
-   def generateFile(data: Iterator[Any]) :Path = {
-     val file = Files.createTempFile("results",".csv")
-     val outputStream = new BufferedWriter(new FileWriter(file.toFile))
+  def writeResultToFile(writer:BufferedWriter, line:String): Boolean = {
     try {
-      data.foreach { line => outputStream.write(line.toString)
-        outputStream.newLine
+       writer.write(line.toString)
+        writer.newLine
       }
-      file
-      //  FILE IS CREATED TEMPORARILY NEED TO SORT THIS OUT
-    }
     catch {
-      case ex: Throwable => Logger.error("Error creating file" + ex.getMessage)
-        outputStream.close ;throw new RuntimeException("Exception in generating file" + ex.getMessage)
+      case ex: Throwable => Logger.error("Exception in writing line to the results file" + ex.getMessage)
+        throw new RuntimeException("Exception in writing line to the results file" + ex.getMessage)
     }
-    finally outputStream.close
+    true
+  }
+
+  def closeWriter(writer:BufferedWriter):Boolean ={
+    val res = Try(writer.close())
+     res.recover{
+       case ex:Throwable => Logger.error("Failed to close the Outputstream with error" + ex.getMessage)
+         false
+     }
+    true
   }
 
   def clearFile(path:Path) :Unit =  if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist")
