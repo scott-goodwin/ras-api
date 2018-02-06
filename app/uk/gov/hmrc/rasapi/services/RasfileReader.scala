@@ -48,8 +48,8 @@ trait RasFileWriter {
 
   type FILE_INFO = (Path,BufferedWriter)
 
-  def createFileWriter() : FILE_INFO = {
-    val file = Try(Files.createTempFile("results",".csv"))
+  def createFileWriter(fileId:String) : FILE_INFO = {
+    val file = Try(Files.createTempFile(fileId,".csv"))
     file.isSuccess match {
       case true =>  (file.get, new BufferedWriter(new FileWriter(file.get.toFile)))
       case false => Logger.error("Error creating temp file for writing results"); throw new FileNotFoundException
