@@ -11,9 +11,35 @@
     </thead>
     <tbody>
         <tr>
-            <td><p>Request with a valid UUID</p><p class ="code--block">uuid: 2800a7ab-fe20-42ca-98d7-c33f4133cfc2</p></td>
+            <td><p>Request with a valid payload where currentYearResidencyStatus is otherUKResident and nextYearForecastResidencyStatus is otherUKResident</p></td>
             <td>
-                <p>N/A</p>
+                <p class ="code--block"> {<br>
+                                           "nino" : "PC243122B",<br>
+                                           "firstName" : "Peter",<br>
+                                           "lastName" : "Armstrong",<br>
+                                           "dateOfBirth" : "1969-01-01"<br>
+                                         }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">200 (Ok)</code></p>
+                <p class="code--block">
+                    {<br>
+                      "currentYearResidencyStatus" : "otherUKResident",<br>
+                      "nextYearForecastResidencyStatus" : "otherUKResident"<br>
+                    }
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td><p>Request with a valid payload where currentYearResidencyStatus is otherUKResident and nextYearForecastResidencyStatus is scotResident</p></td>
+            <td>
+                <p class ="code--block"> {<br>
+                                           "nino" : "BB123456B",<br>
+                                           "firstName" : "John",<br>
+                                           "lastName" : "Smith",<br>
+                                           "dateOfBirth" : "1975-05-25"<br>
+                                         }
+                </p>
             </td>
             <td><p>HTTP status: <code class="code--slim">200 (Ok)</code></p>
                 <p class="code--block">
@@ -25,29 +51,101 @@
             </td>
         </tr>
         <tr>
-            <td><p>Request with an invalid format UUID</p><p class ="code--block">uuid: 2800a7ab-fe20-42ca-98d7-c33f4133cfc</p></td>
+            <td><p>Request with a valid payload where currentYearResidencyStatus is scotResident and nextYearForecastResidencyStatus is otherUKResident</p></td>
             <td>
-                <p>N/A</p>
-            </td>
-            <td><p>HTTP status: <code class="code--slim">400 (Bad Request)</code></p>
                 <p class ="code--block"> {<br>
-                                            "code": "INVALID_FORMAT",<br>
-                                            "message": "Invalid UUID format. Use the UUID provided."<br>
-                                         }<br>
+                                           "nino" : "LR325154D",<br>
+                                           "firstName" : "Jane",<br>
+                                           "lastName" : "Doe",<br>
+                                           "dateOfBirth" : "1969-06-09"<br>
+                                         }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">200 (Ok)</code></p>
+                <p class="code--block">
+                    {<br>
+                      "currentYearResidencyStatus" : "scotResident",<br>
+                      "nextYearForecastResidencyStatus" : "otherUKResident"<br>
+                    }
                 </p>
             </td>
         </tr>
         <tr>
-        	<td><p>Request with a valid UUID that has timed out</p><p class ="code--block">uuid: 11548d82-309e-484d-a310-d0ffd2997795</p></td>
-	        <td>
-	            <p>N/A</p>
-	        </td>
-	        <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
+            <td><p>Request with a valid payload where currentYearResidencyStatus is scotResident and nextYearForecastResidencyStatus is scotResident</p></td>
+            <td>
                 <p class ="code--block"> {<br>
-                                            "code": "INVALID_UUID",<br>
-                                            "message": "The match has timed out and the UUID is no longer valid. 
-                                                        The match (POST to /customer/match) will need to be repeated."<br>
-                                         }<br>
+                                           "nino" : "CC123456C",<br>
+                                           "firstName" : "Joe",<br>
+                                           "lastName" : "Bloggs",<br>
+                                           "dateOfBirth" : "1982-02-17"<br>
+                                         }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">200 (Ok)</code></p>
+                <p class="code--block">
+                    {<br>
+                      "currentYearResidencyStatus" : "scotResident",<br>
+                      "nextYearForecastResidencyStatus" : "scotResident"<br>
+                    }
+                </p>
+            </td>
+        </tr>
+        <tr>
+             <td><p>Request with an invalid nino, no first name, invalid data type for last name and a date of birth which does not exist</p></td>
+             <td>
+                 <p class ="code--block"> {<br>
+                                            "nino" : "LE241131E",<br>
+                                             "lastName" : true,<br>
+                                             "dateOfBirth" : "1989-02-30"<br>
+                                          }
+                 </p>
+             </td>
+             <td><p>HTTP status: <code class="code--slim">400 (Bad Request)</code></p>
+                 <p class ="code--block"> {<br>
+                                             "code": "BAD_REQUEST",<br>
+                                             "message": "Bad Request"<br>
+                                             "errors": [<br>
+                                             {<br>
+                                                   "code": "INVALID_FORMAT",<br>
+                                                   "message": "Invalid format has been used",<br>
+                                                   "path": "/nino"<br>
+                                                 },<br>
+                                                 {<br>
+                                                   "code": "INVALID_DATA_TYPE",<br>
+                                                   "message": "Invalid data type has been used",<br>
+                                                   "path": "/lastName"<br>
+                                                 },<br>
+                                                 {<br>
+                                                   "code": "INVALID_DATE",<br>
+                                                   "message": "Date is invalid",<br>
+                                                   "path": "/dateOfBirth"<br>
+                                                 },<br>
+                                                 {<br>
+                                                   "code": "MISSING_FIELD",<br>
+                                                   "message": "This field is required",<br>
+                                                   "path": "/firstName"<br>
+                                                 }<br>
+                                             ]<br>
+                                          }
+                 </p>
+             </td>
+        </tr>
+        <tr>
+            <td><p>Request with a valid payload, but the customer could not be found</p></td>
+            <td>
+                <p class ="code--block"> {<br>
+                                                 "nino" : "SE235112A",<br>
+                                                 "firstName" : "Raj",<br>
+                                                 "lastName" : "Patel",<br>
+                                                 "dateOfBirth" : "1984-10-30"<br>
+                                              }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
+                <p class ="code--block"> {<br>
+                                               "code": "MATCHING_FAILED",<br>
+                                               "message": "The individual's details provided did not match with HMRC’s records."<br>
+                                             }
                 </p>
             </td>
         </tr>
