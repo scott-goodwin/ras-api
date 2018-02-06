@@ -39,13 +39,13 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
 
   "RasFileWriter" should {
     "create a FileWriter for a tempFile" in {
-      val res = fileWriter.createFileWriter()
+      val res = fileWriter.createFileWriter("1234")
       Files.exists(res._1) shouldBe true
       Files.deleteIfExists(res._1)
 
     }
     "writes data to the file " in {
-      val res = fileWriter.createFileWriter()
+      val res = fileWriter.createFileWriter("5678")
       Files.exists(res._1) shouldBe true
       resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str))
       fileWriter.closeWriter(res._2)
@@ -55,7 +55,7 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
       Files.deleteIfExists(res._1)
     }
     "closes fileWriter " in {
-      val res = fileWriter.createFileWriter()
+      val res = fileWriter.createFileWriter("789")
       Files.exists(res._1) shouldBe true
       resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str))
       fileWriter.closeWriter(res._2) shouldBe true
