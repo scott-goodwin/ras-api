@@ -33,7 +33,7 @@ trait ResultsGenerator {
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier):String = {
     createMatchingData(inputRow) match {
-      case Right(errors) => Logger.debug("Json errors Exists" + errors.mkString(comma))
+      case Right(errors) =>
         s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) =>
         //this needs to be sequential / blocking and at the max 30 TPS
@@ -52,7 +52,7 @@ trait ResultsGenerator {
     Try(Json.toJson(arr).validate[IndividualDetails](IndividualDetails.individualDetailsReads)) match
     {
       case Success(JsSuccess(details, _)) => Left(details)
-      case Success(JsError(errors)) => Logger.debug(errors.mkString)
+      case Success(JsError(errors)) =>
         Right(errors.map(err => s"${err._1.toString.substring(1)}-${err._2.head.message}"))
       case Failure(e) => Right(Seq("INVALID RECORD"))
     }
