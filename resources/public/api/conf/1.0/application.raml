@@ -1,7 +1,7 @@
 #%RAML 1.0
 ---
 
-title: Relief at source indvidual residency checker
+title: Relief at source individual residency checker
 version: 1.0
 protocols: [ HTTPS ]
 baseUri: http://api.service.hmrc.gov.uk
@@ -23,54 +23,53 @@ uses:
 
 mediaType: [ application/json, application/hal+json ]
 
-/relief-at-source:
-      /individuals:
-              /residency-status:
-                description: Check if an individual is resident in Scotland for tax purposes.
+/individuals/relief-at-source:
+  /residency-status:
+    description: Check if an individual is resident in Scotland for tax purposes.
 
-                             If you’re a pension scheme administrator, you need to know this to make the correct
-                             relief at source claims.
-                displayName: Check if an individual is a Scottish resident
-                post:
-                  description: Check if an individual is a resident in Scotland for tax purposes.
-                               If you’re a pension scheme administrator, you need to know this to make the correct
-                               relief at source claims.
-                  displayName: Check if an individual is a Scottish resident
-                  is: [headers.acceptHeader]
-                  (annotations.scope): "read:ras"
-                  securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
-                  (annotations.sandboxData): !include testdata/get-residency-status.md
-                  body:
-                    application/json:
-                        example: !include examples/residency_status_request.ex.json
-                        type: !include schemas/residency_status.schema.json
-                  responses:
-                    200:
-                      body:
-                        application/json:
-                          type: !include schemas/getResidencyStatus.schema.json
-                          example: |
-                            {
-                              "currentYearResidencyStatus" : "otherUKResident",
-                              "nextYearForecastResidencyStatus" : "scotResident"
-                            }
-                    400:
-                      body:
-                        application/json:
-                          type: !include schemas/ErrorCodes.schema.json
-                          description: Bad Request
-                          example: |
-                            {
-                              "code" : "BAD_REQUEST",
-                              "message" : "Bad Request"
-                            }
-                    403:
-                      body:
-                        application/json:
-                          description: The indvidual's details provided did not match with HMRC’s records.
-                          type: !include schemas/ErrorCodes.schema.json
-                          example: |
-                            {
-                              "code": "MATCHING_FAILED",
-                              "message": "The indvidual's details provided did not match with HMRC’s records."
-                            }
+                 If you’re a pension scheme administrator, you need to know this to make the correct
+                 relief at source claims.
+    displayName: Check if an individual is a Scottish resident
+    post:
+      description: Check if an individual is a resident in Scotland for tax purposes.
+                   If you’re a pension scheme administrator, you need to know this to make the correct
+                   relief at source claims.
+      displayName: Check if an individual is a Scottish resident
+      is: [headers.acceptHeader]
+      (annotations.scope): "read:ras"
+      securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
+      (annotations.sandboxData): !include testdata/get-residency-status.md
+      body:
+        application/json:
+            example: !include examples/residency_status_request.ex.json
+            type: !include schemas/residency_status.schema.json
+      responses:
+        200:
+          body:
+            application/json:
+              type: !include schemas/getResidencyStatus.schema.json
+              example: |
+                {
+                  "currentYearResidencyStatus" : "otherUKResident",
+                  "nextYearForecastResidencyStatus" : "scotResident"
+                }
+        400:
+          body:
+            application/json:
+              type: !include schemas/ErrorCodes.schema.json
+              description: Bad Request
+              example: |
+                {
+                  "code" : "BAD_REQUEST",
+                  "message" : "Bad Request"
+                }
+        403:
+          body:
+            application/json:
+              description: The indvidual's details provided did not match with HMRC’s records.
+              type: !include schemas/ErrorCodes.schema.json
+              example: |
+                {
+                  "code": "MATCHING_FAILED",
+                  "message": "The indvidual's details provided did not match with HMRC’s records."
+                }
