@@ -281,6 +281,31 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
+      "a valid request payload is given and the nino is provided in lowercase" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        val residencyStatus = ResidencyStatus("otherUKResident", Some("otherUKResident"))
+
+        val expectedJsonResult = Json.parse(
+          """
+            {
+              "currentYearResidencyStatus" : "otherUKResident",
+              "nextYearForecastResidencyStatus" : "otherUKResident"
+            }
+          """.stripMargin)
+
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails.copy(nino = individualDetails.nino.toLowerCase))))
+
+        status(result) shouldBe OK
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+
       "a valid request payload is given and the date of the request is between april and december" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
