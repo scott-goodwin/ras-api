@@ -154,7 +154,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
     "return status 200 with correct residency status json" when {
 
-      "a valid request payload is given" in {
+      "a valid request payload is given with a nino which is 9 characters in length e.g. AA123456A" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
@@ -172,6 +172,29 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails)))
+
+        status(result) shouldBe OK
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+
+      "a valid request payload is given with a nino which is 8 characters in length e.g. AA123456" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+
+        val residencyStatus = ResidencyStatus("otherUKResident", "otherUKResident")
+
+        val expectedJsonResult = Json.parse(
+          """
+            {
+              "currentYearResidencyStatus" : "otherUKResident",
+              "nextYearForecastResidencyStatus" : "otherUKResident"
+            }
+          """.stripMargin)
+
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails.copy(nino = "AA123456"))))
 
         status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
