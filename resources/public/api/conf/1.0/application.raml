@@ -23,13 +23,11 @@ uses:
 
 mediaType: [ application/json, application/hal+json ]
 
-/relief-at-source:
-      /individuals:
-              /residency-status:
-                description: Check if an individual is a resident in Scotland for tax purposes.
-
-                             If you’re a pension scheme administrator, you need to know this to make the correct
-                             relief at source claims.
+/individuals/relief-at-source:
+  /residency-status:
+    description: Check if an individual is resident in Scotland for tax purposes.
+                 If you’re a pension scheme administrator, you need to know this to make the correct
+                 relief at source claims.
                 displayName: Check if an individual is a Scottish resident
                 post:
                   description: !include documentation/description.html
