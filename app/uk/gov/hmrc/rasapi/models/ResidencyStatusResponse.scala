@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 case class ResidencyStatusResponse(success: Option[ResidencyStatusSuccess], failure: Option[ResidencyStatusFailure])
 
 case class ResidencyStatusSuccess(nino: String, deathDate: Option[String], deathDateStatus: Option[String],
-                                  deseasedIndicator: Boolean, currentYearResidencyStatus: String, nextYearResidencyStatus: String)
+                                  deseasedIndicator: Boolean, currentYearResidencyStatus: String, nextYearResidencyStatus: Option[String])
 
 case class ResidencyStatusFailure(code: String, reason: String)
 
