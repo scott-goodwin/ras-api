@@ -71,6 +71,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val errorConverter: ErrorConverter = ErrorConverter
     override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
     override def getCurrentDate: DateTime = new DateTime(2018, 7, 6, 0, 0, 0, 0)
+    override val allowDefaultRUK: Boolean = false
   }
 
   object TestLookupControllerFeb18 extends LookupController {
@@ -80,6 +81,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val errorConverter: ErrorConverter = ErrorConverter
     override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
     override def getCurrentDate: DateTime = new DateTime(2018, 2, 15, 0, 0, 0, 0)
+    override val allowDefaultRUK: Boolean = true
   }
 
   object TestLookupControllerFeb19 extends LookupController {
@@ -89,6 +91,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val errorConverter: ErrorConverter = ErrorConverter
     override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
     override def getCurrentDate: DateTime = new DateTime(2019, 2, 15, 0, 0, 0, 0)
+    override val allowDefaultRUK: Boolean = false
   }
 
   before{
