@@ -284,7 +284,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         contentAsJson(result) shouldBe expectedJsonResult
       }
 
-      "a valid request payload is given and the nino is provided in lowercase" in {
+      "a valid request payload is given with a nino which is 9 characters in length e.g. AA123456A" in {
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
@@ -332,6 +332,30 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
       }
+
+      "a valid request payload is given with a nino which is 8 characters in length e.g. AA123456" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        val residencyStatus = ResidencyStatus("otherUKResident", Some("otherUKResident"))
+
+        val expectedJsonResult = Json.parse(
+          """
+            {
+              "currentYearResidencyStatus" : "otherUKResident",
+              "nextYearForecastResidencyStatus" : "otherUKResident"
+            }
+          """.stripMargin)
+
+        when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails.copy(nino = "AA123456"))))
+
+        status(result) shouldBe OK
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
     }
 
     "return status 400" when {
@@ -343,7 +367,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           """
             |{
             |   "firstName": "Joe",
-            |   "nino": "AA123243",
+            |   "nino": "AA123243E",
             |   "dob": ""
             |}
           """.stripMargin
