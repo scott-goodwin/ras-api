@@ -183,7 +183,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
 
-        Thread.sleep(3000)
+        Thread.sleep(20000)
 
         val res = await(rasFileRepository.fetchFile(fileId))
         var result = new String("")
