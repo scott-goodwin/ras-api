@@ -43,6 +43,8 @@ trait DesConnector extends ServicesConfig {
 
   val edhUrl: String
 
+  val allowNoNextYearStatus = AppContext.allowNoNextYearStatus
+
   val uk = "Uk"
   val scot = "Scottish"
   val otherUk = "otherUKResident"
@@ -88,19 +90,33 @@ trait DesConnector extends ServicesConfig {
 
           Right(ResidencyStatusFailure(error_Deceased, "Individual is deceased"))
         } else {
-          val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
-          val nextYearStatus = payload.nextYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
 
-          sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
-            Logger.info("DesConnector - resolveResponse: Audited EDH response")
-            auditEDHResponse(userId, nino, auditSuccess = true)
-          } recover {
-            case _ =>
-              Logger.error("DesConnector - resolveResponse: Error returned from EDH")
-              auditEDHResponse(userId, nino, auditSuccess = false)
+          if (payload.nextYearResidencyStatus.isEmpty && !allowNoNextYearStatus) {
+            val auditDataMap = Map("userId" -> userId,
+              "nino" -> nino,
+              "nextYearResidencyStatus" -> "NOT_PRESENT")
+
+            auditService.audit(auditType = "ReliefAtSourceAudit_DES_Response",
+              path = "PATH_NOT_DEFINED",
+              auditData = auditDataMap
+            )
+
+            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
+          } else {
+            val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
+            val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes))
+
+            sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
+              Logger.info("DesConnector - resolveResponse: Audited EDH response")
+              auditEDHResponse(userId, nino, auditSuccess = true)
+            } recover {
+              case _ =>
+                Logger.error("DesConnector - resolveResponse: Error returned from EDH")
+                auditEDHResponse(userId, nino, auditSuccess = false)
+            }
+
+            Left(ResidencyStatus(currentStatus, nextYearStatus))
           }
-
-          Left(ResidencyStatus(currentStatus, nextYearStatus))
         }
       case Failure(_) =>
         Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {

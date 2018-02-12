@@ -25,7 +25,8 @@ object MicroServiceBuild extends Build with MicroService {
     "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
     "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
-    "uk.gov.hmrc" %% "http-caching-client" % "7.0.0")
+    "uk.gov.hmrc" %% "http-caching-client" % "7.0.0",
+    "joda-time" % "joda-time" % "2.7.0")
 
   def test(scope: String = "test,it") = Seq(
     "uk.gov.hmrc" %% "hmrctest" % "2.3.0" % scope,

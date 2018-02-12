@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rasapi.models
+package uk.gov.hmrc.rasapi.helpers
 
-import play.api.libs.json.Json
+import org.joda.time.DateTime
 
-case class ResidencyStatus(currentYearResidencyStatus: String = "", nextYearForecastResidencyStatus: Option[String] = None)
-{
-  override def toString: String = if(nextYearForecastResidencyStatus.nonEmpty)
-    s"${currentYearResidencyStatus}${","+nextYearForecastResidencyStatus.get}"
-  else
-    currentYearResidencyStatus
-}
-object ResidencyStatus{
-  implicit val format = Json.format[ResidencyStatus]
+object ResidencyYearResolver extends ResidencyYearResolver
+
+trait ResidencyYearResolver {
+
+  def currentDateTime: DateTime = DateTime.now()
+
+  /**
+    * Checks to see if the current date is between 1st January and 5th April (inclusive)
+    * @return true if the date is between 1st January and 5th April (inclusive) else return false
+    */
+  def isBetweenJanAndApril(): Boolean = {
+    currentDateTime.isBefore(new DateTime(currentDateTime.year().get(), 4, 6, 0, 0, 0, 0))
+  }
 }

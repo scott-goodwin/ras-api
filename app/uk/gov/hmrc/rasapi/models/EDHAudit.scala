@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.models
 
 import play.api.libs.json.Json
 
-case class EDHAudit(userId: String, nino: String, currentYearResidencyStatus: String, nextYearResidencyStatus: String)
+case class EDHAudit(userId: String, nino: String, currentYearResidencyStatus: String, nextYearResidencyStatus: Option[String])
 
 object EDHAudit {
   implicit val format = Json.format[EDHAudit]

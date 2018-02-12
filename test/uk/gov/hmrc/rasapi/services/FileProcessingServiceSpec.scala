@@ -30,6 +30,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
+import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models.{CallbackData, IndividualDetails, ResidencyStatus, ResidencyStatusFailure}
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 
@@ -44,11 +45,13 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
   val mockDesConnector = mock[DesConnector]
   val mockSessionCache = mock[SessionCacheService]
+  val mockResidencyYearResolver = mock[ResidencyYearResolver]
 
   val SUT = new FileProcessingService {
 
     override val fileUploadConnector = mockFileUploadConnector
     override val desConnector = mockDesConnector
+    override val residencyYearResolver = mockResidencyYearResolver
   }
 
   val inputStreamfromFile = {
@@ -60,7 +63,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     val res = await(TestFileWriter.generateFile(resultsArr.iterator))
     new FileInputStream(res.toFile)
   }
-
 
   "FileProcessingService" should {
     "readFile" when {
@@ -118,13 +120,28 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
     "fetch result" when {
       val userId = "A123456"
-      "input row is valid" in {
+      "input row is valid and the date of processing is between january and april" in {
         when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
-          Future.successful(Left(ResidencyStatus("otherUKResident", "scotResident"))))
+          Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId))
         result shouldBe "AB123456C,John,Smith,1992-02-21,otherUKResident,scotResident"
       }
+
+      "input row is valid and the date of processing is between april and december" in {
+        when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
+          Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
+
+        val inputRow = "AB123456C,John,Smith,1992-02-21"
+        val result = await(SUT.fetchResult(inputRow, userId))
+        result shouldBe "AB123456C,John,Smith,1992-02-21,otherUKResident"
+      }
+
       "input row matching failed" in {
         when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure("NOT_MATCHED", "matching failed"))))
@@ -161,9 +178,13 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
-          Future.successful(Left(ResidencyStatus("otherUKResident","scotResident"))))
+          Future.successful(Left(ResidencyStatus("otherUKResident",Some("scotResident")))))
           await(SUT.processFile("user1234",callbackData))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
         Thread.sleep(3000)
+
         val res = await(rasFileRepository.fetchFile(fileId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
