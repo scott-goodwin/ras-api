@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import org.joda.time.DateTime
 import play.api.mvc.{Action, AnyContent, Request, Result}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
@@ -31,7 +32,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.services.AuditService
-import uk.gov.hmrc.rasapi.config.RasAuthConnector
+import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
@@ -49,6 +50,9 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   val errorConverter: ErrorConverter
   val residencyYearResolver: ResidencyYearResolver
 
+  def getCurrentDate: DateTime
+  val allowDefaultRUK: Boolean
+
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       val apiMetrics = Metrics.responseTimer.time
@@ -61,8 +65,10 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
               desConnector.getResidencyStatus(individualDetails, id).map {
                 case Left(residencyStatusResponse) =>
-                  val residencyStatus = if (residencyYearResolver.isBetweenJanAndApril()) residencyStatusResponse
-                                        else residencyStatusResponse.copy(nextYearForecastResidencyStatus = None)
+                  val residencyStatus = if (residencyYearResolver.isBetweenJanAndApril())
+                                          updateResidencyResponse(residencyStatusResponse)
+                                        else
+                                          residencyStatusResponse.copy(nextYearForecastResidencyStatus = None)
                   auditResponse(failureReason = None,
                     nino = Some(individualDetails.nino),
                     residencyStatus = Some(residencyStatus),
@@ -136,6 +142,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       res => res.identifiers.head.value).head
   }
 
+  private def updateResidencyResponse(residencyStatus: ResidencyStatus): ResidencyStatus = {
+
+    if (getCurrentDate.isBefore(new DateTime(2018, 4, 6, 0, 0, 0, 0)) && allowDefaultRUK)
+      residencyStatus.copy(currentYearResidencyStatus = desConnector.otherUk)
+    else
+      residencyStatus
+  }
+
   private def withValidJson (onSuccess: (IndividualDetails) => Future[Result],
                              invalidCallback: (Seq[(JsPath, Seq[ValidationError])]) => Future[Result])
                             (implicit request: Request[AnyContent]): Future[Result] = {
@@ -198,5 +212,7 @@ object LookupController extends LookupController {
   override val authConnector: AuthConnector = RasAuthConnector
   override val errorConverter: ErrorConverter = ErrorConverter
   override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
+  override def getCurrentDate: DateTime = DateTime.now()
+  override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   // $COVERAGE-ON$
 }
