@@ -19,6 +19,7 @@ package uk.gov.hmrc.rasapi.services
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
+import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.repository.RasRepository
 
@@ -29,7 +30,7 @@ object FileProcessingService extends FileProcessingService {
 
   override val fileUploadConnector: FileUploadConnector = FileUploadConnector
   override val desConnector: DesConnector = DesConnector
-
+  override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {

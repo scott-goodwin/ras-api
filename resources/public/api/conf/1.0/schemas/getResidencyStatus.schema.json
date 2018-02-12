@@ -3,13 +3,22 @@
   "type" : "object",
   "properties":
   {
-    "currentYearResidencyStatus"  : {"$ref" : "#/definitions/UKResidencyStatusType"},
-    "nextYearForecastResidencyStatus"  : {"$ref" : "#/definitions/UKResidencyStatusType"}
+    "currentYearResidencyStatus"  :
+    {
+      "description": "Returns the residency status for this tax year. This will be returned all year round.",
+      "$ref" : "#/definitions/UKResidencyStatusType",
+      "example": "scotResident"
+    },
+    "nextYearForecastResidencyStatus"  :
+    {
+      "description": "Returns the residency status for the next tax year. This will be returned from 1st January up to and including 5th April, each year.",
+      "$ref" : "#/definitions/UKResidencyStatusType",
+      "example": "otherUKResident"
+    }
   },
-  "additionalProperties": false,
   "required" :
   [
-    "currentYearResidencyStatus", "nextYearForecastResidencyStatus"
+    "currentYearResidencyStatus"
   ],
   "definitions" :
   {
