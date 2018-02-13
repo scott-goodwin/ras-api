@@ -30,6 +30,7 @@ import uk.gov.hmrc.rasapi.services.RasFileWriter
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.Source
+import scala.util.Random
 
 trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
@@ -48,7 +49,7 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
   object TestFileWriter extends RasFileWriter
   {
     def generateFile(data: Iterator[Any]) :Path = {
-      val file = Files.createTempFile("results",".csv")
+      val file = Files.createTempFile(Random.nextInt().toString,".csv")
       val outputStream = new BufferedWriter(new FileWriter(file.toFile))
       try {
         data.foreach { line => outputStream.write(line.toString)

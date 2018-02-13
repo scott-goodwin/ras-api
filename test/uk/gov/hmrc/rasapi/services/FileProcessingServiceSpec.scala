@@ -17,6 +17,7 @@
 package uk.gov.hmrc.rasapi.services
 
 import java.io.{ByteArrayInputStream, FileInputStream}
+import java.nio.file.Files
 
 import org.joda.time.DateTime
 import org.mockito.Matchers._
@@ -36,6 +37,7 @@ import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.Random
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
@@ -54,14 +56,19 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override val residencyYearResolver = mockResidencyYearResolver
   }
 
-  val inputStreamfromFile = {
-    val resultsArr = Array("LE241131B,Jim,Jimson,1990-02-21",
+  val testFilePath = {
+    val successresultsArr = Array("LE241131B,Jim,Jimson,1990-02-21",
       "LE241131B,GARY,BRAVO,1990-02-21",
       "LE241131B,SIMON,DAWSON,1990-02-21",
       "LE241131B,MICHEAL,SLATER,1990-02-21"
     )
-    val res = await(TestFileWriter.generateFile(resultsArr.iterator))
-    new FileInputStream(res.toFile)
+    await(TestFileWriter.generateFile(successresultsArr.iterator))
+  }
+
+  before {
+    reset(mockFileUploadConnector)
+    reset(mockDesConnector)
+    reset(mockResidencyYearResolver)
   }
 
   "FileProcessingService" should {
@@ -159,7 +166,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     "process file and generate results file " when {
       "valid file is submitted by user" in {
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStreamfromFile)))
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
         when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
 
         val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,scotResident" +
@@ -169,7 +176,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
 
         val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
-        val fileId = "file-id-1"
+        val fileId = Random.nextInt().toString
         val fileStatus = "AVAILABLE"
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
@@ -178,8 +185,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
-          Future.successful(Left(ResidencyStatus("otherUKResident",Some("scotResident")))))
-          await(SUT.processFile("user1234",callbackData))
+          Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
+        await(SUT.processFile("user1234", callbackData))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
 
@@ -189,7 +196,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
-
+        Files.deleteIfExists(testFilePath)
       }
     }
   }
