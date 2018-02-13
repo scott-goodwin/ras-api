@@ -1,7 +1,6 @@
-Check if an individual is a resident in Scotland for tax purposes.
-If you’re a pension scheme administrator, you need to know this to make the correct
-relief at source claims.
+Find out if a scheme member pays tax in Scotland or in the rest of the UK, to tell you the rate of tax to use for their relief at source contributions.
 
-Note that:
- - From 1st January up to and including 5th April each year both currentYearResidencyStatus and nextYearForecastResidencyStatus will be given within the response json.
- - From 6th April to 31st December each year only currentYearResidencyStatus will be given within the response json.
+
+From 1 January to 5 April each year you will get currentYearResidencyStatus and nextYearForecastResidencyStatus within the response json.
+
+From 6 April to 31 December each year you will only get currentYearResidencyStatus within the response json.

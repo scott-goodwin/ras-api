@@ -4,22 +4,22 @@
   "properties":
   {
     "nino": {
-      "description": "The customer’s National Insurance number.",
+      "description": "The pension scheme member’s National Insurance number.",
       "$ref" : "#/definitions/NINOType"},
     "firstName" : {
-      "description": "The customer’s first name.",
+      "description": "The pension scheme member’s first name.",
       "type" : "string",
       "pattern": "^[a-zA-Z &`\\-\\'^]{1,35}$",
       "example": "John"
     },
     "lastName" : {
-      "description": "The customer’s last name.",
+      "description": "The pension scheme member’s last name.",
       "type" : "string",
       "pattern": "^[a-zA-Z &`\\-\\'^]{1,35}$",
       "example": "Smith"
     },
     "dateOfBirth": {
-      "description": "The customer’s date of birth. This can't be in the future.",
+      "description": "The pension scheme member’s date of birth. This cannot be in the future.",
       "$ref": "#/definitions/ISO8601-Date"}
   },
   "required": ["nino","firstName","lastName","dateOfBirth"],
