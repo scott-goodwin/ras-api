@@ -31,7 +31,9 @@ import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+
 
 object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
@@ -72,7 +74,7 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
   def fetchFile(_fileName: String)(implicit ec: ExecutionContext): Future[Option[FileData]] = {
       Logger.debug("id in repo input is " + _fileName)
       gridFSG.find[BSONDocument, ResultsFile](BSONDocument("filename" -> _fileName)).headOption.map {
-      case Some(file) =>   logger.warn("file fetched "+ file.id); Some(FileData(file.length, gridFSG.enumerate(file)))
+      case Some(file) =>   logger.warn("file fetched "+ file.id+ "file size = "+ file.length); Some(FileData(file.length, gridFSG.enumerate(file)))
       case None => logger.warn("file not found "); None
     }.recover{
       case ex:Throwable =>
@@ -81,11 +83,12 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
     }
   }
 
-  def removeFile(fileName:String): Future[Boolean] = {
-        Logger.debug("file to remove => fileName : " + fileName)
+  def removeFile(fileName:String,fileId:String): Future[Boolean] = {
+        Logger.debug("file to remove => fileName : " + fileName + "file Id" + fileId)
       gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map{
-        res => res.writeErrors.isEmpty match {
-        case true =>
+
+        res =>  res.writeErrors.isEmpty match {
+        case true =>  Await.result(gridFSG.chunks.remove[BSONDocument](BSONDocument("files_id"-> fileId )), 10 second)
           Logger.warn("Results file removed successfully "+ fileName)
           true
         case false =>  Logger.error("error while removing file "+ res.writeErrors.toString)
