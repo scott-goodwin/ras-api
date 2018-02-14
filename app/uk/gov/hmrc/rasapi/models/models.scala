@@ -102,7 +102,7 @@ package object models {
                 JsSuccess(d)
               }
             }
-            case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
+            case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
           }
         }
         case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))

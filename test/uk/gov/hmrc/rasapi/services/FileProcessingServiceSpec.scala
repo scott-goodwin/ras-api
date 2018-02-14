@@ -103,7 +103,31 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val result = SUT.createMatchingData(inputData)
 
-        result shouldBe Right(List("nino-MISSING_FIELD", "lastName-INVALID_FORMAT", "dateOfBirth-INVALID_DATE"))
+        result shouldBe Right(List("nino-MISSING_FIELD", "lastName-INVALID_FORMAT", "dateOfBirth-INVALID_FORMAT"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is an invalid date" in {
+        val inputData = "LE241131B,Jim,Jimson,2099-01-01"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is and invalid date format" in {
+        val inputData = "LE241131B,Jim,Jimson,01/01/2017"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is a missing date" in {
+        val inputData = "LE241131B,Jim,Jimson,"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-MISSING_FIELD"))
       }
 
       "parse line as raw data and convert to RawMemberDetails object when there are less than 3 columns" in {
