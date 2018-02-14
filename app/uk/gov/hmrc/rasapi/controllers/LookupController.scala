@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import org.joda.time.DateTime
 import play.api.mvc.{Action, AnyContent, Request, Result}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.api.controllers.HeaderValidator
@@ -31,11 +32,12 @@ import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.services.AuditService
-import uk.gov.hmrc.rasapi.config.RasAuthConnector
+import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.utils.ErrorConverter
 
@@ -46,6 +48,10 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   val desConnector: DesConnector
   val auditService: AuditService
   val errorConverter: ErrorConverter
+  val residencyYearResolver: ResidencyYearResolver
+
+  def getCurrentDate: DateTime
+  val allowDefaultRUK: Boolean
 
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
@@ -58,13 +64,19 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             (individualDetails) => {
 
               desConnector.getResidencyStatus(individualDetails, id).map {
-                case Left(residencyStatus) => auditResponse(failureReason = None,
-                  nino = Some(individualDetails.nino),
-                  residencyStatus = Some(residencyStatus),
-                  userId = id)
+                case Left(residencyStatusResponse) =>
+                  val residencyStatus = if (residencyYearResolver.isBetweenJanAndApril())
+                                          updateResidencyResponse(residencyStatusResponse)
+                                        else
+                                          residencyStatusResponse.copy(nextYearForecastResidencyStatus = None)
+                  auditResponse(failureReason = None,
+                    nino = Some(individualDetails.nino),
+                    residencyStatus = Some(residencyStatus),
+                    userId = id)
                   Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
                   apiMetrics.stop()
                   Ok(toJson(residencyStatus))
+
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
                     case "DECEASED" =>
@@ -113,14 +125,13 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       } recoverWith{
         case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
           Metrics.registry.counter(UNAUTHORIZED.toString)
-
           Future.successful(Unauthorized(toJson(Unauthorised)))
 
         case ex:NoActiveSession => Logger.warn("Inactive session")
           Metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(InvalidCredentials)))
-          case e => Logger.warn(s"Internal Error ${e.getCause}" )
 
+        case e => Logger.warn(s"Internal Error ${e.getCause}" )
           Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
       }
 
@@ -129,6 +140,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   private def getEnrolmentIdentifier(enrols:Enrolments) = {
     enrols.enrolments.filter(res => (res.key == PSA_ENROLMENT || res.key == PP_ENROLMENT)).map(
       res => res.identifiers.head.value).head
+  }
+
+  private def updateResidencyResponse(residencyStatus: ResidencyStatus): ResidencyStatus = {
+
+    if (getCurrentDate.isBefore(new DateTime(2018, 4, 6, 0, 0, 0, 0)) && allowDefaultRUK)
+      residencyStatus.copy(currentYearResidencyStatus = desConnector.otherUk)
+    else
+      residencyStatus
   }
 
   private def withValidJson (onSuccess: (IndividualDetails) => Future[Result],
@@ -169,13 +188,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
+    val nextYearStatusMap: Map[String, String] = if (residencyStatus.nonEmpty) residencyStatus.get.nextYearForecastResidencyStatus
+                                                    .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
+                                                 else Map()
     val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
                                                                             "reason" -> reason) ++ ninoMap).
                                               getOrElse(Map(
                                                 "successfulLookup" -> "true",
-                                                "CYStatus" -> residencyStatus.get.currentYearResidencyStatus,
-                                                "NextCYStatus" -> residencyStatus.get.nextYearForecastResidencyStatus
-                                              ) ++ ninoMap)
+                                                "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
+                                              ) ++ nextYearStatusMap ++ ninoMap)
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
@@ -190,5 +211,8 @@ object LookupController extends LookupController {
   override val auditService: AuditService = AuditService
   override val authConnector: AuthConnector = RasAuthConnector
   override val errorConverter: ErrorConverter = ErrorConverter
+  override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
+  override def getCurrentDate: DateTime = DateTime.now()
+  override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   // $COVERAGE-ON$
 }

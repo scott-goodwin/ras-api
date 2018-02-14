@@ -91,6 +91,44 @@
             </td>
         </tr>
         <tr>
+            <td><p>Request with a valid payload where currentYearResidencyStatus is otherUKResident</p></td>
+            <td>
+                <p class ="code--block"> {<br>
+                                           "nino" : "AA315445B",<br>
+                                           "firstName" : "Victoria",<br>
+                                           "lastName" : "Clark",<br>
+                                           "dateOfBirth" : "1981-12-12"<br>
+                                         }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">200 (Ok)</code></p>
+                <p class="code--block">
+                    {<br>
+                      "currentYearResidencyStatus" : "otherUKResident",<br>
+                    }
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td><p>Request with a valid payload where currentYearResidencyStatus is scotResident</p></td>
+            <td>
+                <p class ="code--block"> {<br>
+                                           "nino" : "BA315445B",<br>
+                                           "firstName" : "Charlie",<br>
+                                           "lastName" : "Thompson",<br>
+                                           "dateOfBirth" : "1941-10-12"<br>
+                                         }
+                </p>
+            </td>
+            <td><p>HTTP status: <code class="code--slim">200 (Ok)</code></p>
+                <p class="code--block">
+                    {<br>
+                      "currentYearResidencyStatus" : "scotResident",<br>
+                    }
+                </p>
+            </td>
+        </tr>
+        <tr>
              <td><p>Request with an invalid nino, no first name, invalid data type for last name and a date of birth which does not exist</p></td>
              <td>
                  <p class ="code--block"> {<br>

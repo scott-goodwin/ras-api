@@ -30,7 +30,7 @@ case class IndividualDetails(nino: NINO, firstName: Name, lastName: Name, dateOf
 
 object IndividualDetails {
   implicit val individualDetailsReads: Reads[IndividualDetails] = (
-    (JsPath \ "nino").read[NINO](JsonReads.nino) and
+    (JsPath \ "nino").read[NINO](JsonReads.nino).map(nino => if(nino.length == 8) s"${nino.trim} " else nino.trim) and
       (JsPath \ "firstName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
       (JsPath \ "lastName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
       (JsPath \ "dateOfBirth").read[DateTime](JsonReads.isoDate("yyyy-MM-dd")).map(new DateTime(_))
