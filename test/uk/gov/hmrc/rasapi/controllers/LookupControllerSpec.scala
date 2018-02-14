@@ -19,7 +19,7 @@ package uk.gov.hmrc.rasapi.controllers
 import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
-import play.api.libs.json.Json
+import play.api.libs.json.{JsPath, Json, Writes}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import play.mvc.Http.HeaderNames
@@ -27,6 +27,8 @@ import uk.gov.hmrc.rasapi.connectors.DesConnector
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
+import play.api.libs.functional.syntax.unlift
+import play.api.libs.functional.syntax._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.models._
@@ -63,6 +65,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
   val successfulRetrieval: Future[Enrolments] = Future.successful(enrolments)
 
   val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
+
+  implicit val individualDetailssWrites: Writes[IndividualDetails] = (
+    (JsPath \ "nino").write[String] and
+      (JsPath \ "firstName").write[String] and
+      (JsPath \ "lastName").write[String] and
+      (JsPath \ "dateOfBirth").write[String].contramap[DateTime](date => date.toString("yyyy-MM-dd"))
+    )(unlift(IndividualDetails.unapply))
 
   object TestLookupController extends LookupController {
     override val desConnector = mockDesConnector
@@ -114,7 +123,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         await(TestLookupControllerFeb18.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
             .withHeaders(acceptHeader)
-            .withJsonBody(Json.toJson(individualDetails))))
+            .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
@@ -140,7 +149,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         await(TestLookupControllerFeb19.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
             .withHeaders(acceptHeader)
-            .withJsonBody(Json.toJson(individualDetails))))
+            .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
@@ -166,7 +175,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
             .withHeaders(acceptHeader)
-            .withJsonBody(Json.toJson(individualDetails))))
+            .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
@@ -193,7 +202,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
             .withHeaders(acceptHeader)
-            .withJsonBody(Json.toJson(individualDetails))))
+            .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
@@ -216,7 +225,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
           .withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails))))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
   
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
@@ -253,7 +262,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupControllerFeb18.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
@@ -278,7 +287,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupControllerFeb19.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
@@ -327,7 +336,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())(any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe OK
         contentAsJson(result) shouldBe expectedJsonResult
@@ -443,7 +452,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -465,7 +474,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader, authorisationHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -488,7 +497,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader, authorisationHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -510,7 +519,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader, authorisationHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe UNAUTHORIZED
         contentAsJson(result) shouldBe expectedJsonResult
@@ -535,7 +544,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe FORBIDDEN
         contentAsJson(result) shouldBe expectedJsonResult
@@ -562,7 +571,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader)
-          .withJsonBody(Json.toJson(individualDetails)))
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe INTERNAL_SERVER_ERROR
         contentAsJson(result) shouldBe expectedJsonResult
