@@ -39,8 +39,6 @@ trait DesConnector extends ServicesConfig {
   val httpPost: HttpPost
   val desBaseUrl: String
 
-  def getResidencyStatusUrl(nino: String): String
-
   val edhUrl: String
 
   val allowNoNextYearStatus = AppContext.allowNoNextYearStatus
@@ -63,7 +61,7 @@ trait DesConnector extends ServicesConfig {
   def getResidencyStatus(member: IndividualDetails, userId: String)(implicit hc: HeaderCarrier):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
 
-    val uri = s"${desBaseUrl}/pension-scheme/customers/look-up"
+    val uri = s"${desBaseUrl}/individuals/residency-status/"
 
     val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), Seq())
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc),
@@ -71,13 +69,13 @@ trait DesConnector extends ServicesConfig {
 
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
-        Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector")
+        Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
         Right(ResidencyStatusFailure(error_MatchingFailed, "The individual's details provided did not match with HMRC’s records."))
       case th: Throwable =>
-        Logger.error("[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD", th)
+        Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
         Right(ResidencyStatusFailure(error_InternalServerError,"Internal server error"))
       case _ =>
-        Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD")
+        Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD.")
         Right(ResidencyStatusFailure(error_InternalServerError,"Internal server error"))
     }
   }
@@ -86,36 +84,35 @@ trait DesConnector extends ServicesConfig {
     Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
       case Success(payload) =>
 
-        if (payload.deseasedIndicator) {
+        payload.deseasedIndicator match {
+          case Some(true) => Right(ResidencyStatusFailure(error_Deceased, "Individual is deceased"))
+          case _ => {
+            if (payload.nextYearResidencyStatus.isEmpty && !allowNoNextYearStatus) {
+              val auditDataMap = Map("userId" -> userId,
+                "nino" -> nino,
+                "nextYearResidencyStatus" -> "NOT_PRESENT")
 
-          Right(ResidencyStatusFailure(error_Deceased, "Individual is deceased"))
-        } else {
+              auditService.audit(auditType = "ReliefAtSourceAudit_DES_Response",
+                path = "PATH_NOT_DEFINED",
+                auditData = auditDataMap
+              )
 
-          if (payload.nextYearResidencyStatus.isEmpty && !allowNoNextYearStatus) {
-            val auditDataMap = Map("userId" -> userId,
-              "nino" -> nino,
-              "nextYearResidencyStatus" -> "NOT_PRESENT")
+              Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
+            } else {
+              val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
+              val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes))
 
-            auditService.audit(auditType = "ReliefAtSourceAudit_DES_Response",
-              path = "PATH_NOT_DEFINED",
-              auditData = auditDataMap
-            )
+              sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
+                Logger.info("DesConnector - resolveResponse: Audited EDH response")
+                auditEDHResponse(userId, nino, auditSuccess = true)
+              } recover {
+                case _ =>
+                  Logger.error("DesConnector - resolveResponse: Error returned from EDH")
+                  auditEDHResponse(userId, nino, auditSuccess = false)
+              }
 
-            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
-          } else {
-            val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
-            val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes))
-
-            sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
-              Logger.info("DesConnector - resolveResponse: Audited EDH response")
-              auditEDHResponse(userId, nino, auditSuccess = true)
-            } recover {
-              case _ =>
-                Logger.error("DesConnector - resolveResponse: Error returned from EDH")
-                auditEDHResponse(userId, nino, auditSuccess = false)
+              Left(ResidencyStatus(currentStatus, nextYearStatus))
             }
-
-            Left(ResidencyStatus(currentStatus, nextYearStatus))
           }
         }
       case Failure(_) =>
@@ -142,7 +139,7 @@ trait DesConnector extends ServicesConfig {
   }
 
   private def updateHeaderCarrier(headerCarrier: HeaderCarrier) =
-    headerCarrier.copy(extraHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv),
+    headerCarrier.copy(extraHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv, "OriginatorId" -> "DA_RAS"),
       authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
 }
 
@@ -152,7 +149,6 @@ object DesConnector extends DesConnector {
   override val httpGet: HttpGet = WSHttp
   override val httpPost: HttpPost = WSHttp
   override val desBaseUrl = baseUrl("des")
-  override def getResidencyStatusUrl(nino: String) = String.format(AppContext.residencyStatusUrl, nino)
   override val edhUrl: String = desBaseUrl + AppContext.edhUrl
   // $COVERAGE-ON$
 }

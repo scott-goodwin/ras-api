@@ -48,7 +48,6 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val httpGet: HttpGet = mockHttpGet
     override val httpPost: HttpPost = mockHttpPost
     override val desBaseUrl = ""
-    override def getResidencyStatusUrl(nino: String) = ""
     override val edhUrl: String = "test-url"
     override val auditService: AuditService = mockAuditService
     override val allowNoNextYearStatus: Boolean = true
@@ -102,7 +101,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
     "handle successful response when 200 is returned from des and CY and CYPlusOne is present" in {
 
-      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = false,
+      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = Some(false),
         currentYearResidencyStatus = "Uk",nextYearResidencyStatus = Some("Scottish"))
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
@@ -114,7 +113,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
     "handle successful response when 200 is returned from des and only CY is present and feature toggle is turned on" in {
 
-      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = false,
+      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = None,
         currentYearResidencyStatus = "Uk",nextYearResidencyStatus = None)
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
@@ -130,7 +129,6 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val httpGet: HttpGet = mockHttpGet
         override val httpPost: HttpPost = mockHttpPost
         override val desBaseUrl = ""
-        override def getResidencyStatusUrl(nino: String) = ""
         override val edhUrl: String = "test-url"
         override val auditService: AuditService = mockAuditService
         override val allowNoNextYearStatus: Boolean = false
@@ -138,7 +136,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
       val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error")
 
-      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = false,
+      val successresponse = ResidencyStatusSuccess(nino="AB123456C",deathDate = Some(""),deathDateStatus = Some(""),deseasedIndicator = Some(false),
         currentYearResidencyStatus = "Uk",nextYearResidencyStatus = None)
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
@@ -160,8 +158,8 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     }
 
     "handle success response but the person is deceased from des" in {
-      val successResponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some("2017-12-25"), deathDateStatus = Some("Confirmed"),
-        deseasedIndicator = true, currentYearResidencyStatus = "Uk", nextYearResidencyStatus = Some("Uk"))
+      val successResponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some("2017-12-25"), deathDateStatus = None,
+        deseasedIndicator = Some(true), currentYearResidencyStatus = "Uk", nextYearResidencyStatus = Some("Uk"))
       when(mockHttpPost.POST[IndividualDetails,HttpResponse](any(), any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
       val expectedResult = ResidencyStatusFailure("DECEASED","Individual is deceased")
