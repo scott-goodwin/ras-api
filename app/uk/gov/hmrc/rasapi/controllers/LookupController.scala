@@ -167,6 +167,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             }
           }
           case Success(JsError(errors)) =>
+            Logger.error(s"####################### Errors: ${errors.mkString(", ")}")
             invalidCallback(errors)
           case Failure(e) => Logger.error(s"CustomerMatchingController: An error occurred in customer-api due to ${e.getMessage} returning internal server error")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
