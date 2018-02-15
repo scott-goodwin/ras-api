@@ -93,26 +93,25 @@ package object models {
       def reads(json: JsValue): JsResult[DateTime] = json match {
         case JsString(s) => if (s.trim.isEmpty) JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
         else {
-          parseDate(s) match {
-            case Some(d: DateTime) => {
-              if (d.isAfterNow) {
-                JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
-              }
-              else {
-                JsSuccess(d)
+          s.matches(dateRegex) match {
+            case true => {
+              val dt = scala.util.control.Exception.allCatch[DateTime] opt (DateTime.parse(s, DateTimeFormat.forPattern(dateFormat)))
+              dt match {
+                case Some(d: DateTime) => {
+                  if (d.isAfterNow) {
+                    JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
+                  }
+                  else {
+                    JsSuccess(d)
+                  }
+                }
+                case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
               }
             }
-            case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
+            case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
           }
         }
         case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
-      }
-
-      private def parseDate(input: String): Option[DateTime] = {
-        input.matches(dateRegex) match {
-          case true => scala.util.control.Exception.allCatch[DateTime] opt (DateTime.parse(input, DateTimeFormat.forPattern(dateFormat)))
-          case _ => None
-        }
       }
     }
   }

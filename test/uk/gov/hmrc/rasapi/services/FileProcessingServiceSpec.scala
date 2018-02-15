@@ -107,6 +107,38 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "parse line as raw data and convert to RawMemberDetails object when there is an invalid date" in {
+        val inputData = "LE241131B,Jim,Jimson,1989-02-31"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is a caught invalid date" in {
+        val inputData = "LE241131B,Jim,Jimson,1111-15-15"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is a date not in yyyy-mm-dd format" in {
+        val inputData = "LE241131B,Jim,Jimson,89-09-29"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is a date in yyyy/mm/dd format" in {
+        val inputData = "LE241131B,Jim,Jimson,1999/09/29"
+
+        val result = SUT.createMatchingData(inputData)
+
+        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
+      }
+
+      "parse line as raw data and convert to RawMemberDetails object when there is a date of birth in the future" in {
         val inputData = "LE241131B,Jim,Jimson,2099-01-01"
 
         val result = SUT.createMatchingData(inputData)
