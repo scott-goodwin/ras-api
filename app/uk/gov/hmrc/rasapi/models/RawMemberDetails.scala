@@ -30,7 +30,7 @@ case class IndividualDetails(nino: NINO, firstName: Name, lastName: Name, dateOf
 
 object IndividualDetails {
   implicit val individualDetailsReads: Reads[IndividualDetails] = (
-    (JsPath \ "nino").read[NINO](JsonReads.nino).map(nino => if(nino.length == 8) s"${nino.trim} " else nino.trim) and
+    (JsPath \ "nino").read[NINO](JsonReads.nino).map(nino => if(nino.length == 8) s"${nino.trim.toUpperCase} " else nino.trim.toUpperCase) and
       (JsPath \ "firstName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
       (JsPath \ "lastName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
       (JsPath \ "dateOfBirth").read[DateTime](JsonReads.isoDate("yyyy-MM-dd")).map(new DateTime(_))
@@ -40,9 +40,6 @@ object IndividualDetails {
     (JsPath \ "nino").write[String] and
       (JsPath \ "firstName").write[String] and
       (JsPath \ "lastName").write[String] and
-      (JsPath \ "dateOfBirth").write[String].contramap[DateTime](date => date.toString("yyyy-MM-dd"))
+      (JsPath \ "dob").write[String].contramap[DateTime](date => date.toString("yyyy-MM-dd"))
     )(unlift(IndividualDetails.unapply))
 }
-
-
-
