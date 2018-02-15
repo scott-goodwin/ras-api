@@ -242,9 +242,11 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
-        await(SUT.processFile("user1234", callbackData))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        await(SUT.processFile("user1234", callbackData))
+
 
         Thread.sleep(20000)
 
