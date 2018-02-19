@@ -64,9 +64,9 @@ trait DesConnector extends ServicesConfig {
     val uri = s"${desBaseUrl}/individuals/residency-status/"
 
     val debugHeaderCarrier = updateHeaderCarrier(hc)
-    Logger.info(s"[DesConnector] [getResidencyStatus] uri: $uri")
-    Logger.info(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
-    Logger.info(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${debugHeaderCarrier.extraHeaders}, authorization: ${debugHeaderCarrier.authorization}")
+    Logger.error(s"[DesConnector] [getResidencyStatus] uri: $uri")
+    Logger.error(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
+    Logger.error(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${debugHeaderCarrier.extraHeaders}, authorization: ${debugHeaderCarrier.authorization}")
 
     val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), Seq())
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc),
