@@ -72,7 +72,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
     "handle successful response when 200 is returned from EDH" in {
 
-      when(mockHttpPost.POST[EDHAudit, HttpResponse](any(), any(), any())(any(), any(),any(), any())).
+      when(mockHttpPost.POST[EDHAudit, HttpResponse](any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(200)))
 
       val nino = "LE241131B"
@@ -84,7 +84,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     }
 
     "handle successful response when 500 is returned from EDH" in {
-      when(mockHttpPost.POST[EDHAudit, HttpResponse](any(), any(), any())(any(), any(),any(), any())).
+      when(mockHttpPost.POST[EDHAudit, HttpResponse](any(), any())(any(), any(),any(), any())).
         thenReturn(Future.successful(HttpResponse(500)))
 
       val nino = "LE241131B"

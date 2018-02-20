@@ -34,7 +34,6 @@ import scala.util.{Failure, Success, Try}
 trait DesConnector extends ServicesConfig {
 
   val auditService: AuditService
-  implicit val hc = HeaderCarrier()
 
   val httpPost:HttpPost = WSHttp
   val desBaseUrl: String
@@ -58,28 +57,25 @@ trait DesConnector extends ServicesConfig {
       implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
   }
 
-  def getResidencyStatus(member: IndividualDetails, userId: String)(implicit hc: HeaderCarrier):
+  def getResidencyStatus(member: IndividualDetails, userId: String):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
 
-    val desHeaders = hc.copy(authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
-      .withExtraHeaders(
-        "Environment" -> AppContext.desUrlHeaderEnv,
-        "OriginatorId" -> "DA_RAS",
-        "Content-Type" -> "application/json")
+    implicit val rasHeaders = HeaderCarrier()
 
     val uri = s"${desBaseUrl}/individuals/residency-status/"
 
+    val desHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv,
+      "OriginatorId" -> "DA_RAS",
+      "Content-Type" -> "application/json",
+      "authorization" -> s"Bearer ${AppContext.desAuthToken}")
+
     Logger.warn(s"[DesConnector] [getResidencyStatus] uri: $uri")
     Logger.warn(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
-    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${desHeaders.extraHeaders}, authorization: ${desHeaders.authorization}")
+    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${desHeaders}")
 
-    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member),
-      Seq("Environment" -> AppContext.desUrlHeaderEnv,
-        "OriginatorId" -> "DA_RAS",
-        "Content-Type" -> "application/json",
-      "authorization" -> s"Bearer ${AppContext.desAuthToken}"))
-    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], desHeaders,
-      MdcLoggingExecutionContext.fromLoggingDetails)
+    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
+    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
+      MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
