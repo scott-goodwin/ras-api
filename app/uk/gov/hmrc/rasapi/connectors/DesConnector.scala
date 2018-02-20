@@ -61,19 +61,20 @@ trait DesConnector extends ServicesConfig {
   def getResidencyStatus(member: IndividualDetails, userId: String)(implicit hc: HeaderCarrier):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
 
-    val uri = s"${desBaseUrl}/individuals/residency-status/"
-
-    val headerCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")),
-      extraHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv,
+    hc.copy(authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
+      .withExtraHeaders(
+        "Environment" -> AppContext.desUrlHeaderEnv,
         "OriginatorId" -> "DA_RAS",
-        "Content-Type" -> "application/json"))
+        "Content-Type" -> "application/json")
+
+    val uri = s"${desBaseUrl}/individuals/residency-status/"
 
     Logger.warn(s"[DesConnector] [getResidencyStatus] uri: $uri")
     Logger.warn(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
-    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${headerCarrier.extraHeaders}, authorization: ${headerCarrier.authorization}")
+    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${hc.extraHeaders}, authorization: ${hc.authorization}")
 
-    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), Seq())
-    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], headerCarrier,
+    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member))
+    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], hc,
       MdcLoggingExecutionContext.fromLoggingDetails(hc))
 
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
