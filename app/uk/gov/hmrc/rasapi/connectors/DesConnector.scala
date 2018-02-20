@@ -19,7 +19,6 @@ package uk.gov.hmrc.rasapi.connectors
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
@@ -35,7 +34,7 @@ trait DesConnector extends ServicesConfig {
 
   val auditService: AuditService
 
-  val httpPost:HttpPost = WSHttp
+  val httpPost: HttpPost = WSHttp
   val desBaseUrl: String
 
   val edhUrl: String
@@ -50,15 +49,9 @@ trait DesConnector extends ServicesConfig {
   val error_Deceased = "DECEASED"
   val error_MatchingFailed = "MATCHING_FAILED"
 
-  def sendDataToEDH(userId: String, nino: String, residencyStatus: ResidencyStatus)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-
-    httpPost.POST[EDHAudit, HttpResponse](url = edhUrl, body = EDHAudit(userId, nino,
-      residencyStatus.currentYearResidencyStatus,residencyStatus.nextYearForecastResidencyStatus))(implicitly[Writes[EDHAudit]],
-      implicitly[HttpReads[HttpResponse]], updateHeaderCarrier(hc), ec = MdcLoggingExecutionContext.fromLoggingDetails)
-  }
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
-    Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
+  Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
     implicit val rasHeaders = HeaderCarrier()
 
@@ -73,24 +66,24 @@ trait DesConnector extends ServicesConfig {
     Logger.warn(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
     Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${desHeaders}")
 
-    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
+    val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
-    result.map (response => resolveResponse(response, userId, member.nino)).recover {
+    result.map(response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
         Right(ResidencyStatusFailure(error_MatchingFailed, "The individual's details provided did not match with HMRC’s records."))
       case th: Throwable =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
-        Right(ResidencyStatusFailure(error_InternalServerError,"Internal server error"))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
       case _ =>
         Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD.")
-        Right(ResidencyStatusFailure(error_InternalServerError,"Internal server error"))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
     }
   }
 
-  private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] =   {
+  private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
     Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
       case Success(payload) =>
 
@@ -112,15 +105,6 @@ trait DesConnector extends ServicesConfig {
               val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
               val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes))
 
-              sendDataToEDH(userId, nino, ResidencyStatus(currentStatus, nextYearStatus)).map { httpResponse =>
-                Logger.info("DesConnector - resolveResponse: Audited EDH response")
-                auditEDHResponse(userId, nino, auditSuccess = true)
-              } recover {
-                case _ =>
-                  Logger.error("DesConnector - resolveResponse: Error returned from EDH")
-                  auditEDHResponse(userId, nino, auditSuccess = false)
-              }
-
               Left(ResidencyStatus(currentStatus, nextYearStatus))
             }
           }
@@ -135,26 +119,7 @@ trait DesConnector extends ServicesConfig {
     }
   }
 
-  private def auditEDHResponse(userId: String, nino: String, auditSuccess: Boolean)
-                              (implicit hc: HeaderCarrier): Unit = {
-
-    val auditDataMap = Map("userId" -> userId,
-      "nino" -> nino,
-      "edhAuditSuccess" -> auditSuccess.toString)
-
-    auditService.audit(auditType = "ReliefAtSourceAudit",
-      path = "PATH_NOT_DEFINED",
-      auditData = auditDataMap
-    )
-  }
-
-  private def updateHeaderCarrier(headerCarrier: HeaderCarrier) =
-    headerCarrier.copy(extraHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv,
-                                          "OriginatorId" -> "DA_RAS",
-                                          "Content-Type" -> "application/json"),
-      authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
 }
-
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val auditService = AuditService
