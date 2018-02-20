@@ -34,9 +34,9 @@ import scala.util.{Failure, Success, Try}
 trait DesConnector extends ServicesConfig {
 
   val auditService: AuditService
+  implicit val hc = HeaderCarrier()
 
-  val httpGet: HttpGet
-  val httpPost: HttpPost
+  val httpPost:HttpPost = WSHttp
   val desBaseUrl: String
 
   val edhUrl: String
@@ -73,7 +73,11 @@ trait DesConnector extends ServicesConfig {
     Logger.warn(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
     Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${desHeaders.extraHeaders}, authorization: ${desHeaders.authorization}")
 
-    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member))
+    val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member),
+      Seq("Environment" -> AppContext.desUrlHeaderEnv,
+        "OriginatorId" -> "DA_RAS",
+        "Content-Type" -> "application/json",
+      "authorization" -> s"Bearer ${AppContext.desAuthToken}"))
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], desHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails)
 
@@ -158,7 +162,6 @@ trait DesConnector extends ServicesConfig {
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val auditService = AuditService
-  override val httpGet: HttpGet = WSHttp
   override val httpPost: HttpPost = WSHttp
   override val desBaseUrl = baseUrl("des")
   override val edhUrl: String = desBaseUrl + AppContext.edhUrl

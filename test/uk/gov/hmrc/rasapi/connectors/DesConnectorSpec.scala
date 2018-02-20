@@ -45,7 +45,6 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
   implicit val format = ResidencyStatusFormats.successFormats
 
   object TestDesConnector extends DesConnector {
-    override val httpGet: HttpGet = mockHttpGet
     override val httpPost: HttpPost = mockHttpPost
     override val desBaseUrl = ""
     override val edhUrl: String = "test-url"
@@ -126,7 +125,6 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     "handle successful response when 200 is returned from des and only CY is present and feature toggle is turned off" in {
 
       object TestDesConnector extends DesConnector {
-        override val httpGet: HttpGet = mockHttpGet
         override val httpPost: HttpPost = mockHttpPost
         override val desBaseUrl = ""
         override val edhUrl: String = "test-url"
