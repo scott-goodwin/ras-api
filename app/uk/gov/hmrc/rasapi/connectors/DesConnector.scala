@@ -61,7 +61,7 @@ trait DesConnector extends ServicesConfig {
   def getResidencyStatus(member: IndividualDetails, userId: String)(implicit hc: HeaderCarrier):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]]  = {
 
-    hc.copy(authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
+    val desHeaders = hc.copy(authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
       .withExtraHeaders(
         "Environment" -> AppContext.desUrlHeaderEnv,
         "OriginatorId" -> "DA_RAS",
@@ -71,11 +71,11 @@ trait DesConnector extends ServicesConfig {
 
     Logger.warn(s"[DesConnector] [getResidencyStatus] uri: $uri")
     Logger.warn(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
-    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${hc.extraHeaders}, authorization: ${hc.authorization}")
+    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${desHeaders.extraHeaders}, authorization: ${desHeaders.authorization}")
 
     val result =  httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member))
-    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], hc,
-      MdcLoggingExecutionContext.fromLoggingDetails(hc))
+    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], desHeaders,
+      MdcLoggingExecutionContext.fromLoggingDetails)
 
     result.map (response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
