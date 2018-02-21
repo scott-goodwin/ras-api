@@ -17,15 +17,15 @@ object MicroServiceBuild extends Build with MicroService {
   val compile = Seq(
    ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % "6.15.0",
-    "uk.gov.hmrc" %% "auth-client" % "2.3.0",
-    "uk.gov.hmrc" %% "domain" % "5.0.0",
+    "uk.gov.hmrc" %% "auth-client" % "2.5.0",
+    "uk.gov.hmrc" %% "domain" % "5.1.0",
     "uk.gov.hmrc" %% "mongo-caching" % "5.3.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "json-encryption" % jsonEncryptionVersion,
     "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
     "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
-    "uk.gov.hmrc" %% "http-caching-client" % "7.0.0",
+    "uk.gov.hmrc" %% "http-caching-client" % "7.1.0",
     "joda-time" % "joda-time" % "2.7.0")
 
   def test(scope: String = "test,it") = Seq(
