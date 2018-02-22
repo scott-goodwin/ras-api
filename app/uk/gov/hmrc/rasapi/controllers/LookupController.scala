@@ -80,10 +80,11 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
                     case "DECEASED" =>
-                      auditResponse(failureReason = Some(IndividualNotFound.errorCode),
+                      auditResponse(failureReason = Some("DECEASED"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
-                        userId = id)
+                        userId = id,
+                        isDeceased = true)
                       Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
@@ -167,7 +168,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             }
           }
           case Success(JsError(errors)) =>
-            Logger.error(s"####################### Errors: ${errors.mkString(", ")}")
+            Logger.error(s"Json error in the request body")
             invalidCallback(errors)
           case Failure(e) => Logger.error(s"CustomerMatchingController: An error occurred in customer-api due to ${e.getMessage} returning internal server error")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
@@ -185,7 +186,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
     * @param hc Headers
     */
   private def auditResponse(failureReason: Option[String], nino: Option[String],
-                            residencyStatus: Option[ResidencyStatus], userId: String)
+                            residencyStatus: Option[ResidencyStatus], userId: String, isDeceased: Boolean = false)
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
@@ -193,15 +194,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                                                     .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
                                                  else Map()
     val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
-                                                                            "reason" -> reason) ++ ninoMap).
+                                                                            "reason" -> reason)).
                                               getOrElse(Map(
                                                 "successfulLookup" -> "true",
                                                 "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
-                                              ) ++ nextYearStatusMap ++ ninoMap)
+                                              ) ++ nextYearStatusMap)
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId)
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId) ++ ninoMap
     )
   }
 }
