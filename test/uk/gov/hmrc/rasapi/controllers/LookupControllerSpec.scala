@@ -186,8 +186,30 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             "userIdentifier" -> "A123456"))
         )(any())
       }
-    }
 
+      "a valid request has been submitted and the date is between april and december and the individual is deceased" in {
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
+
+
+        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure("DECEASED", "Individual is deceased"))))
+
+        await(TestLookupController.getResidencyStatus()
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+            .withHeaders(acceptHeader)
+            .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
+
+        verify(mockAuditService).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("successfulLookup" -> "false",
+            "reason" -> "DECEASED",
+            "nino" -> "LE241131B",
+            "userIdentifier" -> "A123456"))
+        )(any())
+      }
+    }
 
     "audit a unsuccessful lookup response" when {
 
