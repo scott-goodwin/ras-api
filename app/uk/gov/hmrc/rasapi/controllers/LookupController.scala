@@ -83,8 +83,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                       auditResponse(failureReason = Some("DECEASED"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
-                        userId = id,
-                        isDeceased = true)
+                        userId = id)
                       Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
@@ -186,7 +185,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
     * @param hc Headers
     */
   private def auditResponse(failureReason: Option[String], nino: Option[String],
-                            residencyStatus: Option[ResidencyStatus], userId: String, isDeceased: Boolean = false)
+                            residencyStatus: Option[ResidencyStatus], userId: String)
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
