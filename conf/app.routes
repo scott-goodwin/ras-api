@@ -6,4 +6,4 @@ POST    /ras-api/file-processing/status/:userId    uk.gov.hmrc.rasapi.controller
 
 GET  /ras-api/file/getFile/:name                   uk.gov.hmrc.rasapi.controllers.FileController.serveFile(name)
 
-DELETE /ras-api/file/remove/:name                  uk.gov.hmrc.rasapi.controllers.FileController.remove(name)
+DELETE /ras-api/file/remove/:name/:id                  uk.gov.hmrc.rasapi.controllers.FileController.remove(name,id)

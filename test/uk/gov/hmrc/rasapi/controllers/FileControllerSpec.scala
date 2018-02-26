@@ -55,7 +55,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
 
     override def getFile(name: String): Future[Option[FileData]] = Some(fileData)
 
-    override def deleteFile(name: String): Future[Boolean] = true
+    override def deleteFile(name: String,id:String): Future[Boolean] = true
   }
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -106,7 +106,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
       "already saved fileName is provided" in {
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName).apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName,"1").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         result.header.status shouldBe Status.OK
       }
     }
@@ -116,11 +116,11 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         val fileController = new FileController {
           override val authConnector: AuthConnector = mockAuthConnector
 
-          override def deleteFile(name: String): Future[Boolean] = false
+          override def deleteFile(name: String,id:String): Future[Boolean] = false
         }
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName).apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName,"2").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
       }
     }
@@ -131,7 +131,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())).thenReturn(Future.failed(new InsufficientEnrolments))
 
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName).apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName, "1").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         status(result) shouldBe UNAUTHORIZED
       }
     }
@@ -142,7 +142,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         when(mockAuthConnector.authorise[Option[String]](any(), any())(any(),any())).thenReturn(Future.failed(new SessionRecordNotFound))
 
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName).apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName,"2").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         status(result) shouldBe UNAUTHORIZED
       }
     }

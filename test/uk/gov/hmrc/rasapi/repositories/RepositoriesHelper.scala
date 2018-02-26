@@ -91,12 +91,6 @@ trait RepositoriesHelper extends MongoSpecSupport with UnitSpec {
       Source.fromInputStream(inputStream).getLines
     }
 
-    def removeAll: Unit = {
-      removeFile("file111")
-      removeFile("file123")
-      removeFile("file222")
-
-    }
   }
 
 

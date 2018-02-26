@@ -73,12 +73,12 @@ trait FileController extends BaseController with AuthorisedFunctions{
           }
   }
 
-  def remove(fileName:String):  Action[AnyContent] = Action.async {
+  def remove(fileName:String, fileId:String):  Action[AnyContent] = Action.async {
     implicit request =>
       val apiMetrics = Metrics.register("file-remove-timer").time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
-          deleteFile(fileName).map{res=>  apiMetrics.stop()
+          deleteFile(fileName, fileId:String).map{res=>  apiMetrics.stop()
             if(res) Ok("") else InternalServerError
           }.recover {
             case ex: Throwable => Logger.error("Request failed with Exception " + ex.getMessage + " for file -> " + fileName)
@@ -109,7 +109,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
 
   def getFile(name:String) = RasRepository.filerepo.fetchFile(name)
 
-  def deleteFile(name:String):Future[Boolean] = RasRepository.filerepo.removeFile(name)
+  def deleteFile(name:String, fileId:String):Future[Boolean] = RasRepository.filerepo.removeFile(name,fileId)
   // $COVERAGE-ON$
 
 

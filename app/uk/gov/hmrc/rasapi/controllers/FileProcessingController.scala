@@ -54,7 +54,7 @@ trait FileProcessingController extends BaseController {
           case STATUS_ERROR => Logger.error(s"There is a problem with the file ERROR (${callbackData.fileId}), the status is:" +
             s" ${callbackData.status} and the reason is: ${callbackData.reason.get}")
             sessionCacheService.updateFileSession(userId,callbackData,None)
-          case _ => Logger.error(s"There is a problem with the file (${callbackData.fileId}), the status is:" +
+          case _ => Logger.warn(s"There is a problem with the file (${callbackData.fileId}), the status is:" +
             s" ${callbackData.status}")
         }
 

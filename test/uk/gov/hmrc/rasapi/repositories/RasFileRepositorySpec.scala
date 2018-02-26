@@ -56,9 +56,9 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
 
   "removeFile" in {
     val resultFile = await(saveTempFileToRemove)
-    Logger.debug(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
+    Logger.warn(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
 
-        val res = await(rasFileRepository.removeFile(resultFile.filename.get))
+        val res = await(rasFileRepository.removeFile(resultFile.filename.get,resultFile.id.toString))
         res shouldBe true
         val fileData = await(rasFileRepository.fetchFile(resultFile.filename.get))
         fileData.isDefined shouldBe false
