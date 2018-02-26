@@ -80,7 +80,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
                     case "DECEASED" =>
-                      auditResponse(failureReason = Some(IndividualNotFound.errorCode),
+                      auditResponse(failureReason = Some("DECEASED"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
@@ -100,7 +100,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES.")
+                      Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES. ${matchingFailed.code}")
                       Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                       InternalServerError(toJson(ErrorInternalServerError))
                   }
@@ -167,7 +167,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             }
           }
           case Success(JsError(errors)) =>
-            Logger.error(s"####################### Errors: ${errors.mkString(", ")}")
+            Logger.error(s"Json error in the request body")
             invalidCallback(errors)
           case Failure(e) => Logger.error(s"CustomerMatchingController: An error occurred in customer-api due to ${e.getMessage} returning internal server error")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
@@ -193,15 +193,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                                                     .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
                                                  else Map()
     val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
-                                                                            "reason" -> reason) ++ ninoMap).
+                                                                            "reason" -> reason)).
                                               getOrElse(Map(
                                                 "successfulLookup" -> "true",
                                                 "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
-                                              ) ++ nextYearStatusMap ++ ninoMap)
+                                              ) ++ nextYearStatusMap)
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId)
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId) ++ ninoMap
     )
   }
 }
