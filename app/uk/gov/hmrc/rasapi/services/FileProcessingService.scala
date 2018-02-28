@@ -43,7 +43,9 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
         {
           val writer = createFileWriter(callbackData.fileId)
           try{
-            inputFileData.get.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
+            val dataIterator = inputFileData.get.toList
+            Logger.warn("data read is is " + dataIterator.size)
+            dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
             closeWriter(writer._2)
             RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, writer._1, callbackData.fileId).onComplete {
               result =>
