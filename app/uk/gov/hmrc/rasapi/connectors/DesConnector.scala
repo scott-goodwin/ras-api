@@ -118,8 +118,8 @@ trait DesConnector extends ServicesConfig {
         }
     }
   }
-
 }
+
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val auditService = AuditService

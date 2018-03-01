@@ -181,6 +181,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
     * @param failureReason Optional message, present if the journey failed, else not
     * @param nino Optional user identifier, present if the customer-matching-cache call was a success, else not
     * @param residencyStatus Optional status object returned from the HoD, present if the journey succeeded, else not
+    * @param userId Identifies the user which made the request
     * @param request Object containing request made by the user
     * @param hc Headers
     */
@@ -201,7 +202,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId) ++ ninoMap
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "API") ++ ninoMap
     )
   }
 }

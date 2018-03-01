@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import org.joda.time.DateTime
 import play.api.libs.json.{JsError, JsSuccess, Json}
+import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails}
+import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -31,8 +33,12 @@ trait ResultsGenerator {
 
   val desConnector:DesConnector
   val residencyYearResolver: ResidencyYearResolver
+  val auditService: AuditService
 
-  def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier):String = {
+  def getCurrentDate: DateTime
+  val allowDefaultRUK: Boolean
+
+  def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) =>
@@ -41,11 +47,16 @@ trait ResultsGenerator {
 
         res match {
           case Left(residencyStatus) => {
-            val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) residencyStatus
+            val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
                             else residencyStatus.copy(nextYearForecastResidencyStatus = None)
+            auditResponse(failureReason = None, nino = Some(memberDetails.nino),
+              residencyStatus = Some(resStatus), userId = userId)
             inputRow + comma + resStatus.toString
           }
-          case Right(statusFailure) => inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
+          case Right(statusFailure) =>
+            auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
+                          residencyStatus = None, userId = userId)
+            inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
 
         }
     }
@@ -66,5 +77,42 @@ trait ResultsGenerator {
     val res = cols ++ (for (x <- 0 until 4- cols.length ) yield "")
     RawMemberDetails(res(0),res(1),res(2),res(3))
   }
-}
 
+  private def updateResidencyResponse(residencyStatus: ResidencyStatus): ResidencyStatus = {
+
+    if (getCurrentDate.isBefore(new DateTime(2018, 4, 6, 0, 0, 0, 0)) && allowDefaultRUK)
+      residencyStatus.copy(currentYearResidencyStatus = desConnector.otherUk)
+    else
+      residencyStatus
+  }
+
+  /**
+    * Audits the response, if failure reason is None then residencyStatus is Some (sucess) and vice versa (failure).
+    * @param failureReason Optional message, present if the journey failed, else not
+    * @param nino Optional user identifier, present if the customer-matching-cache call was a success, else not
+    * @param residencyStatus Optional status object returned from the HoD, present if the journey succeeded, else not
+    * @param userId Identifies the user which made the request
+    * @param request Object containing request made by the user
+    * @param hc Headers
+    */
+  private def auditResponse(failureReason: Option[String], nino: Option[String],
+                            residencyStatus: Option[ResidencyStatus], userId: String)
+                           (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
+
+    val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
+    val nextYearStatusMap: Map[String, String] = if (residencyStatus.nonEmpty) residencyStatus.get.nextYearForecastResidencyStatus
+                                                    .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
+                                                 else Map()
+    val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
+                                                                            "reason" -> reason))
+                                                                            .getOrElse(Map(
+                                                                              "successfulLookup" -> "true",
+                                                                              "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
+                                                                            ) ++ nextYearStatusMap)
+
+    auditService.audit(auditType = "ReliefAtSourceResidency",
+      path = request.path,
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "BULK") ++ ninoMap
+    )
+  }
+}
