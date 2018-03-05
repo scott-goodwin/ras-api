@@ -132,7 +132,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             "CYStatus" -> "otherUKResident",
             "NextCYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -158,7 +159,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             "CYStatus" -> "scotResident",
             "NextCYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -183,7 +185,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -206,7 +209,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("successfulLookup" -> "false",
             "reason" -> "DECEASED",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
     }
@@ -232,7 +236,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
             "reason" -> "MATCHING_FAILED",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -255,7 +260,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
                               "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "A123456"))
+                              "userIdentifier" -> "A123456", 
+						                  "requestSource" -> "API"))
         )(any())
       }
     }
@@ -556,7 +562,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           """
             |{
             |  "code": "MATCHING_FAILED",
-            |  "message": "The individual's details provided did not match with HMRC’s records."
+            |  "message": "The pension scheme member's details do not match with HMRC's records."
             |}
           """.stripMargin)
 

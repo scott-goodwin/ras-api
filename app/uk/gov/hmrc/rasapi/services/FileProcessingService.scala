@@ -16,13 +16,16 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import org.joda.time.DateTime
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.repository.RasRepository
+import play.api.mvc.{AnyContent, Request}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -32,6 +35,9 @@ object FileProcessingService extends FileProcessingService {
   override val fileUploadConnector: FileUploadConnector = FileUploadConnector
   override val desConnector: DesConnector = DesConnector
   override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
+  override val auditService: AuditService = AuditService
+  override def getCurrentDate: DateTime = DateTime.now()
+  override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
@@ -40,7 +46,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   val fileResults = "File-Results"
   val fileSave = "File-Save"
 
-  def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier): Unit = {
+  def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileMetrics = Metrics.register(fileProcess).time
     val fileReadMetrics = Metrics.register(fileRead).time
 
