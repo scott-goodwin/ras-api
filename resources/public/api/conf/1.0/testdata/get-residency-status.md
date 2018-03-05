@@ -182,7 +182,7 @@
             <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
                 <p class ="code--block"> {<br>
                                                "code": "MATCHING_FAILED",<br>
-                                               "message": "The individual's details provided did not match with HMRC’s records."<br>
+                                               "message": "The pension scheme member's details do not match with HMRC's records."<br>
                                              }
                 </p>
             </td>
