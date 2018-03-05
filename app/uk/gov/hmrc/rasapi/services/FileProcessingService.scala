@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import org.joda.time.DateTime
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.repository.RasRepository
+import play.api.mvc.{AnyContent, Request}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -31,11 +34,14 @@ object FileProcessingService extends FileProcessingService {
   override val fileUploadConnector: FileUploadConnector = FileUploadConnector
   override val desConnector: DesConnector = DesConnector
   override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
+  override val auditService: AuditService = AuditService
+  override def getCurrentDate: DateTime = DateTime.now()
+  override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
 
-  def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier): Unit = {
+  def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
 
     readFile(callbackData.envelopeId, callbackData.fileId).onComplete {
 
@@ -51,17 +57,21 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
               result =>
                 clearFile( writer._1)
                 result match {
-                  case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
+                  case Success(file) =>
+                    SessionCacheService.updateFileSession(userId, callbackData,
                     Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
 
-                  case Failure(ex) => Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+                  case Failure(ex) =>
+                    Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
                   //delete result  a future ind
                 }
                 fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
             }
           } catch
             {
-              case ex:Throwable => Logger.error("error in File processing -> " + ex.getMessage )
+              case ex:Throwable =>
+                ex.printStackTrace()
+                Logger.error("error in File processing -> " + ex.getMessage )
                 clearFile( writer._1)
             }
         }
