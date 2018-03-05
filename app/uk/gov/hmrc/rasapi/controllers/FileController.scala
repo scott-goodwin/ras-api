@@ -42,11 +42,13 @@ object FileController extends FileController{
 
 trait FileController extends BaseController with AuthorisedFunctions{
 
+  val fileRemove = "File-Remove"
+  val fileServe = "File-Read"
   private val _contentType =   "application/csv"
 
   def serveFile(fileName:String):  Action[AnyContent] = Action.async {
     implicit request =>
-      val apiMetrics = Metrics.register("file-serve-timer").time
+      val apiMetrics = Metrics.register(fileServe).time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           getFile(fileName).map { fileData =>
@@ -75,7 +77,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
 
   def remove(fileName:String, fileId:String):  Action[AnyContent] = Action.async {
     implicit request =>
-      val apiMetrics = Metrics.register("file-remove-timer").time
+      val apiMetrics = Metrics.register(fileRemove).time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           deleteFile(fileName, fileId:String).map{res=>  apiMetrics.stop()

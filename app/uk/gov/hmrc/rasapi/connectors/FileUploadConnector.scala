@@ -43,7 +43,7 @@ trait FileUploadConnector extends ServicesConfig {
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
 
-    Logger.debug(s"Get to file-upload with URI : /file-upload/envelopes/${envelopeId}/files/${fileId}/content")
+    Logger.warn(s"Get to file-upload with URI : /file-upload/envelopes/${envelopeId}/files/${fileId}/content")
     wsHttp.buildRequestWithStream(s"$serviceUrl/$fileUploadUrlSuffix/${envelopeId}/files/${fileId}/content").map { res =>
       Some(res.body.runWith(StreamConverters.asInputStream()))
     } recover {
