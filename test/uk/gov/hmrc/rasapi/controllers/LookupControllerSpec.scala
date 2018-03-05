@@ -562,7 +562,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           """
             |{
             |  "code": "MATCHING_FAILED",
-            |  "message": "The individual's details provided did not match with HMRC’s records."
+            |  "message": "The pension scheme member's details do not match with HMRC's records."
             |}
           """.stripMargin)
 
