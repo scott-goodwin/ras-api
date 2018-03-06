@@ -512,7 +512,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     "fetch result" when {
       val userId = "A123456"
       "input row is valid and the date of processing is between january and april" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -523,7 +523,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "input row is valid and the date of processing is between april and december" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
@@ -534,7 +534,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "input row matching failed" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)(hc)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure("NOT_MATCHED", "matching failed"))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId))
