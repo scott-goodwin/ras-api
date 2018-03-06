@@ -19,7 +19,6 @@ package uk.gov.hmrc.rasapi.connectors
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
@@ -51,7 +50,7 @@ trait DesConnector extends ServicesConfig {
   val error_MatchingFailed = "MATCHING_FAILED"
 
 
-  def getResidencyStatus(member: IndividualDetails, userId: String)(headerC: HeaderCarrier):
+  def getResidencyStatus(member: IndividualDetails, userId: String)(implicit hc: HeaderCarrier):
   Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
     val uri = s"${desBaseUrl}/individuals/residency-status/"
@@ -59,15 +58,11 @@ trait DesConnector extends ServicesConfig {
     val desHeaders = Seq("Environment" -> AppContext.desUrlHeaderEnv,
       "OriginatorId" -> "DA_RAS",
       "Content-Type" -> "application/json",
-      "authorization" -> ("Bearer " + AppContext.desAuthToken))
-
-   implicit val hc : HeaderCarrier = headerC.copy(extraHeaders = Seq(("Environment" -> AppContext.desUrlHeaderEnv),
-     ("OriginatorId" -> "DA2_LISA"),"Content-Type" -> "application/json"),
-     authorization = Some(Authorization(s"Bearer ${AppContext.desAuthToken}")))
+      "authorization" -> s"Bearer ${AppContext.desAuthToken}")
 
     val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
-    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], hc,
-      MdcLoggingExecutionContext.fromLoggingDetails(hc))
+    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], HeaderCarrier(),
+      MdcLoggingExecutionContext.fromLoggingDetails(HeaderCarrier()))
 
     result.map(response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>

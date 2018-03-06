@@ -17,28 +17,30 @@
 package uk.gov.hmrc.rasapi.controllers
 
 import org.joda.time.DateTime
+import play.api.mvc.{Action, AnyContent, Request, Result}
+import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.api.controllers.HeaderValidator
+import uk.gov.hmrc.play.config.RunMode
+import uk.gov.hmrc.rasapi.connectors.DesConnector
+import uk.gov.hmrc.rasapi.models._
+import play.api.libs.json.Json._
 import play.api.Logger
 import play.api.data.validation.ValidationError
-import play.api.libs.json.Json._
 import play.api.libs.json.{JsError, JsPath, JsSuccess}
-import play.api.mvc.{Action, AnyContent, Request, Result}
-import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
-import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
-import uk.gov.hmrc.rasapi.connectors.DesConnector
-import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models._
+import uk.gov.hmrc.auth.core.retrieve._
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.services.AuditService
-import uk.gov.hmrc.rasapi.utils.ErrorConverter
+import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
+import uk.gov.hmrc.rasapi.metrics.Metrics
+import uk.gov.hmrc.rasapi.utils.ErrorConverter
+
 import scala.util.{Failure, Success, Try}
 
 trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
@@ -61,7 +63,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
           withValidJson(
             (individualDetails) => {
 
-              desConnector.getResidencyStatus(individualDetails, id)(hc).map {
+              desConnector.getResidencyStatus(individualDetails, id).map {
                 case Left(residencyStatusResponse) =>
                   val residencyStatus = if (residencyYearResolver.isBetweenJanAndApril())
                                           updateResidencyResponse(residencyStatusResponse)

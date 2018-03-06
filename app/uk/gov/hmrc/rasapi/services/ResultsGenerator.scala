@@ -43,7 +43,7 @@ trait ResultsGenerator {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) =>
         //this needs to be sequential / blocking and at the max 30 TPS
-        val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId)(hc),20 second)
+        val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
 
         res match {
           case Left(residencyStatus) => {
