@@ -50,8 +50,10 @@ trait DesConnector extends ServicesConfig {
   val error_MatchingFailed = "MATCHING_FAILED"
 
 
-  def getResidencyStatus(member: IndividualDetails, userId: String)(implicit hc: HeaderCarrier):
+  def getResidencyStatus(member: IndividualDetails, userId: String):
   Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+
+    implicit val rasHeaders = HeaderCarrier()
 
     val uri = s"${desBaseUrl}/individuals/residency-status/"
 
@@ -61,8 +63,8 @@ trait DesConnector extends ServicesConfig {
       "authorization" -> s"Bearer ${AppContext.desAuthToken}")
 
     val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
-    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], HeaderCarrier(),
-      MdcLoggingExecutionContext.fromLoggingDetails(HeaderCarrier()))
+    (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
+      MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
     result.map(response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
