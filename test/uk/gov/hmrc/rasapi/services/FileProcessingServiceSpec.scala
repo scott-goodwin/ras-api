@@ -27,7 +27,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import play.api.test.{FakeRequest, Helpers}
+import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
@@ -121,7 +121,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("scotResident", Some("otherUKResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -184,7 +184,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("scotResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -247,7 +247,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
@@ -309,7 +309,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(code = "MATCHING_FAILED", reason = "MATCHING_FAILED"))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -371,7 +371,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(code = "DECEASED", reason = "Individual is deceased"))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -570,7 +570,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())(any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
