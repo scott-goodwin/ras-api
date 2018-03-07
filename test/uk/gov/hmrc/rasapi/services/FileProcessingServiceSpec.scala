@@ -144,7 +144,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
             "NextCYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
-            "requestSource" -> "BULK"))
+            "requestSource" -> "FE_BULK"))
         )(any())
       }
 
@@ -207,7 +207,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
             "NextCYStatus" -> "scotResident",
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
-            "requestSource" -> "BULK"))
+            "requestSource" -> "FE_BULK"))
         )(any())
       }
 
@@ -269,7 +269,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
             "CYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
-            "requestSource" -> "BULK"))
+            "requestSource" -> "FE_BULK"))
         )(any())
       }
 
@@ -331,7 +331,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
             "successfulLookup" -> "false",
             "reason" -> "MATCHING_FAILED",
             "userIdentifier" -> "user1234",
-            "requestSource" -> "BULK"))
+            "requestSource" -> "FE_BULK"))
         )(any())
       }
 
@@ -393,7 +393,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
             "successfulLookup" -> "false",
             "reason" -> "DECEASED",
             "userIdentifier" -> "user1234",
-            "requestSource" -> "BULK"))
+            "requestSource" -> "FE_BULK"))
         )(any())
       }
     }

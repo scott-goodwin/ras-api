@@ -112,7 +112,7 @@ trait ResultsGenerator {
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "BULK") ++ ninoMap
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "FE_BULK") ++ ninoMap
     )
   }
 }
