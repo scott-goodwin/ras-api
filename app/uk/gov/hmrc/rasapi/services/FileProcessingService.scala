@@ -45,6 +45,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   val fileRead = "File-Upload-Read"
   val fileResults = "File-Results"
   val fileSave = "File-Save"
+  val STATUS_ERROR = "ERROR"
 
   def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileMetrics = Metrics.register(fileProcess).time
@@ -70,7 +71,10 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
                   case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
                     Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
 
-                  case Failure(ex) => Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+                  case Failure(ex) => {
+                    Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+                    SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
+                  }
                   //delete result  a future ind
                 }
                 fileSaveMetrics.stop
@@ -78,9 +82,11 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
             }
           } catch
             {
-              case ex:Throwable => Logger.error("error in File processing -> " + ex.getMessage )
-                SessionCacheService.updateFileSession(userId, callbackData.copy(status = "ERROR"), None)
+              case ex:Throwable => {
+                Logger.error("error in File processing -> " + ex.getMessage)
+                SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
                 fileResultsMetrics.stop
+              }
             }
           finally {
             fileMetrics.stop
