@@ -79,6 +79,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
           } catch
             {
               case ex:Throwable => Logger.error("error in File processing -> " + ex.getMessage )
+                SessionCacheService.updateFileSession(userId, callbackData.copy(status = "ERROR"), None)
                 fileResultsMetrics.stop
             }
           finally {
