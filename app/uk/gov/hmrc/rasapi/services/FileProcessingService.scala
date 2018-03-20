@@ -24,11 +24,15 @@ import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
-import uk.gov.hmrc.rasapi.repository.RasRepository
+import uk.gov.hmrc.rasapi.repository.{GridFsTTLIndexing, RasRepository}
 import play.api.mvc.{AnyContent, Request}
+import java.nio.file.Path
+
+import play.modules.reactivemongo.MongoDbConnection
+import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 object FileProcessingService extends FileProcessingService {
 
@@ -53,48 +57,59 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
     readFile(callbackData.envelopeId, callbackData.fileId).onComplete {
       fileReadMetrics.stop
-      inputFileData => if(inputFileData.isSuccess)
+      inputFileData =>
+        if(inputFileData.isSuccess)
         {
-          val fileResultsMetrics = Metrics.register(fileResults).time
-          val writer = createFileWriter(callbackData.fileId)
-          try{
-            val dataIterator = inputFileData.get.toList
-            Logger.warn("file data size " + dataIterator.size + " of user " + userId)
-            dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
-            closeWriter(writer._2)
-            fileResultsMetrics.stop
-            val fileSaveMetrics = Metrics.register(fileSave).time
-            RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, writer._1, callbackData.fileId).onComplete {
-              result =>
-                clearFile( writer._1)
-                result match {
-                  case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
-                    Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
-
-                  case Failure(ex) => {
-                    Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
-                    SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
-                  }
-                  //delete result  a future ind
-                }
-                fileSaveMetrics.stop
-                fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
-            }
-          } catch
-            {
-              case ex:Throwable => {
-                Logger.error("error in File processing -> " + ex.getMessage)
-                SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
-                fileResultsMetrics.stop
-              }
-            }
-          finally {
-            fileMetrics.stop
-            closeWriter(writer._2)
-            clearFile( writer._1)
-          }
+          manipulateFile(inputFileData, userId, callbackData, SessionCacheService)
         }
+    }
 
+    fileMetrics.stop
+  }
+
+  def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData, sessionCacheService: SessionCacheService)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
+    val fileResultsMetrics = Metrics.register(fileResults).time
+    val writer = createFileWriter(callbackData.fileId)
+    try{
+      val dataIterator = inputFileData.get.toList
+      Logger.warn("file data size " + dataIterator.size + " of user " + userId)
+      dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
+      closeWriter(writer._2)
+      fileResultsMetrics.stop
+
+      saveFile(writer._1, userId, callbackData)
+
+    } catch
+      {
+        case ex:Throwable => {
+          Logger.error("error in File processing -> " + ex.getMessage)
+          sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
+          fileResultsMetrics.stop
+        }
+      }
+    finally {
+      closeWriter(writer._2)
+      clearFile( writer._1)
+    }
+  }
+
+  def saveFile(filePath: Path, userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
+    val fileSaveMetrics = Metrics.register(fileSave).time
+    RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
+      result =>
+        clearFile(filePath)
+        result match {
+          case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
+            Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
+
+          case Failure(ex) => {
+            Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+            SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
+          }
+          //delete result  a future ind
+        }
+        fileSaveMetrics.stop
+        fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
     }
   }
 }
