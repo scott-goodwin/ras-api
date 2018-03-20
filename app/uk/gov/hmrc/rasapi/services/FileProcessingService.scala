@@ -24,12 +24,9 @@ import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
-import uk.gov.hmrc.rasapi.repository.{GridFsTTLIndexing, RasRepository}
+import uk.gov.hmrc.rasapi.repository.RasRepository
 import play.api.mvc.{AnyContent, Request}
 import java.nio.file.Path
-
-import play.modules.reactivemongo.MongoDbConnection
-import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
