@@ -56,7 +56,7 @@ case object InvalidCredentials extends ErrorResponse(
 case object IndividualNotFound extends ErrorResponse(
   403,
   "MATCHING_FAILED",
-  "The individual's details provided did not match with HMRC’s records.")
+  "The pension scheme member's details do not match with HMRC's records.")
 
 // START OF TO BE DELETED
 case object BadRequestInvalidFormatResponse extends ErrorResponse(

@@ -20,43 +20,52 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 import java.nio.file.Files
 
 import org.joda.time.DateTime
-import org.mockito.Matchers._
+import org.mockito.ArgumentCaptor
+import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
+import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{CallbackData, IndividualDetails, ResidencyStatus, ResidencyStatusFailure}
+import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val fakeReq = FakeRequest("POST", "/relief-at-source/customer/residency-status")
 
   val mockFileUploadConnector = mock[FileUploadConnector]
 
   val mockDesConnector = mock[DesConnector]
   val mockSessionCache = mock[SessionCacheService]
   val mockResidencyYearResolver = mock[ResidencyYearResolver]
+  val mockAuditService = mock[AuditService]
 
   val SUT = new FileProcessingService {
 
     override val fileUploadConnector = mockFileUploadConnector
     override val desConnector = mockDesConnector
     override val residencyYearResolver = mockResidencyYearResolver
+    override val auditService: AuditService = mockAuditService
+
+    override def getCurrentDate: DateTime = DateTime.now()
+
+    override val allowDefaultRUK: Boolean = false
   }
 
-  val testFilePath = {
+  def getTestFilePath = {
     val successresultsArr = Array("LE241131B,Jim,Jimson,1990-02-21",
       "LE241131B,GARY,BRAVO,1990-02-21",
       "LE241131B,SIMON,DAWSON,1990-02-21",
@@ -65,17 +74,337 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     await(TestFileWriter.generateFile(successresultsArr.iterator))
   }
 
+  when(mockDesConnector.otherUk).thenReturn("otherUKResident")
+  when(mockDesConnector.scotRes).thenReturn("scotResident")
+
   before {
     reset(mockFileUploadConnector)
     reset(mockDesConnector)
     reset(mockResidencyYearResolver)
+    reset(mockAuditService)
+  }
+
+  "fetchResult" should {
+    "successfully audit processed data" when {
+      "there is a successful result returned when a request is made on 4th Feb 2018" in {
+
+        val testFilePath = getTestFilePath
+
+        val SUT = new FileProcessingService {
+
+          override val fileUploadConnector = mockFileUploadConnector
+          override val desConnector = mockDesConnector
+          override val residencyYearResolver = mockResidencyYearResolver
+          override val auditService: AuditService = mockAuditService
+
+          override def getCurrentDate: DateTime = new DateTime("2018-02-04")
+
+          override val allowDefaultRUK: Boolean = true
+        }
+
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+
+        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
+        when(mockDesConnector.scotRes).thenReturn("scotResident")
+
+        val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,otherUKResident" +
+          "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident,otherUKResident" +
+          "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident,otherUKResident" +
+          "LE241131B,MICHEAL,SLATER,1990-02-21,otherUKResident,otherUKResident"
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
+
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+          Future.successful(Left(ResidencyStatus("scotResident", Some("otherUKResident")))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        await(SUT.processFile("user1234", callbackData))
+
+        Thread.sleep(20000)
+
+        val res = await(rasFileRepository.fetchFile(fileId))
+        var result = new String("")
+        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
+        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
+        Files.deleteIfExists(testFilePath)
+
+        verify(mockAuditService, times(4)).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("successfulLookup" -> "true",
+            "CYStatus" -> "otherUKResident",
+            "NextCYStatus" -> "otherUKResident",
+            "nino" -> "LE241131B",
+            "userIdentifier" -> "user1234",
+            "requestSource" -> "FE_BULK"))
+        )(any())
+      }
+
+      "there is a successful result returned when a request is made on 4th Feb 2019" in {
+
+        val testFilePath = getTestFilePath
+
+        val SUT = new FileProcessingService {
+
+          override val fileUploadConnector = mockFileUploadConnector
+          override val desConnector = mockDesConnector
+          override val residencyYearResolver = mockResidencyYearResolver
+          override val auditService: AuditService = mockAuditService
+
+          override def getCurrentDate: DateTime = new DateTime("2019-02-04")
+
+          override val allowDefaultRUK: Boolean = true
+        }
+
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+
+        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
+        when(mockDesConnector.scotRes).thenReturn("scotResident")
+
+        val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,scotResident,scotResident" +
+          "LE241131B,GARY,BRAVO,1990-02-21,scotResident,scotResident" +
+          "LE241131B,SIMON,DAWSON,1990-02-21,scotResident,scotResident" +
+          "LE241131B,MICHEAL,SLATER,1990-02-21,scotResident,scotResident"
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
+
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+          Future.successful(Left(ResidencyStatus("scotResident", Some("scotResident")))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        await(SUT.processFile("user1234", callbackData))
+
+        Thread.sleep(20000)
+
+        val res = await(rasFileRepository.fetchFile(fileId))
+        var result = new String("")
+        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
+        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
+        Files.deleteIfExists(testFilePath)
+
+        verify(mockAuditService, times(4)).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("successfulLookup" -> "true",
+            "CYStatus" -> "scotResident",
+            "NextCYStatus" -> "scotResident",
+            "nino" -> "LE241131B",
+            "userIdentifier" -> "user1234",
+            "requestSource" -> "FE_BULK"))
+        )(any())
+      }
+
+      "there is a successful result returned when a request is made on 4th June 2018" in {
+
+        val testFilePath = getTestFilePath
+
+        val SUT = new FileProcessingService {
+
+          override val fileUploadConnector = mockFileUploadConnector
+          override val desConnector = mockDesConnector
+          override val residencyYearResolver = mockResidencyYearResolver
+          override val auditService: AuditService = mockAuditService
+
+          override def getCurrentDate: DateTime = new DateTime("2018-06-04")
+
+          override val allowDefaultRUK: Boolean = true
+        }
+
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+
+        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
+        when(mockDesConnector.scotRes).thenReturn("scotResident")
+
+        val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,otherUKResident" +
+          "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident" +
+          "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident" +
+          "LE241131B,MICHEAL,SLATER,1990-02-21,otherUKResident"
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
+
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+          Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
+
+        await(SUT.processFile("user1234", callbackData))
+
+        Thread.sleep(20000)
+
+        val res = await(rasFileRepository.fetchFile(fileId))
+        var result = new String("")
+        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
+        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
+        Files.deleteIfExists(testFilePath)
+
+        verify(mockAuditService, times(4)).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("successfulLookup" -> "true",
+            "CYStatus" -> "otherUKResident",
+            "nino" -> "LE241131B",
+            "userIdentifier" -> "user1234",
+            "requestSource" -> "FE_BULK"))
+        )(any())
+      }
+
+      "there is a matching failed result" in {
+
+        val testFilePath = getTestFilePath
+
+        val SUT = new FileProcessingService {
+
+          override val fileUploadConnector = mockFileUploadConnector
+          override val desConnector = mockDesConnector
+          override val residencyYearResolver = mockResidencyYearResolver
+          override val auditService: AuditService = mockAuditService
+
+          override def getCurrentDate: DateTime = new DateTime("2018-02-04")
+
+          override val allowDefaultRUK: Boolean = true
+        }
+
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+
+        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
+        when(mockDesConnector.scotRes).thenReturn("scotResident")
+
+        val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,MATCHING_FAILED" +
+          "LE241131B,GARY,BRAVO,1990-02-21,MATCHING_FAILED" +
+          "LE241131B,SIMON,DAWSON,1990-02-21,MATCHING_FAILED" +
+          "LE241131B,MICHEAL,SLATER,1990-02-21,MATCHING_FAILED"
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
+
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+          Future.successful(Right(ResidencyStatusFailure(code = "MATCHING_FAILED", reason = "MATCHING_FAILED"))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        await(SUT.processFile("user1234", callbackData))
+
+        Thread.sleep(20000)
+
+        val res = await(rasFileRepository.fetchFile(fileId))
+        var result = new String("")
+        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
+        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
+        Files.deleteIfExists(testFilePath)
+
+        verify(mockAuditService, times(4)).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("nino" -> "LE241131B",
+            "successfulLookup" -> "false",
+            "reason" -> "MATCHING_FAILED",
+            "userIdentifier" -> "user1234",
+            "requestSource" -> "FE_BULK"))
+        )(any())
+      }
+
+      "there is a deceased result" in {
+
+        val testFilePath = getTestFilePath
+
+        val SUT = new FileProcessingService {
+
+          override val fileUploadConnector = mockFileUploadConnector
+          override val desConnector = mockDesConnector
+          override val residencyYearResolver = mockResidencyYearResolver
+          override val auditService: AuditService = mockAuditService
+
+          override def getCurrentDate: DateTime = new DateTime("2018-02-04")
+
+          override val allowDefaultRUK: Boolean = true
+        }
+
+        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+
+        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
+        when(mockDesConnector.scotRes).thenReturn("scotResident")
+
+        val expectedResultsFile = "LE241131B,Jim,Jimson,1990-02-21,MATCHING_FAILED" +
+          "LE241131B,GARY,BRAVO,1990-02-21,MATCHING_FAILED" +
+          "LE241131B,SIMON,DAWSON,1990-02-21,MATCHING_FAILED" +
+          "LE241131B,MICHEAL,SLATER,1990-02-21,MATCHING_FAILED"
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
+
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+          Future.successful(Right(ResidencyStatusFailure(code = "DECEASED", reason = "Individual is deceased"))))
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
+
+        await(SUT.processFile("user1234", callbackData))
+
+        Thread.sleep(20000)
+
+        val res = await(rasFileRepository.fetchFile(fileId))
+        var result = new String("")
+        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
+        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
+        Files.deleteIfExists(testFilePath)
+
+        verify(mockAuditService, times(4)).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("nino" -> "LE241131B",
+            "successfulLookup" -> "false",
+            "reason" -> "DECEASED",
+            "userIdentifier" -> "user1234",
+            "requestSource" -> "FE_BULK"))
+        )(any())
+      }
+    }
   }
 
   "FileProcessingService" should {
     "readFile" when {
       "file exists line by line" in {
 
-        val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
+        val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc656"
         val fileId: String = "file-id-1"
 
         val row1 = "John,Smith,AB123456C,1990-02-21".getBytes
@@ -222,6 +551,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     "process file and generate results file " when {
       "valid file is submitted by user" in {
 
+        val testFilePath = getTestFilePath
+
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
         when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
 
@@ -231,14 +562,14 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           "LE241131B,MICHEAL,SLATER,1990-02-21,otherUKResident,scotResident"
 
 
-        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc657"
         val fileId = Random.nextInt().toString
         val fileStatus = "AVAILABLE"
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
         when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
-          .thenReturn(Future.successful(CacheMap("sessionValue", Map("1234" -> Json.toJson(callbackData)))))
+          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
@@ -255,6 +586,25 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
         Files.deleteIfExists(testFilePath)
+      }
+    }
+
+    "return status of error" when {
+      "there is a problem manipulating the file" in {
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc657"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        await(SUT.manipulateFile(null, "user1234", callbackData, mockSessionCache))
+
+        val captor = ArgumentCaptor.forClass(classOf[CallbackData])
+        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any())(any())
+
+        val resultsFileMetaData = captor.getValue
+        resultsFileMetaData.status shouldBe "ERROR"
       }
     }
   }

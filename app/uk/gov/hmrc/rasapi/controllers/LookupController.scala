@@ -80,7 +80,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
                     case "DECEASED" =>
-                      auditResponse(failureReason = Some(IndividualNotFound.errorCode),
+                      auditResponse(failureReason = Some("DECEASED"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
@@ -167,7 +167,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             }
           }
           case Success(JsError(errors)) =>
-            Logger.error(s"####################### Errors: ${errors.mkString(", ")}")
+            Logger.error(s"Json error in the request body")
             invalidCallback(errors)
           case Failure(e) => Logger.error(s"CustomerMatchingController: An error occurred in customer-api due to ${e.getMessage} returning internal server error")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
@@ -181,6 +181,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
     * @param failureReason Optional message, present if the journey failed, else not
     * @param nino Optional user identifier, present if the customer-matching-cache call was a success, else not
     * @param residencyStatus Optional status object returned from the HoD, present if the journey succeeded, else not
+    * @param userId Identifies the user which made the request
     * @param request Object containing request made by the user
     * @param hc Headers
     */
@@ -193,15 +194,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                                                     .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
                                                  else Map()
     val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
-                                                                            "reason" -> reason) ++ ninoMap).
+                                                                            "reason" -> reason)).
                                               getOrElse(Map(
                                                 "successfulLookup" -> "true",
                                                 "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
-                                              ) ++ nextYearStatusMap ++ ninoMap)
+                                              ) ++ nextYearStatusMap)
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId)
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "API") ++ ninoMap
     )
   }
 }

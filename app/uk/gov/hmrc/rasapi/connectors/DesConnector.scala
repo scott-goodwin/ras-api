@@ -62,10 +62,6 @@ trait DesConnector extends ServicesConfig {
       "Content-Type" -> "application/json",
       "authorization" -> s"Bearer ${AppContext.desAuthToken}")
 
-    Logger.warn(s"[DesConnector] [getResidencyStatus] uri: $uri")
-    Logger.warn(s"[DesConnector] [getResidencyStatus] request data: ${member.toString}")
-    Logger.warn(s"[DesConnector] [getResidencyStatus] HEADERS extra headers: ${desHeaders}")
-
     val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
@@ -73,7 +69,7 @@ trait DesConnector extends ServicesConfig {
     result.map(response => resolveResponse(response, userId, member.nino)).recover {
       case ex: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
-        Right(ResidencyStatusFailure(error_MatchingFailed, "The individual's details provided did not match with HMRC’s records."))
+        Right(ResidencyStatusFailure(error_MatchingFailed, "The pension scheme member's details do not match with HMRC's records."))
       case th: Throwable =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
@@ -118,8 +114,8 @@ trait DesConnector extends ServicesConfig {
         }
     }
   }
-
 }
+
 object DesConnector extends DesConnector {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val auditService = AuditService

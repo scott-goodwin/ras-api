@@ -59,10 +59,10 @@ mediaType: [ application/json, application/hal+json ]
         403:
           body:
             application/json:
-              description: The individual's details provided did not match with HMRC’s records.
+              description: The pension scheme member's details do not match with HMRC's records.
               type: !include schemas/ErrorCodes.schema.json
               example: |
                 {
                   "code": "MATCHING_FAILED",
-                  "message": "The individual's details provided did not match with HMRC’s records."
+                  "message": "The pension scheme member's details do not match with HMRC's records."
                 }

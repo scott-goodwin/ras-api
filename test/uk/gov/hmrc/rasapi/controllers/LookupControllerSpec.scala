@@ -132,7 +132,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             "CYStatus" -> "otherUKResident",
             "NextCYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -158,7 +159,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             "CYStatus" -> "scotResident",
             "NextCYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -183,11 +185,35 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
+        )(any())
+      }
+
+      "a valid request has been submitted and the date is between april and december and the individual is deceased" in {
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
+
+        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
+
+
+        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure("DECEASED", "Individual is deceased"))))
+
+        await(TestLookupController.getResidencyStatus()
+          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+            .withHeaders(acceptHeader)
+            .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
+
+        verify(mockAuditService).audit(
+          auditType = Meq("ReliefAtSourceResidency"),
+          path = Meq(s"/relief-at-source/customer/residency-status"),
+          auditData = Meq(Map("successfulLookup" -> "false",
+            "reason" -> "DECEASED",
+            "nino" -> "LE241131B",
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
     }
-
 
     "audit a unsuccessful lookup response" when {
 
@@ -210,7 +236,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
             "reason" -> "MATCHING_FAILED",
-            "userIdentifier" -> "A123456"))
+            "userIdentifier" -> "A123456", 
+						"requestSource" -> "API"))
         )(any())
       }
 
@@ -233,7 +260,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
                               "reason" -> "INTERNAL_SERVER_ERROR",
-                              "userIdentifier" -> "A123456"))
+                              "userIdentifier" -> "A123456", 
+						                  "requestSource" -> "API"))
         )(any())
       }
     }
@@ -534,7 +562,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           """
             |{
             |  "code": "MATCHING_FAILED",
-            |  "message": "The individual's details provided did not match with HMRC’s records."
+            |  "message": "The pension scheme member's details do not match with HMRC's records."
             |}
           """.stripMargin)
 
