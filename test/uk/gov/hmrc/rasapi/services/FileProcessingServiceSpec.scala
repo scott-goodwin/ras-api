@@ -20,6 +20,7 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 import java.nio.file.Files
 
 import org.joda.time.DateTime
+import org.mockito.ArgumentCaptor
 import org.mockito.Matchers.{eq => Meq, _}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
@@ -27,18 +28,18 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import play.api.test.{FakeRequest, Helpers}
+import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{CallbackData, IndividualDetails, ResidencyStatus, ResidencyStatusFailure}
+import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
@@ -585,6 +586,25 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
         Files.deleteIfExists(testFilePath)
+      }
+    }
+
+    "return status of error" when {
+      "there is a problem manipulating the file" in {
+
+        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc657"
+        val fileId = Random.nextInt().toString
+        val fileStatus = "AVAILABLE"
+        val reason: Option[String] = None
+        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+
+        await(SUT.manipulateFile(null, "user1234", callbackData, mockSessionCache))
+
+        val captor = ArgumentCaptor.forClass(classOf[CallbackData])
+        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any())(any())
+
+        val resultsFileMetaData = captor.getValue
+        resultsFileMetaData.status shouldBe "ERROR"
       }
     }
   }
