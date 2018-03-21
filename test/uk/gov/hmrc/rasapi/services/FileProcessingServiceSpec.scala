@@ -606,28 +606,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val resultsFileMetaData = captor.getValue
         resultsFileMetaData.status shouldBe "ERROR"
       }
-      /*"there is a problem saving the file" in {
-        val testFilePath = getTestFilePath
-
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
-
-        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc657"
-        val fileId = Random.nextInt().toString
-        val fileStatus = "AVAILABLE"
-        val reason: Option[String] = None
-        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
-
-        await(SUT.saveFile(null, "user1234", callbackData))
-
-        val captor = ArgumentCaptor.forClass(classOf[CallbackData])
-        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any())(any())
-
-        val resultsFileMetaData = captor.getValue
-        resultsFileMetaData.status shouldBe "ERROR"
-
-        Files.deleteIfExists(testFilePath)
-      }*/
     }
   }
 }
