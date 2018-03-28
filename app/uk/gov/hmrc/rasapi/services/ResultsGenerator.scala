@@ -42,6 +42,8 @@ trait ResultsGenerator {
   val DECEASED = "DECEASED"
   val MATCHING_FAILED = "MATCHING_FAILED"
   val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+  val retryLimit = 3
+  val _1Second = 1000L
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
 
@@ -58,8 +60,8 @@ trait ResultsGenerator {
           inputRow + comma + resStatus.toString
 
         case Right(statusFailure) =>
-          if (statusFailure.code == TOO_MANY_REQUESTS && retryCount <= 3) {
-            Thread.sleep(1000)
+          if (statusFailure.code == TOO_MANY_REQUESTS && retryCount <= retryLimit) {
+            Thread.sleep(_1Second)
             getResultAndProcess(memberDetails, retryCount = retryCount + 1)
           } else {
             auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
