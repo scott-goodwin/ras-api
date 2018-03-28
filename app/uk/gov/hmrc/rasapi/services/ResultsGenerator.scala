@@ -38,27 +38,42 @@ trait ResultsGenerator {
   def getCurrentDate: DateTime
   val allowDefaultRUK: Boolean
 
+  val TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS"
+  val DECEASED = "DECEASED"
+  val MATCHING_FAILED = "MATCHING_FAILED"
+  val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
+
+    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): String = {
+
+      val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
+
+      res match {
+        case Left(residencyStatus) =>
+          val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
+          else residencyStatus.copy(nextYearForecastResidencyStatus = None)
+          auditResponse(failureReason = None, nino = Some(memberDetails.nino),
+            residencyStatus = Some(resStatus), userId = userId)
+          inputRow + comma + resStatus.toString
+
+        case Right(statusFailure) =>
+          if (statusFailure.code == TOO_MANY_REQUESTS && retryCount <= 3) {
+            Thread.sleep(1000)
+            getResultAndProcess(memberDetails, retryCount = retryCount + 1)
+          } else {
+            auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
+              residencyStatus = None, userId = userId)
+            inputRow + comma + statusFailure.code.replace(DECEASED, MATCHING_FAILED).replace(TOO_MANY_REQUESTS, INTERNAL_SERVER_ERROR)
+          }
+      }
+    }
+
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) =>
         //this needs to be sequential / blocking and at the max 30 TPS
-        val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
-
-        res match {
-          case Left(residencyStatus) => {
-            val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
-                            else residencyStatus.copy(nextYearForecastResidencyStatus = None)
-            auditResponse(failureReason = None, nino = Some(memberDetails.nino),
-              residencyStatus = Some(resStatus), userId = userId)
-            inputRow + comma + resStatus.toString
-          }
-          case Right(statusFailure) =>
-            auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
-                          residencyStatus = None, userId = userId)
-            inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
-
-        }
+        getResultAndProcess(memberDetails)
     }
   }
 

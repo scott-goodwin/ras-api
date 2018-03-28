@@ -48,6 +48,7 @@ trait DesConnector extends ServicesConfig {
   val error_InternalServerError = "INTERNAL_SERVER_ERROR"
   val error_Deceased = "DECEASED"
   val error_MatchingFailed = "MATCHING_FAILED"
+  val error_TooManyRequests = "TOO_MANY_REQUESTS"
 
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
@@ -70,6 +71,9 @@ trait DesConnector extends ServicesConfig {
       case ex: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
         Right(ResidencyStatusFailure(error_MatchingFailed, "The pension scheme member's details do not match with HMRC's records."))
+      case tooManyEx: TooManyRequestException =>
+        Logger.error("[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
+        Right(ResidencyStatusFailure(error_TooManyRequests, "Too many requests sent."))
       case th: Throwable =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
