@@ -42,6 +42,9 @@ trait ResultsGenerator {
   val DECEASED = "DECEASED"
   val MATCHING_FAILED = "MATCHING_FAILED"
   val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+  val REQUEST_TIMED_OUT = "REQUEST_TIMEOUT"
+  val BAD_REQUEST = "BAD_REQUEST"
+
   val retryLimit = 3
   val _1Second = 1000L
 
@@ -60,7 +63,7 @@ trait ResultsGenerator {
           inputRow + comma + resStatus.toString
 
         case Right(statusFailure) =>
-          if (statusFailure.code == TOO_MANY_REQUESTS && retryCount <= retryLimit) {
+          if (statusFailure.code != DECEASED && statusFailure.code != MATCHING_FAILED && retryCount <= retryLimit) {
             Thread.sleep(_1Second)
             getResultAndProcess(memberDetails, retryCount = retryCount + 1)
           } else {

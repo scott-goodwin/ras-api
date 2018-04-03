@@ -45,10 +45,13 @@ trait DesConnector extends ServicesConfig {
   val scot = "Scottish"
   val otherUk = "otherUKResident"
   val scotRes = "scotResident"
+
   val error_InternalServerError = "INTERNAL_SERVER_ERROR"
   val error_Deceased = "DECEASED"
   val error_MatchingFailed = "MATCHING_FAILED"
   val error_TooManyRequests = "TOO_MANY_REQUESTS"
+  val error_RequestTimeout = "REQUEST_TIMEOUT"
+  val error_BadRequest = "BAD_REQUEST"
 
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
@@ -68,18 +71,24 @@ trait DesConnector extends ServicesConfig {
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
     result.map(response => resolveResponse(response, userId, member.nino)).recover {
-      case ex: NotFoundException =>
+      case badRequestEx: BadRequestException =>
+        Logger.error("[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not valid.")
+        Right(ResidencyStatusFailure(error_BadRequest, "The pension scheme member's details do not conform to validation rules."))
+      case notFoundEx: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
         Right(ResidencyStatusFailure(error_MatchingFailed, "The pension scheme member's details do not match with HMRC's records."))
       case tooManyEx: TooManyRequestException =>
         Logger.error("[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
         Right(ResidencyStatusFailure(error_TooManyRequests, "Too many requests sent."))
+      case requestTimeOutEx: RequestTimeoutException =>
+        Logger.error("[DesConnector] [getResidencyStatus] Request has timed out.")
+        Right(ResidencyStatusFailure(error_RequestTimeout, "Request has timed out."))
       case th: Throwable =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case _ =>
         Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD.")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
     }
   }
 
