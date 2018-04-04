@@ -39,6 +39,8 @@ object FileProcessingService extends FileProcessingService {
   override val auditService: AuditService = AuditService
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
+  override val retryLimit: Int = AppContext.requestRetryLimit
+  override val waitTime: Long = AppContext.waitTimeBeforeRetryingRequest
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {

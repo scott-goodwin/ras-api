@@ -100,7 +100,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.error(s"[LookupController][getResidencyStatus] Internal server error due to error returned from DES. ${matchingFailed.code}")
+                      Logger.error(s"[LookupController][getResidencyStatus] Error returned from DES, error code: ${matchingFailed.code}")
                       Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                       InternalServerError(toJson(ErrorInternalServerError))
                   }
