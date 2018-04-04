@@ -49,9 +49,6 @@ trait DesConnector extends ServicesConfig {
   val error_InternalServerError = "INTERNAL_SERVER_ERROR"
   val error_Deceased = "DECEASED"
   val error_MatchingFailed = "MATCHING_FAILED"
-  val error_TooManyRequests = "TOO_MANY_REQUESTS"
-  val error_RequestTimeout = "REQUEST_TIMEOUT"
-  val error_BadRequest = "BAD_REQUEST"
 
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
@@ -73,16 +70,16 @@ trait DesConnector extends ServicesConfig {
     result.map(response => resolveResponse(response, userId, member.nino)).recover {
       case badRequestEx: BadRequestException =>
         Logger.error("[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not valid.")
-        Right(ResidencyStatusFailure(error_BadRequest, "The pension scheme member's details do not conform to validation rules."))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case notFoundEx: NotFoundException =>
         Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
         Right(ResidencyStatusFailure(error_MatchingFailed, "The pension scheme member's details do not match with HMRC's records."))
       case tooManyEx: TooManyRequestException =>
         Logger.error("[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
-        Right(ResidencyStatusFailure(error_TooManyRequests, "Too many requests sent."))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case requestTimeOutEx: RequestTimeoutException =>
         Logger.error("[DesConnector] [getResidencyStatus] Request has timed out.")
-        Right(ResidencyStatusFailure(error_RequestTimeout, "Request has timed out."))
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case th: Throwable =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
@@ -123,7 +120,7 @@ trait DesConnector extends ServicesConfig {
           case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
             Right(data)
           case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
-            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error"))
+            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
         }
     }
   }

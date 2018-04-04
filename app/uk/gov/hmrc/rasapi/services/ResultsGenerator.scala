@@ -20,6 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
@@ -38,15 +39,12 @@ trait ResultsGenerator {
   def getCurrentDate: DateTime
   val allowDefaultRUK: Boolean
 
-  val TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS"
   val DECEASED = "DECEASED"
   val MATCHING_FAILED = "MATCHING_FAILED"
   val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
-  val REQUEST_TIMED_OUT = "REQUEST_TIMEOUT"
-  val BAD_REQUEST = "BAD_REQUEST"
 
-  val retryLimit = 3
-  val _1Second = 1000L
+  val retryLimit: Int
+  val waitTime: Long
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
 
@@ -64,12 +62,12 @@ trait ResultsGenerator {
 
         case Right(statusFailure) =>
           if (statusFailure.code != DECEASED && statusFailure.code != MATCHING_FAILED && retryCount <= retryLimit) {
-            Thread.sleep(_1Second)
+            Thread.sleep(waitTime)
             getResultAndProcess(memberDetails, retryCount = retryCount + 1)
           } else {
             auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
               residencyStatus = None, userId = userId)
-            inputRow + comma + statusFailure.code.replace(DECEASED, MATCHING_FAILED).replace(TOO_MANY_REQUESTS, INTERNAL_SERVER_ERROR)
+            inputRow + comma + statusFailure.code.replace(DECEASED, MATCHING_FAILED)
           }
       }
     }

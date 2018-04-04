@@ -63,6 +63,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override def getCurrentDate: DateTime = DateTime.now()
 
     override val allowDefaultRUK: Boolean = false
+    override val retryLimit: Int = 3
+    override val waitTime: Long = 1000L
   }
 
   def getTestFilePath = {
@@ -100,6 +102,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -163,6 +167,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2019-02-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -226,6 +232,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-06-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -288,6 +296,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -350,6 +360,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -413,6 +425,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-06-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -465,6 +479,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-06-04")
 
           override val allowDefaultRUK: Boolean = true
+          override val retryLimit: Int = 3
+          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -488,7 +504,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any()))
-          .thenReturn(Future.successful(Right(ResidencyStatusFailure("TOO_MANY_REQUESTS", "Too many requests sent."))))
+          .thenReturn(Future.successful(Right(ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error."))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
 
@@ -641,11 +657,20 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
       "input row matching failed" in {
         when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
-          Future.successful(Right(ResidencyStatusFailure("NOT_MATCHED", "matching failed"))))
+          Future.successful(Right(ResidencyStatusFailure("MATCHING_FAILED", "matching failed"))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId))
-        result shouldBe "AB123456C,John,Smith,1992-02-21,NOT_MATCHED"
+        result shouldBe "AB123456C,John,Smith,1992-02-21,MATCHING_FAILED"
       }
+
+      "input row returns deceased" in {
+        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
+          Future.successful(Right(ResidencyStatusFailure("DECEASED", "This person is deceased."))))
+        val inputRow = "AB123456C,John,Smith,1992-02-21"
+        val result = await(SUT.fetchResult(inputRow, userId))
+        result shouldBe "AB123456C,John,Smith,1992-02-21,MATCHING_FAILED"
+      }
+
       "input row is inValid" in {
         val inputRow = "456C,John,Smith,1994-02-21"
         val result = await(SUT.fetchResult(inputRow, userId))
