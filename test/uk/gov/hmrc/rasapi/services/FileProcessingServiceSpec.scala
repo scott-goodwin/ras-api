@@ -29,7 +29,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, RequestTimeoutException}
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
@@ -64,7 +64,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
     override val allowDefaultRUK: Boolean = false
     override val retryLimit: Int = 3
-    override val waitTime: Long = 1000L
+//    override val waitTime: Long = 1000L
   }
 
   def getTestFilePath = {
@@ -103,7 +103,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -168,7 +168,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -233,7 +233,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -297,7 +297,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -361,7 +361,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -426,7 +426,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -450,7 +450,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any()))
-          .thenReturn(Future.successful(Right(ResidencyStatusFailure("TOO_MANY_REQUESTS", "Too many requests sent."))))
+          .thenReturn(Future.failed(new RequestTimeoutException("")))
           .thenReturn(Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
@@ -458,6 +458,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         await(SUT.processFile("user1234", callbackData))
 
         Thread.sleep(20000)
+
+        verify(mockDesConnector, times(5)).getResidencyStatus(any(), any())
 
         val res = await(rasFileRepository.fetchFile(fileId))
         var result = new String("")
@@ -480,7 +482,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
           override val allowDefaultRUK: Boolean = true
           override val retryLimit: Int = 3
-          override val waitTime: Long = 1000L
+//          override val waitTime: Long = 1000L
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))

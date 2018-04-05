@@ -17,13 +17,13 @@
 package uk.gov.hmrc.rasapi.services
 
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus, ResidencyStatusFailure}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -44,30 +44,28 @@ trait ResultsGenerator {
   val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
 
   val retryLimit: Int
-  val waitTime: Long
+//  val waitTime: Long
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
 
-    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): String = {
+    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): Either[ResidencyStatus, ResidencyStatusFailure] = {
 
-      val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
+      if (retryCount > 1) {
+        Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount")
+      }
 
-      res match {
-        case Left(residencyStatus) =>
-          val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
-          else residencyStatus.copy(nextYearForecastResidencyStatus = None)
-          auditResponse(failureReason = None, nino = Some(memberDetails.nino),
-            residencyStatus = Some(resStatus), userId = userId)
-          inputRow + comma + resStatus.toString
-
-        case Right(statusFailure) =>
-          if (statusFailure.code != DECEASED && statusFailure.code != MATCHING_FAILED && retryCount <= retryLimit) {
-            Thread.sleep(waitTime)
+      try {
+        Await.result(desConnector.getResidencyStatus(memberDetails, userId), 5 second)
+      }
+      catch {
+        case _ =>
+          Logger.warn("[ResultsGenerator] Future timed out to des connector.")
+          if (retryCount < retryLimit) {
             getResultAndProcess(memberDetails, retryCount = retryCount + 1)
-          } else {
-            auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
-              residencyStatus = None, userId = userId)
-            inputRow + comma + statusFailure.code.replace(DECEASED, MATCHING_FAILED)
+          }
+          else {
+            Logger.warn("[ResultsGenerator] Retry limit exceeded, record failed.")
+            Right(ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Please retry the record."))
           }
       }
     }
@@ -76,7 +74,22 @@ trait ResultsGenerator {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) =>
         //this needs to be sequential / blocking and at the max 30 TPS
-        getResultAndProcess(memberDetails)
+        val result = getResultAndProcess(memberDetails)
+
+        result match {
+          case Left(residencyStatus) => {
+            val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
+            else residencyStatus.copy(nextYearForecastResidencyStatus = None)
+            auditResponse(failureReason = None, nino = Some(memberDetails.nino),
+              residencyStatus = Some(resStatus), userId = userId)
+            inputRow + comma + resStatus.toString
+          }
+          case Right(residencyStatusFailure) =>
+            auditResponse(failureReason = Some(residencyStatusFailure.code), nino = Some(memberDetails.nino),
+              residencyStatus = None, userId = userId)
+            inputRow + comma + residencyStatusFailure.code.replace("DECEASED", "MATCHING_FAILED")
+
+        }
     }
   }
 

@@ -40,7 +40,7 @@ object FileProcessingService extends FileProcessingService {
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   override val retryLimit: Int = AppContext.requestRetryLimit
-  override val waitTime: Long = AppContext.waitTimeBeforeRetryingRequest
+//  override val waitTime: Long = AppContext.waitTimeBeforeRetryingRequest
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
@@ -76,6 +76,8 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       closeWriter(writer._2)
       fileResultsMetrics.stop
 
+      Logger.warn("File results complete, ready to save the file.")
+
       saveFile(writer._1, userId, callbackData)
 
     } catch
@@ -98,11 +100,14 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       result =>
         clearFile(filePath)
         result match {
-          case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
+          case Success(file) =>
+            Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
+            SessionCacheService.updateFileSession(userId, callbackData,
             Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
+            Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
 
           case Failure(ex) => {
-            Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+            Logger.error(s"results file for user ID: $userId  generation/saving failed with Exception " + ex.getMessage)
             SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
           }
           //delete result  a future ind

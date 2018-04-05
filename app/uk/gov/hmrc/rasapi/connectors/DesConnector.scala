@@ -72,6 +72,7 @@ trait DesConnector extends ServicesConfig {
         Logger.error("[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not valid.")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case notFoundEx: NotFoundException =>
+        Logger.error("[DesConnector] [getResidencyStatus] Matching Failed returned from connector.")
         Right(ResidencyStatusFailure(error_MatchingFailed, "The pension scheme member's details do not match with HMRC's records."))
       case tooManyEx: TooManyRequestException =>
         Logger.error("[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
