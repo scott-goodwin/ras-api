@@ -98,7 +98,6 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     val fileSaveMetrics = Metrics.register(fileSave).time
     RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
       result =>
-        clearFile(filePath)
         result match {
           case Success(file) =>
             Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
