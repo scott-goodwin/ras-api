@@ -65,7 +65,7 @@ trait ResultsGenerator {
           }
           else {
             Logger.warn("[ResultsGenerator] Retry limit exceeded, record failed.")
-            Right(ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Please retry the record."))
+            Right(ResidencyStatusFailure("problem-getting-status", "please try again."))
           }
       }
     }
