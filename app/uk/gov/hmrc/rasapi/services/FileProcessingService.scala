@@ -40,7 +40,6 @@ object FileProcessingService extends FileProcessingService {
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   override val retryLimit: Int = AppContext.requestRetryLimit
-//  override val waitTime: Long = AppContext.waitTimeBeforeRetryingRequest
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
@@ -72,6 +71,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     try{
       val dataIterator = inputFileData.get.toList
       Logger.warn("file data size " + dataIterator.size + " of user " + userId)
+      writeResultToFile(writer._2, "National Insurance Number,First Name,Last Name,Date Of Birth")
       dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
       closeWriter(writer._2)
       fileResultsMetrics.stop
