@@ -71,7 +71,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     try{
       val dataIterator = inputFileData.get.toList
       Logger.warn("file data size " + dataIterator.size + " of user " + userId)
-      writeResultToFile(writer._2, "National Insurance Number,First Name,Last Name,Date Of Birth")
+      writeResultToFile(writer._2, s"National Insurance Number,First Name,Last Name,Date Of Birth,$getTaxYearHeadings")
       dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
       closeWriter(writer._2)
       fileResultsMetrics.stop
@@ -114,6 +114,15 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
         fileSaveMetrics.stop
         fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
     }
+  }
+
+  def getTaxYearHeadings = {
+    val currentDate = getCurrentDate
+    val currentYear = currentDate.getYear
+    if (currentDate.isAfter(new DateTime(currentYear - 1, 12, 31, 0, 0, 0, 0)) && currentDate.isBefore(new DateTime(currentYear, 4, 6, 0, 0, 0, 0)))
+      s"CY ${currentYear - 1}/$currentYear,CY+1 $currentYear/${currentYear + 1}"
+    else
+      s"CY $currentYear/${currentYear + 1}"
   }
 }
 

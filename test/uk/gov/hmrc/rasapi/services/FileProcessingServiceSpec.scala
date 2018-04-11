@@ -60,11 +60,10 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override val residencyYearResolver = mockResidencyYearResolver
     override val auditService: AuditService = mockAuditService
 
-    override def getCurrentDate: DateTime = DateTime.now()
+    override def getCurrentDate: DateTime = new DateTime("2018-04-04")
 
     override val allowDefaultRUK: Boolean = false
     override val retryLimit: Int = 3
-//    override val waitTime: Long = 1000L
   }
 
   def getTestFilePath = {
@@ -111,7 +110,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2017/2018,CY+1 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,otherUKResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident,otherUKResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident,otherUKResident" +
@@ -176,7 +175,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2018/2019,CY+1 2019/2020" +
           "LE241131B,Jim,Jimson,1990-02-21,scotResident,scotResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,scotResident,scotResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,scotResident,scotResident" +
@@ -241,7 +240,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident" +
@@ -305,7 +304,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2017/2018,CY+1 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,MATCHING_FAILED" +
           "LE241131B,GARY,BRAVO,1990-02-21,MATCHING_FAILED" +
           "LE241131B,SIMON,DAWSON,1990-02-21,MATCHING_FAILED" +
@@ -369,7 +368,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2017/2018,CY+1 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,MATCHING_FAILED" +
           "LE241131B,GARY,BRAVO,1990-02-21,MATCHING_FAILED" +
           "LE241131B,SIMON,DAWSON,1990-02-21,MATCHING_FAILED" +
@@ -434,7 +433,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident" +
@@ -490,7 +489,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,INTERNAL_SERVER_ERROR" +
           "LE241131B,GARY,BRAVO,1990-02-21,INTERNAL_SERVER_ERROR" +
           "LE241131B,SIMON,DAWSON,1990-02-21,INTERNAL_SERVER_ERROR" +
@@ -688,7 +687,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
         when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
 
-        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth" +
+        val expectedResultsFile = "National Insurance Number,First Name,Last Name,Date Of Birth,CY 2017/2018,CY+1 2018/2019" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,scotResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident,scotResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident,scotResident" +
@@ -718,7 +717,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
-        println(s"RESULT: $result")
         Files.deleteIfExists(testFilePath)
       }
     }
