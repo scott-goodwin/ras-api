@@ -57,6 +57,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   val STATUS_DECEASED: String = "DECEASED"
   val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   val STATUS_INTERNAL_SERVER_ERROR: String = "INTERNAL_SERVER_ERROR"
+  val STATUS_FILE_PROCESSING_MATCHING_FAILED: String = "cannot_provide_status"
 
   val SUT = new FileProcessingService {
 
@@ -72,6 +73,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override val DECEASED: String = STATUS_DECEASED
     override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
     override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+    override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
   }
 
   def getTestFilePath = {
@@ -114,6 +116,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -182,6 +185,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -250,6 +254,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -317,6 +322,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -325,10 +331,10 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_MATCHING_FAILED" +
-          s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_MATCHING_FAILED" +
-          s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_MATCHING_FAILED" +
-          s"LE241131B,MICHEAL,SLATER,1990-02-21,$STATUS_MATCHING_FAILED"
+        val expectedResultsFile = s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
+          s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
+          s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
+          s"LE241131B,MICHEAL,SLATER,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED"
 
         val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
         val fileId = Random.nextInt().toString
@@ -340,7 +346,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
-          Future.successful(Right(ResidencyStatusFailure(code = s"$STATUS_MATCHING_FAILED", reason = s"$STATUS_MATCHING_FAILED"))))
+          Future.successful(Right(ResidencyStatusFailure(code = s"$STATUS_FILE_PROCESSING_MATCHING_FAILED", reason = s"$STATUS_FILE_PROCESSING_MATCHING_FAILED"))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
 
@@ -359,7 +365,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
-            "reason" -> s"$STATUS_MATCHING_FAILED",
+            "reason" -> s"$STATUS_FILE_PROCESSING_MATCHING_FAILED",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
         )(any())
@@ -384,6 +390,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -392,10 +399,10 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_MATCHING_FAILED" +
-          s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_MATCHING_FAILED" +
-          s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_MATCHING_FAILED" +
-          s"LE241131B,MICHEAL,SLATER,1990-02-21,$STATUS_MATCHING_FAILED"
+        val expectedResultsFile = s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
+          s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
+          s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
+          s"LE241131B,MICHEAL,SLATER,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED"
 
         val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
         val fileId = Random.nextInt().toString
@@ -452,6 +459,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -511,6 +519,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
+          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -690,7 +699,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           Future.successful(Right(ResidencyStatusFailure(STATUS_MATCHING_FAILED, STATUS_MATCHING_FAILED))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId))
-        result shouldBe s"AB123456C,John,Smith,1992-02-21,$STATUS_MATCHING_FAILED"
+        result shouldBe s"AB123456C,John,Smith,1992-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED"
       }
 
       "input row returns deceased" in {
@@ -698,7 +707,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, STATUS_DECEASED))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId))
-        result shouldBe s"AB123456C,John,Smith,1992-02-21,$STATUS_MATCHING_FAILED"
+        result shouldBe s"AB123456C,John,Smith,1992-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED"
       }
 
       "input row is inValid" in {

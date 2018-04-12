@@ -43,6 +43,7 @@ object FileProcessingService extends FileProcessingService {
   override val DECEASED: String = AppContext.deceasedStatus
   override val MATCHING_FAILED: String = AppContext.matchingFailedStatus
   override val INTERNAL_SERVER_ERROR: String = AppContext.internalServerErrorStatus
+  override val FILE_PROCESSING_MATCHING_FAILED: String = AppContext.fileProcessingMatchingFailedStatus
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {

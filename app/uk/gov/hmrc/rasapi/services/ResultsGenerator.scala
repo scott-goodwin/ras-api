@@ -42,6 +42,7 @@ trait ResultsGenerator {
   val DECEASED: String
   val MATCHING_FAILED: String
   val INTERNAL_SERVER_ERROR: String
+  val FILE_PROCESSING_MATCHING_FAILED: String
 
   val retryLimit: Int
 
@@ -85,7 +86,8 @@ trait ResultsGenerator {
           case Right(residencyStatusFailure) => {
             auditResponse(failureReason = Some(residencyStatusFailure.code), nino = Some(memberDetails.nino),
               residencyStatus = None, userId = userId)
-            inputRow + comma + residencyStatusFailure.code.replace(DECEASED, MATCHING_FAILED)
+            inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
+                                                          .replace(MATCHING_FAILED, FILE_PROCESSING_MATCHING_FAILED)
           }
         }
       }
