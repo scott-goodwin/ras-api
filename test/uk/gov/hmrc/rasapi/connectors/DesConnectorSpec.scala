@@ -25,6 +25,7 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
 
@@ -49,6 +50,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val edhUrl: String = "test-url"
     override val auditService: AuditService = mockAuditService
     override val allowNoNextYearStatus: Boolean = true
+    override val error_InternalServerError: String = AppContext.internalServerErrorStatus
+    override val error_Deceased: String = AppContext.deceasedStatus
+    override val error_MatchingFailed: String = AppContext.matchingFailedStatus
   }
 
   val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
@@ -104,9 +108,12 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
           override val edhUrl: String = "test-url"
           override val auditService: AuditService = mockAuditService
           override val allowNoNextYearStatus: Boolean = false
+          override val error_InternalServerError: String = AppContext.internalServerErrorStatus
+          override val error_Deceased: String = AppContext.deceasedStatus
+          override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         }
 
-        val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error")
+        val errorResponse = ResidencyStatusFailure(TestDesConnector.error_InternalServerError, "Internal server error")
 
         val successresponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
           currentYearResidencyStatus = "Uk", nextYearResidencyStatus = None)
@@ -120,7 +127,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
       "handle failure response (no match) from des" in {
         implicit val formatF = ResidencyStatusFormats.failureFormats
-        val errorResponse = ResidencyStatusFailure("MATCHING_FAILED", "matching failed")
+        val errorResponse = ResidencyStatusFailure(TestDesConnector.error_MatchingFailed, "matching failed")
         when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
           thenReturn(Future.successful(HttpResponse(404, Some(Json.toJson(errorResponse)))))
 
@@ -134,7 +141,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
           deseasedIndicator = Some(true), currentYearResidencyStatus = "Uk", nextYearResidencyStatus = Some("Uk"))
         when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
           thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
-        val expectedResult = ResidencyStatusFailure("DECEASED", "Individual is deceased")
+        val expectedResult = ResidencyStatusFailure("DECEASED", "Cannot provide a residency status for this pension scheme member.")
 
         val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
         result.isLeft shouldBe false

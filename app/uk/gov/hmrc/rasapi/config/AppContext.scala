@@ -36,4 +36,8 @@ object AppContext extends ServicesConfig {
   lazy val allowDefaultRUK: Boolean = current.configuration.getBoolean("toggle-feature.allow-default-ruk").getOrElse(false)
   lazy val requestRetryLimit: Int = current.configuration.getInt("request-retry-limit").getOrElse(3)
   lazy val waitTimeBeforeRetryingRequest: Long = current.configuration.getLong("wait-time-before-retrying").getOrElse(1000L)
+  lazy val deceasedStatus: String = current.configuration.getString("status.deceased").getOrElse("DECEASED")
+  lazy val matchingFailedStatus: String = current.configuration.getString("status.matching-failed").getOrElse("MATCHING_FAILED")
+  lazy val internalServerErrorStatus: String = current.configuration.getString("status.internal-server-error").getOrElse("INTERNAL_SERVER_ERROR")
+  lazy val apiVersion: String = current.configuration.getString("api.version").getOrElse("2.0")
 }

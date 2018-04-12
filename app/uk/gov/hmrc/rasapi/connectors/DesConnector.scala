@@ -46,13 +46,13 @@ trait DesConnector extends ServicesConfig {
   val otherUk = "otherUKResident"
   val scotRes = "scotResident"
 
-  val error_InternalServerError = "INTERNAL_SERVER_ERROR"
-  val error_Deceased = "DECEASED"
-  val error_MatchingFailed = "MATCHING_FAILED"
+  val error_InternalServerError: String
+  val error_Deceased: String
+  val error_MatchingFailed: String
 
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
-  Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+    Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
     implicit val rasHeaders = HeaderCarrier()
 
@@ -72,7 +72,7 @@ trait DesConnector extends ServicesConfig {
         Logger.error("[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not valid.")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case notFoundEx: NotFoundException =>
-        Right(ResidencyStatusFailure(error_MatchingFailed, "The pension scheme member's details do not match with HMRC's records."))
+        Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
       case tooManyEx: TooManyRequestException =>
         Logger.error("[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
@@ -93,7 +93,7 @@ trait DesConnector extends ServicesConfig {
       case Success(payload) =>
 
         payload.deseasedIndicator match {
-          case Some(true) => Right(ResidencyStatusFailure(error_Deceased, "Individual is deceased"))
+          case Some(true) => Right(ResidencyStatusFailure(error_Deceased, "Cannot provide a residency status for this pension scheme member."))
           case _ => {
             if (payload.nextYearResidencyStatus.isEmpty && !allowNoNextYearStatus) {
               val auditDataMap = Map("userId" -> userId,
@@ -131,5 +131,8 @@ object DesConnector extends DesConnector {
   override val httpPost: HttpPost = WSHttp
   override val desBaseUrl = baseUrl("des")
   override val edhUrl: String = desBaseUrl + AppContext.edhUrl
+  override val error_InternalServerError: String = AppContext.internalServerErrorStatus
+  override val error_Deceased: String = AppContext.deceasedStatus
+  override val error_MatchingFailed: String = AppContext.matchingFailedStatus
   // $COVERAGE-ON$
 }

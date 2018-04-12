@@ -53,6 +53,9 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   def getCurrentDate: DateTime
   val allowDefaultRUK: Boolean
 
+  val STATUS_DECEASED: String
+  val STATUS_MATCHING_FAILED: String
+
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       val apiMetrics = Metrics.responseTimer.time
@@ -79,15 +82,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
                 case Right(matchingFailed) =>
                   matchingFailed.code match {
-                    case "DECEASED" =>
-                      auditResponse(failureReason = Some("DECEASED"),
+                    case STATUS_DECEASED =>
+                      auditResponse(failureReason = Some(STATUS_DECEASED),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
                       Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
-                    case "MATCHING_FAILED" =>
+                    case STATUS_MATCHING_FAILED =>
                       auditResponse(failureReason = Some(IndividualNotFound.errorCode),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
@@ -216,5 +219,8 @@ object LookupController extends LookupController {
   override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
+  override val STATUS_DECEASED: String = AppContext.deceasedStatus
+  override val STATUS_MATCHING_FAILED: String = AppContext.matchingFailedStatus
+  override val validateVersion: String => Boolean = _ == AppContext.apiVersion
   // $COVERAGE-ON$
 }

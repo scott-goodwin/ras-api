@@ -39,12 +39,11 @@ trait ResultsGenerator {
   def getCurrentDate: DateTime
   val allowDefaultRUK: Boolean
 
-  val DECEASED = "DECEASED"
-  val MATCHING_FAILED = "MATCHING_FAILED"
-  val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+  val DECEASED: String
+  val MATCHING_FAILED: String
+  val INTERNAL_SERVER_ERROR: String
 
   val retryLimit: Int
-//  val waitTime: Long
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
 
@@ -72,8 +71,7 @@ trait ResultsGenerator {
 
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
-      case Left(memberDetails) =>
-        //this needs to be sequential / blocking and at the max 30 TPS
+      case Left(memberDetails) => {
         val result = getResultAndProcess(memberDetails)
 
         result match {
@@ -84,12 +82,13 @@ trait ResultsGenerator {
               residencyStatus = Some(resStatus), userId = userId)
             inputRow + comma + resStatus.toString
           }
-          case Right(residencyStatusFailure) =>
+          case Right(residencyStatusFailure) => {
             auditResponse(failureReason = Some(residencyStatusFailure.code), nino = Some(memberDetails.nino),
               residencyStatus = None, userId = userId)
-            inputRow + comma + residencyStatusFailure.code.replace("DECEASED", "MATCHING_FAILED")
-
+            inputRow + comma + residencyStatusFailure.code.replace(DECEASED, MATCHING_FAILED)
+          }
         }
+      }
     }
   }
 
