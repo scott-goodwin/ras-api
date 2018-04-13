@@ -244,7 +244,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
-            "reason" -> s"$STATUS_MATCHING_FAILED",
+            "reason" -> "MATCHING_FAILED",
             "userIdentifier" -> "A123456", 
 						"requestSource" -> "API"))
         )(any())

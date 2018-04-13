@@ -91,7 +91,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
                     case STATUS_MATCHING_FAILED =>
-                      auditResponse(failureReason = Some(IndividualNotFound.errorCode),
+                      auditResponse(failureReason = Some("MATCHING_FAILED"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
