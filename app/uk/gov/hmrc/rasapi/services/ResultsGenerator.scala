@@ -44,7 +44,6 @@ trait ResultsGenerator {
   val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
 
   val retryLimit: Int
-//  val waitTime: Long
 
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
 
@@ -87,7 +86,7 @@ trait ResultsGenerator {
           case Right(residencyStatusFailure) =>
             auditResponse(failureReason = Some(residencyStatusFailure.code), nino = Some(memberDetails.nino),
               residencyStatus = None, userId = userId)
-            inputRow + comma + residencyStatusFailure.code.replace("DECEASED", "MATCHING_FAILED")
+            inputRow + comma + residencyStatusFailure.code.replace(DECEASED, MATCHING_FAILED)
 
         }
     }
