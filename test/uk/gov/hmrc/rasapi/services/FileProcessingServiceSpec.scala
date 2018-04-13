@@ -365,7 +365,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
-            "reason" -> s"$STATUS_FILE_PROCESSING_MATCHING_FAILED",
+            "reason" -> "MATCHING_FAILED",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
         )(any())
