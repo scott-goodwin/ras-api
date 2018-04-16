@@ -120,9 +120,9 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     val currentDate = getCurrentDate
     val currentYear = currentDate.getYear
     if (currentDate.isAfter(new DateTime(currentYear - 1, 12, 31, 0, 0, 0, 0)) && currentDate.isBefore(new DateTime(currentYear, 4, 6, 0, 0, 0, 0)))
-      s"[${currentYear - 1}-$currentYear] residency status,[$currentYear-${currentYear + 1}] residency status"
+      s"${currentYear - 1}-$currentYear residency status,$currentYear-${currentYear + 1} residency status"
     else
-      s"[$currentYear-${currentYear + 1}] residency status"
+      s"$currentYear-${currentYear + 1} residency status"
   }
 }
 
