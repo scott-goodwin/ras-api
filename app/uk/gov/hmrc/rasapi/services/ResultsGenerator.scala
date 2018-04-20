@@ -86,6 +86,7 @@ trait ResultsGenerator {
           case Right(residencyStatusFailure) => {
             auditResponse(failureReason = Some(residencyStatusFailure.code.replace(FILE_PROCESSING_MATCHING_FAILED, "MATCHING_FAILED")), nino = Some(memberDetails.nino),
               residencyStatus = None, userId = userId)
+
             inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
                                                           .replace(MATCHING_FAILED, FILE_PROCESSING_MATCHING_FAILED)
           }
