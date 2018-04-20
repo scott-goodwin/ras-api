@@ -63,6 +63,6 @@ mediaType: [ application/json, application/hal+json ]
               type: !include schemas/ErrorCodes.schema.json
               example: |
                 {
-                  "code": "MATCHING_FAILED",
-                  "message": "The pension scheme member's details do not match with HMRC's records."
+                  "code": "STATUS_UNAVAILABLE",
+                  "message": "Cannot provide a residency status for this pension scheme member."
                 }

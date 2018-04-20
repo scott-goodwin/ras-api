@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
-import play.api.libs.json.{JsValue, Json, Writes}
+import uk.gov.hmrc.rasapi.config.AppContext
 
 sealed abstract class ErrorResponse(
                                        val httpStatusCode: Int,
@@ -55,26 +55,8 @@ case object InvalidCredentials extends ErrorResponse(
 
 case object IndividualNotFound extends ErrorResponse(
   403,
-  "MATCHING_FAILED",
-  "The pension scheme member's details do not match with HMRC's records.")
-
-// START OF TO BE DELETED
-case object BadRequestInvalidFormatResponse extends ErrorResponse(
-  400,
-  "INVALID_FORMAT",
-  "Invalid UUID format. Use the UUID provided.")
-
-case object InvalidUUIDForbiddenResponse extends ErrorResponse(
-  403,
-  "INVALID_UUID",
-  "The match has timed out and the UUID is no longer valid. " +
-    "The match (POST to /match) will need to be repeated.")
-
-case object AccountLockedForbiddenResponse extends ErrorResponse(
-  403,
-  "INVALID_RESIDENCY_STATUS",
-  "There is a problem with this member's account. Ask them to call HMRC.")
-// END OF TO BE DELETED
+  AppContext.matchingFailedStatus,
+  "Cannot provide a residency status for this pension scheme member.")
 
 case object ErrorInternalServerError extends
   ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error")

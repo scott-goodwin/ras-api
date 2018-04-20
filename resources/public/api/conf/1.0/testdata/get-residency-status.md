@@ -169,7 +169,7 @@
              </td>
         </tr>
         <tr>
-            <td><p>Request with a valid payload, but the customer could not be found</p></td>
+            <td><p>Request with a valid payload, but the status cannot be provided for this pension scheme member.</p></td>
             <td>
                 <p class ="code--block"> {<br>
                                                  "nino" : "SE235112A",<br>
@@ -181,8 +181,8 @@
             </td>
             <td><p>HTTP status: <code class="code--slim">403 (Forbidden)</code></p>
                 <p class ="code--block"> {<br>
-                                               "code": "MATCHING_FAILED",<br>
-                                               "message": "The pension scheme member's details do not match with HMRC's records."<br>
+                                               "code": "STATUS_UNAVAILABLE",<br>
+                                               "message": "Cannot provide a residency status for this pension scheme member."<br>
                                              }
                 </p>
             </td>
