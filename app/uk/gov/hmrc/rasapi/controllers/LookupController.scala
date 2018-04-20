@@ -221,6 +221,6 @@ object LookupController extends LookupController {
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   override val STATUS_DECEASED: String = AppContext.deceasedStatus
   override val STATUS_MATCHING_FAILED: String = AppContext.matchingFailedStatus
-  override val validateVersion: String => Boolean = _ == AppContext.apiVersion
+  override val validateVersion: String => Boolean = _ == "2.0"
   // $COVERAGE-ON$
 }
