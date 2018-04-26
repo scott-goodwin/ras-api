@@ -28,6 +28,7 @@ object AppContext extends ServicesConfig {
   lazy val baseUrl = current.configuration.getString("baseUrl").getOrElse(throw new RuntimeException("Missing Key baseUrl"))
   lazy val apiStatus = current.configuration.getString("api.status").getOrElse(throw new RuntimeException(s"Missing Key api.status"))
   lazy val endpointsEnabled = current.configuration.getBoolean("api.endpointsEnabled").getOrElse(throw new RuntimeException(s"Missing key api.endpointsEnabled"))
+  lazy val latestVersionEndpointsEnabled = current.configuration.getBoolean("api.latestVersionEndpointsEnabled").getOrElse(false)
   lazy val desAuthToken = current.configuration.getString("desauthtoken").getOrElse(throw new RuntimeException(s"Missing Key desauthtoken"))
   lazy val desUrlHeaderEnv: String =  current.configuration.getString("environment").getOrElse(throw new RuntimeException(s"Missing Key environment"))
   lazy val edhUrl: String = current.configuration.getString("endpoints.edh.url").getOrElse(throw new RuntimeException(s"Missing Key edhUrl"))

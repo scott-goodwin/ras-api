@@ -30,7 +30,7 @@ class  Documentation(httpErrorHandler: HttpErrorHandler) extends DocumentationCo
   }
 
   override def definition(): Action[AnyContent] = Action {
-    Ok(txt.definition(AppContext.apiContext,AppContext.apiStatus,AppContext.endpointsEnabled))
+    Ok(txt.definition(AppContext.apiContext,AppContext.apiStatus,AppContext.endpointsEnabled,AppContext.latestVersionEndpointsEnabled))
   }
 
   def raml(version: String, file: String): Action[AnyContent] = {
