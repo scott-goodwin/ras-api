@@ -1,4 +1,4 @@
-@(context : String, status : String, endpointsEnabled : Boolean)
+@(context : String, status : String, endpointsEnabled : Boolean, latestVersionEndpointsEnabled: Boolean)
 {
   "scopes": [
     {
@@ -20,7 +20,7 @@
       {
         "version": "2.0",
         "status": "@status",
-        "endpointsEnabled": @endpointsEnabled
+        "endpointsEnabled": @latestVersionEndpointsEnabled
       }
     ]
   }
