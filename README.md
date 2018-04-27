@@ -40,7 +40,7 @@ All end points are User Restricted (see [authorisation](https://developer.servic
 
 The API makes use of HATEOAS/HAL resource links. Your application does not need to store a catalogue of all URLs.
 
-You can dive deeper into the documentation in the [API Developer Hub](https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/ras-api/2.0).
+You can dive deeper into the documentation in the [API Developer Hub](https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/ras-api/1.0).
 
 This version of the API is in development and is very likely to change.
 
@@ -52,8 +52,8 @@ Schemas
 
 | Schema          | Location                                                                                                                   |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Error Codes     | https://raw.githubusercontent.com/hmrc/ras-api/master/resources/public/api/conf/2.0/schemas/ErrorCodes.schema.json         |
-| Residency Check | https://raw.githubusercontent.com/hmrc/ras-api/master/resources/public/api/conf/2.0/schemas/getResidencyStatus.schema.json |
+| Error Codes     | https://raw.githubusercontent.com/hmrc/ras-api/master/resources/public/api/conf/1.0/schemas/ErrorCodes.schema.json         |
+| Residency Check | https://raw.githubusercontent.com/hmrc/ras-api/master/resources/public/api/conf/1.0/schemas/getResidencyStatus.schema.json |
 
 
 Resources
@@ -63,12 +63,12 @@ Resources
 | :----: | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | POST   | /individuals/relief-at-source/residency-status | Find out if a scheme member pays tax in Scotland or in the rest of the UK, to tell you the rate of tax to use for their relief at source contributions.|
                                                           
-For more information, visit the [API Developer Hub](https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/ras-api/2.0).
+For more information, visit the [API Developer Hub](https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/ras-api/1.0).
 
 Test Data
 ---------
 
-You can find test data [here](https://github.com/hmrc/ras-api/blob/master/resources/public/api/conf/2.0/testdata/get-residency-status.md) 
+You can find test data [here](https://github.com/hmrc/ras-api/blob/master/resources/public/api/conf/1.0/testdata/get-residency-status.md) 
 
 
 Running Locally
