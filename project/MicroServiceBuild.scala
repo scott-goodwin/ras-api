@@ -29,11 +29,11 @@ object MicroServiceBuild extends Build with MicroService {
     "joda-time" % "joda-time" % "2.7.0")
 
   def test(scope: String = "test,it") = Seq(
-    "uk.gov.hmrc" %% "hmrctest" % "2.3.0" % scope,
-    "org.scalatest" %% "scalatest" % "2.2.6" % scope,
+    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
+    "org.scalatest" %% "scalatest" % "3.0.0" % scope,
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1"  % scope,
+    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0"  % scope,
     "org.mockito" % "mockito-core" % "1.9.0" % scope,
     "com.typesafe.play" %% "play-specs2" % PlayVersion.current % scope,
     "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope,
