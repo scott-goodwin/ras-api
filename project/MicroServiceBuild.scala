@@ -19,7 +19,7 @@ object MicroServiceBuild extends Build with MicroService {
     "uk.gov.hmrc" %% "microservice-bootstrap" % "6.15.0",
     "uk.gov.hmrc" %% "auth-client" % "2.5.0",
     "uk.gov.hmrc" %% "domain" % "5.1.0",
-    "uk.gov.hmrc" %% "mongo-caching" % "5.3.0",
+    "uk.gov.hmrc" %% "mongo-caching" % "5.4.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "json-encryption" % jsonEncryptionVersion,
     "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,
