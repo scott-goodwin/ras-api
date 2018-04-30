@@ -34,4 +34,10 @@ object AppContext extends ServicesConfig {
   lazy val resultsExpriyTime: Long = current.configuration.getLong("results.expiry.time").getOrElse(259200)
   lazy val allowNoNextYearStatus: Boolean = current.configuration.getBoolean("toggle-feature.allow-no-next-year-status").getOrElse(false)
   lazy val allowDefaultRUK: Boolean = current.configuration.getBoolean("toggle-feature.allow-default-ruk").getOrElse(false)
+  lazy val requestRetryLimit: Int = current.configuration.getInt("request-retry-limit").getOrElse(3)
+  lazy val waitTimeBeforeRetryingRequest: Long = current.configuration.getLong("wait-time-before-retrying").getOrElse(1000L)
+  lazy val deceasedStatus: String = current.configuration.getString("status.deceased").getOrElse("DECEASED")
+  lazy val matchingFailedStatus: String = current.configuration.getString("status.matching-failed").getOrElse("STATUS_UNAVAILABLE")
+  lazy val fileProcessingMatchingFailedStatus: String = current.configuration.getString("status.matching-failed.csv").getOrElse("cannot_provide_status")
+  lazy val internalServerErrorStatus: String = current.configuration.getString("status.internal-server-error").getOrElse("INTERNAL_SERVER_ERROR")
 }

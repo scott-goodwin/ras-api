@@ -15,7 +15,7 @@
       "enum" :
       [
         "BAD_REQUEST",
-        "MATCHING_FAILED"
+        "STATUS_UNAVAILABLE"
       ]
     }
   }

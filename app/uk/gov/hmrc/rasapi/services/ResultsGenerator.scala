@@ -17,12 +17,13 @@
 package uk.gov.hmrc.rasapi.services
 
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus, ResidencyStatusFailure}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -38,27 +39,59 @@ trait ResultsGenerator {
   def getCurrentDate: DateTime
   val allowDefaultRUK: Boolean
 
+  val DECEASED: String
+  val MATCHING_FAILED: String
+  val INTERNAL_SERVER_ERROR: String
+  val FILE_PROCESSING_MATCHING_FAILED: String
+
+  val retryLimit: Int
+
   def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
+
+    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): Either[ResidencyStatus, ResidencyStatusFailure] = {
+
+      if (retryCount > 1) {
+        Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount")
+      }
+
+      try {
+        Await.result(desConnector.getResidencyStatus(memberDetails, userId), 5 second)
+      }
+      catch {
+        case _ =>
+          Logger.warn("[ResultsGenerator] Future timed out to des connector.")
+          if (retryCount < retryLimit) {
+            getResultAndProcess(memberDetails, retryCount = retryCount + 1)
+          }
+          else {
+            Logger.warn("[ResultsGenerator] Retry limit exceeded, record failed.")
+            Right(ResidencyStatusFailure("problem-getting-status", "please try again."))
+          }
+      }
+    }
+
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
-      case Left(memberDetails) =>
-        //this needs to be sequential / blocking and at the max 30 TPS
-        val res = Await.result(desConnector.getResidencyStatus(memberDetails, userId),20 second)
+      case Left(memberDetails) => {
+        val result = getResultAndProcess(memberDetails)
 
-        res match {
+        result match {
           case Left(residencyStatus) => {
             val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
-                            else residencyStatus.copy(nextYearForecastResidencyStatus = None)
+            else residencyStatus.copy(nextYearForecastResidencyStatus = None)
             auditResponse(failureReason = None, nino = Some(memberDetails.nino),
               residencyStatus = Some(resStatus), userId = userId)
             inputRow + comma + resStatus.toString
           }
-          case Right(statusFailure) =>
-            auditResponse(failureReason = Some(statusFailure.code), nino = Some(memberDetails.nino),
-                          residencyStatus = None, userId = userId)
-            inputRow + comma + statusFailure.code.replace("DECEASED", "MATCHING_FAILED")
+          case Right(residencyStatusFailure) => {
+            auditResponse(failureReason = Some(residencyStatusFailure.code.replace(FILE_PROCESSING_MATCHING_FAILED, "MATCHING_FAILED")), nino = Some(memberDetails.nino),
+              residencyStatus = None, userId = userId)
 
+            inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
+                                                          .replace(MATCHING_FAILED, FILE_PROCESSING_MATCHING_FAILED)
+          }
         }
+      }
     }
   }
 

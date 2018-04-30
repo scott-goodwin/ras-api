@@ -39,6 +39,11 @@ object FileProcessingService extends FileProcessingService {
   override val auditService: AuditService = AuditService
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
+  override val retryLimit: Int = AppContext.requestRetryLimit
+  override val DECEASED: String = AppContext.deceasedStatus
+  override val MATCHING_FAILED: String = AppContext.matchingFailedStatus
+  override val INTERNAL_SERVER_ERROR: String = AppContext.internalServerErrorStatus
+  override val FILE_PROCESSING_MATCHING_FAILED: String = AppContext.fileProcessingMatchingFailedStatus
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
@@ -70,9 +75,12 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     try{
       val dataIterator = inputFileData.get.toList
       Logger.warn("file data size " + dataIterator.size + " of user " + userId)
+      writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings")
       dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
       closeWriter(writer._2)
       fileResultsMetrics.stop
+
+      Logger.warn("File results complete, ready to save the file.")
 
       saveFile(writer._1, userId, callbackData)
 
@@ -94,13 +102,15 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     val fileSaveMetrics = Metrics.register(fileSave).time
     RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
       result =>
-        clearFile(filePath)
         result match {
-          case Success(file) => SessionCacheService.updateFileSession(userId, callbackData,
+          case Success(file) =>
+            Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
+            SessionCacheService.updateFileSession(userId, callbackData,
             Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
+            Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
 
           case Failure(ex) => {
-            Logger.error("results file generation/saving failed with Exception " + ex.getMessage)
+            Logger.error(s"results file for user ID: $userId  generation/saving failed with Exception " + ex.getMessage)
             SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
           }
           //delete result  a future ind
@@ -108,6 +118,15 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
         fileSaveMetrics.stop
         fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
     }
+  }
+
+  def getTaxYearHeadings = {
+    val currentDate = getCurrentDate
+    val currentYear = currentDate.getYear
+    if (currentDate.isAfter(new DateTime(currentYear - 1, 12, 31, 0, 0, 0, 0)) && currentDate.isBefore(new DateTime(currentYear, 4, 6, 0, 0, 0, 0)))
+      s"${currentYear - 1}-$currentYear residency status,$currentYear-${currentYear + 1} residency status"
+    else
+      s"$currentYear-${currentYear + 1} residency status"
   }
 }
 

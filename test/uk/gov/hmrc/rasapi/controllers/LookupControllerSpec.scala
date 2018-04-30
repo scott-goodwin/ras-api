@@ -66,6 +66,10 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
   val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
 
+  val STATUS_DECEASED: String = "DECEASED"
+  val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+  val STATUS_INTERNAL_SERVER_ERROR: String = "INTERNAL_SERVER_ERROR"
+
   implicit val individualDetailssWrites: Writes[IndividualDetails] = (
     (JsPath \ "nino").write[String] and
       (JsPath \ "firstName").write[String] and
@@ -81,6 +85,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
     override def getCurrentDate: DateTime = new DateTime(2018, 7, 6, 0, 0, 0, 0)
     override val allowDefaultRUK: Boolean = false
+    override val STATUS_DECEASED: String = "DECEASED"
+    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   }
 
   object TestLookupControllerFeb18 extends LookupController {
@@ -91,6 +97,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
     override def getCurrentDate: DateTime = new DateTime(2018, 2, 15, 0, 0, 0, 0)
     override val allowDefaultRUK: Boolean = true
+    override val STATUS_DECEASED: String = "DECEASED"
+    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   }
 
   object TestLookupControllerFeb19 extends LookupController {
@@ -101,6 +109,8 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
     override def getCurrentDate: DateTime = new DateTime(2019, 2, 15, 0, 0, 0, 0)
     override val allowDefaultRUK: Boolean = false
+    override val STATUS_DECEASED: String = "DECEASED"
+    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   }
 
   before{
@@ -195,8 +205,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
 
-
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure("DECEASED", "Individual is deceased"))))
+        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, "Individual is deceased"))))
 
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
@@ -207,7 +216,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           auditType = Meq("ReliefAtSourceResidency"),
           path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "false",
-            "reason" -> "DECEASED",
+            "reason" -> STATUS_DECEASED,
             "nino" -> "LE241131B",
             "userIdentifier" -> "A123456", 
 						"requestSource" -> "API"))
@@ -221,7 +230,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
-        val residencyStatusFailure = ResidencyStatusFailure("MATCHING_FAILED", "")
+        val residencyStatusFailure = ResidencyStatusFailure("STATUS_UNAVAILABLE", "")
 
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
@@ -259,7 +268,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           path = Meq(s"/relief-at-source/customer/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
-                              "reason" -> "INTERNAL_SERVER_ERROR",
+                              "reason" -> s"$STATUS_INTERNAL_SERVER_ERROR",
                               "userIdentifier" -> "A123456", 
 						                  "requestSource" -> "API"))
         )(any())
@@ -559,14 +568,14 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
         val expectedJsonResult = Json.parse(
-          """
+          s"""
             |{
-            |  "code": "MATCHING_FAILED",
-            |  "message": "The pension scheme member's details do not match with HMRC's records."
+            |  "code": "$STATUS_MATCHING_FAILED",
+            |  "message": "Cannot provide a residency status for this pension scheme member."
             |}
           """.stripMargin)
 
-        val residencyStatusFailure = ResidencyStatusFailure("MATCHING_FAILED", "")
+        val residencyStatusFailure = ResidencyStatusFailure("STATUS_UNAVAILABLE", "")
 
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
@@ -586,9 +595,9 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
 
         val expectedJsonResult = Json.parse(
-          """
+          s"""
             |{
-            |  "code": "INTERNAL_SERVER_ERROR",
+            |  "code": "$STATUS_INTERNAL_SERVER_ERROR",
             |  "message": "Internal server error"
             |}
           """.stripMargin)
