@@ -54,7 +54,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
   when(mockDesConnector.otherUk).thenReturn("otherUKResident")
   when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-  val expectedNino: Nino = Nino("LE241131B")
+  val expectedNino = uk.gov.hmrc.rasapi.models.Nino("LE241131B")
 
   private val enrolmentIdentifier1 = EnrolmentIdentifier("PSAID", "A123456")
   private val enrolment1 = new Enrolment(key = "HMRC-PSA-ORG", identifiers = List(enrolmentIdentifier1), state = "Activated", None)
