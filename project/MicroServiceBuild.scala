@@ -9,7 +9,7 @@ object MicroServiceBuild extends Build with MicroService {
   override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
   private val apiPlatformlibVersion = "2.1.0"
-  private val playReactivemongoVersion = "6.1.0"
+  private val playReactivemongoVersion = "6.2.0"
   private val jsonEncryptionVersion = "3.2.0"
   private val akkaVersion = "2.4.10"
 
