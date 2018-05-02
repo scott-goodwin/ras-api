@@ -42,6 +42,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Random, Try}
 
+import java.nio.charset.StandardCharsets
+
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -570,12 +572,12 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
   "FileProcessingService" should {
     "readFile" when {
-      "file exists line by line" in {
+      "UTF_8 file exists line by line" in {
 
         val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc656"
         val fileId: String = "file-id-1"
 
-        val row1 = "John,Smith,AB123456C,1990-02-21".getBytes
+        val row1 = "John,Smith,AB123456C,1990-02-21".getBytes(StandardCharsets.UTF_8)
         val inputStream = new ByteArrayInputStream(row1)
 
         when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStream)))
@@ -583,6 +585,23 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val result = await(SUT.readFile(envelopeId, fileId))
 
         result.toList should contain theSameElementsAs List("John,Smith,AB123456C,1990-02-21")
+      }
+
+      "readFile replacing manlformed / ummapped characters" when {
+        "Non UTF_8 file" in {
+
+          val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc656"
+          val fileId: String = "file-id-1"
+
+          val row1 = "Johné,Smithè,AB123456C,1990-02-21".getBytes(StandardCharsets.ISO_8859_1)
+          val inputStream = new ByteArrayInputStream(row1)
+
+          when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStream)))
+
+          val result = await(SUT.readFile(envelopeId, fileId))
+
+          result.toList should contain theSameElementsAs List("John�,Smith�,AB123456C,1990-02-21")
+        }
       }
     }
 
