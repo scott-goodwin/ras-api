@@ -587,7 +587,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         result.toList should contain theSameElementsAs List("John,Smith,AB123456C,1990-02-21")
       }
 
-      "readFile replacing manlformed / ummapped characters" when {
+      "readFile replacing malformed / ummapped characters" when {
         "Non UTF_8 file" in {
 
           val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc656"
