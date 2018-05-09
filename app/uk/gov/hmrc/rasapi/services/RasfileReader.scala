@@ -41,9 +41,10 @@ trait RasFileReader {
 
   def readFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Iterator[String]] = {
 
-    implicit val codec = Codec("UTF-8")
-    codec.onMalformedInput(CodingErrorAction.REPLACE)
-    codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+    implicit val codec = Codec.ISO8859
+    //implicit val codec = Codec.UTF8
+    //codec.onMalformedInput(CodingErrorAction.REPLACE)
+    //codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
 
     fileUploadConnector.getFile(envelopeId, fileId).map{
       case Some(inputStream) => Source.fromInputStream(inputStream).getLines
