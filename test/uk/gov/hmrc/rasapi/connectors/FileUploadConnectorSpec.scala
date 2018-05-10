@@ -48,6 +48,7 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
 
   val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
   val fileId: String = "file-id-1"
+  val userId: String = "A1234567"
 
 
   "getFile" should {
@@ -64,7 +65,7 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
 
       val values = List("Test", "Passed")
 
-      val result = await(TestConnector.getFile(envelopeId, fileId))
+      val result = await(TestConnector.getFile(envelopeId, fileId, userId))
 
       val reader = new BufferedReader(new InputStreamReader(result.get))
 
@@ -76,12 +77,12 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
   "deleteUploadedFile" should {
     "submit delete request to file-upload service" in {
       when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(200)))
-      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId))
+      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
       result shouldBe true
     }
     "failed delete request to file-upload service" in {
       when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(400)))
-      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId))
+      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
       result shouldBe false
     }
   }

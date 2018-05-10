@@ -69,21 +69,23 @@ trait DesConnector extends ServicesConfig {
 
     result.map(response => resolveResponse(response, userId, member.nino)).recover {
       case badRequestEx: BadRequestException =>
-        Logger.error("[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not valid.")
+        Logger.error(s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
+          s"valid. userId ($userId).")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case notFoundEx: NotFoundException =>
         Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
       case tooManyEx: TooManyRequestException =>
-        Logger.error("[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
+        Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
+          s"from the HoD. userId ($userId).")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case requestTimeOutEx: RequestTimeoutException =>
-        Logger.error("[DesConnector] [getResidencyStatus] Request has timed out.")
+        Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case th: Throwable =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. Exception message: ${th.getMessage}")
+        Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. userId ($userId).Exception message: ${th.getMessage}.")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case _ =>
-        Logger.error("[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD.")
+        Logger.error(s"[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD. userId ($userId).")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
     }
   }
@@ -116,9 +118,9 @@ trait DesConnector extends ServicesConfig {
         }
       case Failure(_) =>
         Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {
-          case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
+          case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data} for userId ($userId).")
             Right(data)
-          case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
+          case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage} for userId ($userId).")
             Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
         }
     }

@@ -63,7 +63,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
 
-          withValidJson(
+          withValidJson(id,
             (individualDetails) => {
 
               desConnector.getResidencyStatus(individualDetails, id).map {
@@ -76,7 +76,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                     nino = Some(individualDetails.nino),
                     residencyStatus = Some(residencyStatus),
                     userId = id)
-                  Logger.debug("[LookupController][getResidencyStatus] Residency status returned successfully.")
+                  Logger.debug(s"[LookupController][getResidencyStatus] Residency status returned successfully for userId ($id).")
                   apiMetrics.stop()
                   Ok(toJson(residencyStatus))
 
@@ -87,7 +87,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
+                      Logger.debug(s"[LookupController][getResidencyStatus] Individual is deceased for userId ($id).")
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
                     case STATUS_MATCHING_FAILED =>
@@ -95,7 +95,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.debug("[LookupController][getResidencyStatus] Individual not matched")
+                      Logger.debug(s"[LookupController][getResidencyStatus] Individual not matched for userId ($id).")
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
                     case _ =>
@@ -103,7 +103,8 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.error(s"[LookupController][getResidencyStatus] Error returned from DES, error code: ${matchingFailed.code}")
+                      Logger.error(s"[LookupController][getResidencyStatus] Error returned from DES, error code: " +
+                        s"${matchingFailed.code} for userId ($id).")
                       Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                       InternalServerError(toJson(ErrorInternalServerError))
                   }
@@ -114,14 +115,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                     nino = None,
                     residencyStatus = None,
                     userId = id)
-                  Logger.error(s"[LookupController][getResidencyStatus] Error occurred, " +
+                  Logger.error(s"[LookupController][getResidencyStatus] Error occurred for userId ($id), " +
                     s"Exception message: ${th.getMessage}", th)
                   Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                   InternalServerError(toJson(ErrorInternalServerError))
               }
             },
-            (errors) => {
-              Logger.info("The errors are: " + errors.toString())
+            errors => {
+              Logger.info(s"The errors for userId ($id) are: " + errors.toString())
               Future.successful(BadRequest(toJson(ErrorBadRequestResponse(errorConverter.convert(errors)))))
             }
           )
@@ -140,11 +141,6 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
   }
 
-  private def getEnrolmentIdentifier(enrols:Enrolments) = {
-    enrols.enrolments.filter(res => (res.key == PSA_ENROLMENT || res.key == PP_ENROLMENT)).map(
-      res => res.identifiers.head.value).head
-  }
-
   private def updateResidencyResponse(residencyStatus: ResidencyStatus): ResidencyStatus = {
 
     if (getCurrentDate.isBefore(new DateTime(2018, 4, 6, 0, 0, 0, 0)) && allowDefaultRUK)
@@ -153,7 +149,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       residencyStatus
   }
 
-  private def withValidJson (onSuccess: (IndividualDetails) => Future[Result],
+  private def withValidJson (userId: String, onSuccess: (IndividualDetails) => Future[Result],
                              invalidCallback: (Seq[(JsPath, Seq[ValidationError])]) => Future[Result])
                             (implicit request: Request[AnyContent]): Future[Result] = {
 
@@ -165,14 +161,15 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
             Try(onSuccess(payload)) match {
               case Success(result) => result
               case Failure(ex: Exception) =>
-                Logger.error(s"CustomerMatchingController An error occurred in Json payload validation ${ex.getMessage}")
+                Logger.error(s"[LookupController] An error occurred in Json payload validation for userId ($userId) ${ex.getMessage}")
                 Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
             }
           }
           case Success(JsError(errors)) =>
             Logger.error(s"Json error in the request body")
             invalidCallback(errors)
-          case Failure(e) => Logger.error(s"CustomerMatchingController: An error occurred in customer-api due to ${e.getMessage} returning internal server error")
+          case Failure(e) => Logger.error(s"[LookupController] An error occurred due to ${e.getMessage} returning " +
+            s"internal server error for userId ($userId).")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
       case None => Future.successful(BadRequest(toJson(BadRequestResponse)))

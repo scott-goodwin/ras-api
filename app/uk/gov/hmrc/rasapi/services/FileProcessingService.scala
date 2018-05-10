@@ -57,7 +57,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     val fileMetrics = Metrics.register(fileProcess).time
     val fileReadMetrics = Metrics.register(fileRead).time
 
-    readFile(callbackData.envelopeId, callbackData.fileId).onComplete {
+    readFile(callbackData.envelopeId, callbackData.fileId, userId).onComplete {
       fileReadMetrics.stop
       inputFileData =>
         if(inputFileData.isSuccess)
@@ -71,30 +71,30 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
   def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData, sessionCacheService: SessionCacheService)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileResultsMetrics = Metrics.register(fileResults).time
-    val writer = createFileWriter(callbackData.fileId)
+    val writer = createFileWriter(callbackData.fileId, userId)
     try{
       val dataIterator = inputFileData.get.toList
-      Logger.warn("file data size " + dataIterator.size + " of user " + userId)
-      writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings")
-      dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId)) )
+      Logger.warn(s"file data size ${dataIterator.size} for user $userId")
+      writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings", userId)
+      dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId,callbackData.fileId), userId) )
       closeWriter(writer._2)
       fileResultsMetrics.stop
 
-      Logger.warn("File results complete, ready to save the file.")
+      Logger.warn(s"File results complete, ready to save the file (fileId: ${callbackData.fileId}) for userId ($userId).")
 
       saveFile(writer._1, userId, callbackData)
 
     } catch
       {
         case ex:Throwable => {
-          Logger.error("error in File processing -> " + ex.getMessage)
+          Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
           sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
           fileResultsMetrics.stop
         }
       }
     finally {
       closeWriter(writer._2)
-      clearFile( writer._1)
+      clearFile( writer._1, userId)
     }
   }
 
@@ -110,13 +110,13 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
             Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
 
           case Failure(ex) => {
-            Logger.error(s"results file for user ID: $userId  generation/saving failed with Exception " + ex.getMessage)
+            Logger.error(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}")
             SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
           }
           //delete result  a future ind
         }
         fileSaveMetrics.stop
-        fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId)
+        fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId, userId)
     }
   }
 

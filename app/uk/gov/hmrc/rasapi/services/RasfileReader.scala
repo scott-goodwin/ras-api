@@ -36,10 +36,11 @@ trait RasFileReader {
 
   val fileUploadConnector: FileUploadConnector
 
-  def readFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Iterator[String]] = {
-    fileUploadConnector.getFile(envelopeId, fileId).map{
+  def readFile(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Iterator[String]] = {
+    fileUploadConnector.getFile(envelopeId, fileId, userId).map{
       case Some(inputStream) => Source.fromInputStream(inputStream).getLines
-      case None => Logger.error("File Processing: problem reading data in the file");throw new FileNotFoundException
+      case None => Logger.error(s"File Processing: problem reading data in the file for userId ($userId).")
+        throw new FileNotFoundException
     }
   }
 }
@@ -48,22 +49,23 @@ trait RasFileWriter {
 
   type FILE_INFO = (Path,BufferedWriter)
 
-  def createFileWriter(fileId:String) : FILE_INFO = {
+  def createFileWriter(fileId:String, userId: String) : FILE_INFO = {
     val file = Try(Files.createTempFile(fileId,".csv"))
     file.isSuccess match {
       case true =>  (file.get, new BufferedWriter(new FileWriter(file.get.toFile)))
-      case false => Logger.error("Error creating temp file for writing results"); throw new FileNotFoundException
+      case false => Logger.error(s"Error creating temp file for writing results for userId ($userId).")
+        throw new FileNotFoundException
     }
   }
 
-  def writeResultToFile(writer:BufferedWriter, line:String): Boolean = {
+  def writeResultToFile(writer:BufferedWriter, line:String, userId: String): Boolean = {
     try {
        writer.write(line.toString)
         writer.newLine
       }
     catch {
-      case ex: Throwable => Logger.error("Exception in writing line to the results file" + ex.getMessage)
-        throw new RuntimeException("Exception in writing line to the results file" + ex.getMessage)
+      case ex: Throwable => Logger.error(s"Exception in writing line to the results file ${ex.getMessage} for userId ($userId).")
+        throw new RuntimeException(s"Exception in writing line to the results file ${ex.getMessage}")
     }
     true
   }
@@ -71,11 +73,11 @@ trait RasFileWriter {
   def closeWriter(writer:BufferedWriter):Boolean ={
     val res = Try(writer.close())
      res.recover{
-       case ex:Throwable => Logger.error("Failed to close the Outputstream with error" + ex.getMessage)
+       case ex:Throwable => Logger.error(s"Failed to close the Outputstream with error ${ex.getMessage}.")
          false
      }
     true
   }
 
-  def clearFile(path:Path) :Unit =  if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist")
+  def clearFile(path:Path, userId: String) :Unit =  if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist for userId ($userId).")
 }
