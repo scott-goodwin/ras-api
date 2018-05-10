@@ -17,6 +17,7 @@
 package uk.gov.hmrc.rasapi
 
 import play.api.libs.json.{JsValue, Json, Writes}
+import uk.gov.hmrc.auth.core.Enrolments
 
 package object controllers {
 
@@ -35,4 +36,9 @@ package object controllers {
   // Auth Constants
   val PSA_ENROLMENT = "HMRC-PSA-ORG"
   val PP_ENROLMENT = "HMRC-PP-ORG"
+
+  def getEnrolmentIdentifier(enrols:Enrolments) = {
+    enrols.enrolments.filter(res => (res.key == PSA_ENROLMENT || res.key == PP_ENROLMENT)).map(
+      res => res.identifiers.head.value).head
+  }
 }

@@ -86,6 +86,9 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     await(TestFileWriter.generateFile(successresultsArr.iterator))
   }
 
+  val userId: String = "A1234567"
+  val fileId: String = "file-id-1234"
+
   when(mockDesConnector.otherUk).thenReturn("otherUKResident")
   when(mockDesConnector.scotRes).thenReturn("scotResident")
 
@@ -120,8 +123,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -150,7 +153,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -190,8 +193,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -220,7 +223,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -260,8 +263,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -290,7 +293,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -329,8 +332,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -359,7 +362,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -398,8 +401,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -428,7 +431,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -468,8 +471,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -501,7 +504,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         verify(mockDesConnector, times(5)).getResidencyStatus(any(), any())
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -529,8 +532,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
         }
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
@@ -559,7 +562,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
@@ -578,9 +581,9 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val row1 = "John,Smith,AB123456C,1990-02-21".getBytes
         val inputStream = new ByteArrayInputStream(row1)
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(inputStream)))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(inputStream)))
 
-        val result = await(SUT.readFile(envelopeId, fileId))
+        val result = await(SUT.readFile(envelopeId, fileId, userId))
 
         result.toList should contain theSameElementsAs List("John,Smith,AB123456C,1990-02-21")
       }
@@ -679,7 +682,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     val data = IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1992-02-21"))
 
     "fetch result" when {
-      val userId = "A123456"
       "input row is valid and the date of processing is between january and april" in {
         when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
@@ -687,7 +689,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
 
         val inputRow = "AB123456C,John,Smith,1992-02-21"
-        val result = await(SUT.fetchResult(inputRow, userId))
+        val result = await(SUT.fetchResult(inputRow, userId, fileId))
         result shouldBe "AB123456C,John,Smith,1992-02-21,otherUKResident,scotResident"
       }
 
@@ -698,7 +700,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
 
         val inputRow = "AB123456C,John,Smith,1992-02-21"
-        val result = await(SUT.fetchResult(inputRow, userId))
+        val result = await(SUT.fetchResult(inputRow, userId, fileId))
         result shouldBe "AB123456C,John,Smith,1992-02-21,otherUKResident"
       }
 
@@ -706,7 +708,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(STATUS_MATCHING_FAILED, STATUS_MATCHING_FAILED))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
-        val result = await(SUT.fetchResult(inputRow, userId))
+        val result = await(SUT.fetchResult(inputRow, userId, fileId))
         result shouldBe s"AB123456C,John,Smith,1992-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED"
       }
 
@@ -714,13 +716,13 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, STATUS_DECEASED))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
-        val result = await(SUT.fetchResult(inputRow, userId))
+        val result = await(SUT.fetchResult(inputRow, userId, fileId))
         result shouldBe s"AB123456C,John,Smith,1992-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED"
       }
 
       "input row is inValid" in {
         val inputRow = "456C,John,Smith,1994-02-21"
-        val result = await(SUT.fetchResult(inputRow, userId))
+        val result = await(SUT.fetchResult(inputRow, userId, fileId))
         result shouldBe "456C,John,Smith,1994-02-21,nino-INVALID_FORMAT"
       }
     }
@@ -730,8 +732,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val testFilePath = getTestFilePath
 
-        when(mockFileUploadConnector.getFile(any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any())(any())).thenReturn(Future.successful(true))
+        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
+        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
         val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017-2018 residency status,2018-2019 residency status" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,scotResident" +
@@ -759,7 +761,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(20000)
 
-        val res = await(rasFileRepository.fetchFile(fileId))
+        val res = await(rasFileRepository.fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString

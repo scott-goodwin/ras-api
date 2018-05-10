@@ -50,12 +50,12 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
 
   val fileData = FileData(length = 124L,Enumerator("TEST START ".getBytes))
 
-  val fileController = new FileController{
+  val fileController = new FileController {
     override val authConnector: AuthConnector = mockAuthConnector
 
-    override def getFile(name: String): Future[Option[FileData]] = Some(fileData)
+    override def getFile(name: String, userId: String): Future[Option[FileData]] = Some(fileData)
 
-    override def deleteFile(name: String,id:String): Future[Boolean] = true
+    override def deleteFile(name: String,id:String, userId: String): Future[Boolean] = true
   }
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -82,7 +82,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
       val fileController = new FileController {
         override val authConnector: AuthConnector = mockAuthConnector
 
-        override def getFile(name: String): Future[Option[FileData]] = None
+        override def getFile(name: String, userId: String): Future[Option[FileData]] = None
       }
       "the file is not available" in {
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
@@ -116,7 +116,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         val fileController = new FileController {
           override val authConnector: AuthConnector = mockAuthConnector
 
-          override def deleteFile(name: String,id:String): Future[Boolean] = false
+          override def deleteFile(name: String,id:String, userId: String): Future[Boolean] = false
         }
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
         val fileName = "testFile.csv"

@@ -51,9 +51,10 @@ trait FileController extends BaseController with AuthorisedFunctions{
       val apiMetrics = Metrics.register(fileServe).time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
-          getFile(fileName).map { fileData =>
+          val id = getEnrolmentIdentifier(enrols)
+          getFile(fileName, id).map { fileData =>
             if (fileData.isDefined) {
-              Logger.debug("File repo enumerator received")
+              Logger.debug("[FileController] [serverFile] File repo enumerator received")
               val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(fileData.get.data.map(ByteString.fromArray)))
               apiMetrics.stop()
               Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(fileData.get.length), Some(_contentType)))
@@ -62,12 +63,12 @@ trait FileController extends BaseController with AuthorisedFunctions{
                   CONTENT_TYPE -> _contentType)
             }
             else {
-              Logger.error("Requested File not found to serve fileName is " + fileName)
+              Logger.error(s"[FileController] [serverFile] Requested File not found to serve fileName is $fileName")
               NotFound(toJson(ErrorNotFound))
             }
 
           }.recover {
-            case ex: Throwable => Logger.error("Request failed with Exception " + ex.getMessage + " for file -> " + fileName)
+            case ex: Throwable => Logger.error(s"[FileController] [serverFile] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
               InternalServerError
           }
       } recoverWith{
@@ -80,10 +81,12 @@ trait FileController extends BaseController with AuthorisedFunctions{
       val apiMetrics = Metrics.register(fileRemove).time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
-          deleteFile(fileName, fileId:String).map{res=>  apiMetrics.stop()
+          val id = getEnrolmentIdentifier(enrols)
+          deleteFile(fileName, fileId:String, id).map{ res=>
+            apiMetrics.stop()
             if(res) Ok("") else InternalServerError
           }.recover {
-            case ex: Throwable => Logger.error("Request failed with Exception " + ex.getMessage + " for file -> " + fileName)
+            case ex: Throwable => Logger.error(s"[FileController] [remove] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
               InternalServerError
           }
       } recoverWith{
@@ -94,24 +97,24 @@ trait FileController extends BaseController with AuthorisedFunctions{
   private def handleAuthFailure(implicit request: Request[_]): PartialFunction[Throwable, Future[Result]] =
     PartialFunction[Throwable, Future[Result]]
   {
-      case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
+      case ex:InsufficientEnrolments => Logger.warn("[FileController] [handleAuthFailure] Insufficient privileges")
         Metrics.registry.counter(UNAUTHORIZED.toString)
 
         Future.successful(Unauthorized(toJson(Unauthorised)))
 
-      case ex:NoActiveSession => Logger.warn("Inactive session")
+      case ex:NoActiveSession => Logger.warn("[FileController] [handleAuthFailure] Inactive session")
         Metrics.registry.counter(UNAUTHORIZED.toString)
         Future.successful(Unauthorized(toJson(InvalidCredentials)))
-      case e => Logger.warn(s"Internal Error ${e.getCause}" )
+      case e => Logger.warn(s"[FileController] [handleAuthFailure] Internal Error ${e.getCause}" )
 
         Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
-    }
+  }
 
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
 
-  def getFile(name:String) = RasRepository.filerepo.fetchFile(name)
+  def getFile(name:String, userId: String) = RasRepository.filerepo.fetchFile(name, userId)
 
-  def deleteFile(name:String, fileId:String):Future[Boolean] = RasRepository.filerepo.removeFile(name,fileId)
+  def deleteFile(name:String, fileId:String, userId: String):Future[Boolean] = RasRepository.filerepo.removeFile(name,fileId,userId)
   // $COVERAGE-ON$
 
 

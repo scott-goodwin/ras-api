@@ -46,12 +46,13 @@ trait ResultsGenerator {
 
   val retryLimit: Int
 
-  def fetchResult(inputRow:String, userId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
+  def fetchResult(inputRow:String, userId: String, fileId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
 
     def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): Either[ResidencyStatus, ResidencyStatusFailure] = {
 
       if (retryCount > 1) {
-        Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount")
+        Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount for userId " +
+          s"($userId) with fileId ($fileId).")
       }
 
       try {
@@ -59,12 +60,12 @@ trait ResultsGenerator {
       }
       catch {
         case _ =>
-          Logger.warn("[ResultsGenerator] Future timed out to des connector.")
+          Logger.warn(s"[ResultsGenerator] Future timed out to des connector for userId ($userId) with fileId ($fileId).")
           if (retryCount < retryLimit) {
             getResultAndProcess(memberDetails, retryCount = retryCount + 1)
           }
           else {
-            Logger.warn("[ResultsGenerator] Retry limit exceeded, record failed.")
+            Logger.warn("[ResultsGenerator] Retry limit exceeded, record failed for userId ($userId) with fileId ($fileId).")
             Right(ResidencyStatusFailure("problem-getting-status", "please try again."))
           }
       }

@@ -35,7 +35,7 @@ trait SessionCacheService {
     sessionCache.cache[FileSession](source,userId,formId,
       FileSession(Some(userFile), resultsFile, userId, session.get.uploadTimeStamp) ).recover {
         case ex: Throwable => Logger.error(s"unable to save FileSession to cache => " +
-          s"${userId} , userFile : ${userFile.toString} , resultsFile id : " +
+          s"userId ($userId) , userFile : ${userFile.toString} , resultsFile id : " +
           s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
           throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
         /*
@@ -45,9 +45,9 @@ trait SessionCacheService {
       }
     }.recover {
       case ex: Throwable => Logger.error(s"cannot fetch  data to cache for FileSession => " +
-        s"${userId} , userFile : ${userFile.toString} , resultsFile id : " +
+        s"userId ($userId) , userFile : ${userFile.toString} , resultsFile id : " +
         s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
-        throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
+        throw new RuntimeException(s"Error in saving sessionCache ${ex.getMessage}")
     }
 
   }

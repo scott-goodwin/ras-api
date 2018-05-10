@@ -37,17 +37,19 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
     "AB123456C,John,Smith,1990-02-21,MATCHING_FAILED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
+  val userId: String = "A1234567"
+
   "RasFileWriter" should {
     "create a FileWriter for a tempFile" in {
-      val res = fileWriter.createFileWriter("1234")
+      val res = fileWriter.createFileWriter("1234", userId)
       Files.exists(res._1) shouldBe true
       Files.deleteIfExists(res._1)
 
     }
     "writes data to the file " in {
-      val res = fileWriter.createFileWriter("5678")
+      val res = fileWriter.createFileWriter("5678", userId)
       Files.exists(res._1) shouldBe true
-      resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str))
+      resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str, userId))
       fileWriter.closeWriter(res._2)
       val lines = Source.fromFile(res._1.toFile).getLines.toArray
       lines.size shouldBe 3
@@ -55,9 +57,9 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
       Files.deleteIfExists(res._1)
     }
     "closes fileWriter " in {
-      val res = fileWriter.createFileWriter("789")
+      val res = fileWriter.createFileWriter("789", userId)
       Files.exists(res._1) shouldBe true
-      resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str))
+      resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str, userId))
       fileWriter.closeWriter(res._2) shouldBe true
 
     }
