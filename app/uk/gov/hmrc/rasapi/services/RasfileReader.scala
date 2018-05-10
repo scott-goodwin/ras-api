@@ -30,6 +30,9 @@ import scala.concurrent.Future
 import scala.io.Source
 import scala.util.Try
 
+import java.nio.charset.CodingErrorAction
+import scala.io.Codec
+
 trait RasFileReader {
   implicit val system = ActorSystem()
   implicit val materializer:ActorMaterializer = ActorMaterializer()
@@ -37,7 +40,14 @@ trait RasFileReader {
   val fileUploadConnector: FileUploadConnector
 
   def readFile(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Iterator[String]] = {
+
+    implicit val codec = Codec.ISO8859
+    //implicit val codec = Codec.UTF8
+    //codec.onMalformedInput(CodingErrorAction.REPLACE)
+    //codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
     fileUploadConnector.getFile(envelopeId, fileId, userId).map{
+
       case Some(inputStream) => Source.fromInputStream(inputStream).getLines
       case None => Logger.error(s"File Processing: problem reading data in the file for userId ($userId).")
         throw new FileNotFoundException
