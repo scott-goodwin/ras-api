@@ -39,29 +39,34 @@ trait FileUploadConnector extends ServicesConfig {
   lazy val fileUploadUrlSuffix = getString("file-upload-url-suffix")
 
 
-  def getFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Option[InputStream]] = {
+  def getFile(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Option[InputStream]] = {
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
 
-    Logger.warn(s"Get to file-upload with URI : /file-upload/envelopes/${envelopeId}/files/${fileId}/content")
+    Logger.warn(s"Get to file-upload with URI : /file-upload/envelopes/${envelopeId}/files/${fileId}/content for userId ($userId).")
     wsHttp.buildRequestWithStream(s"$serviceUrl/$fileUploadUrlSuffix/${envelopeId}/files/${fileId}/content").map { res =>
       Some(res.body.runWith(StreamConverters.asInputStream()))
     } recover {
       case ex: Throwable => {
-        Logger.error("Exception thrown while retrieving file / converting to InputStream.", ex)
+        Logger.error(s"Exception thrown while retrieving file / converting to InputStream for userId ($userId).", ex)
         throw new RuntimeException("Error Streaming file from file-upload service")
       }
     }
   }
 
-  def deleteUploadedFile(envelopeId: String, fileId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+  def deleteUploadedFile(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
     wsHttp.doDelete(s"$serviceUrl/$fileUploadUrlSuffix/${envelopeId}/files/${fileId}").map { res =>
-       if(res.status == 200) {Logger.warn("user file deleted successfully from file-upload"); true}
-       else {Logger.error(s"Failed to delete user file => envelopeID: ${envelopeId}/files/${fileId}" )
-       false}
+       if(res.status == 200) {
+         Logger.warn(s"user file deleted successfully from file-upload for userId ($userId).")
+         true
+       }
+       else {
+         Logger.error(s"Failed to delete user file => envelopeID: ${envelopeId}/files/${fileId} for userId ($userId)." )
+        false
+       }
     }.recover{
-      case _ => Logger.error(s"failed to execute delete user file => envelopeID : ${envelopeId}/files/${fileId}")
+      case _ => Logger.error(s"failed to execute delete user file => envelopeID : ${envelopeId}/files/${fileId} for userId ($userId).")
         false
     }
   }

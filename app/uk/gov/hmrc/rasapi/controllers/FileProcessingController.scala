@@ -48,14 +48,15 @@ trait FileProcessingController extends BaseController {
 
         callbackData.status match {
           case STATUS_AVAILABLE =>
-            Logger.warn(s"callback request received with status available: file processing started " )
+            Logger.warn(s"[FileProcessingController] [statusCallback] Callback request received with status available: file processing " +
+              s"started for userId ($userId)." )
             if(Try(Future(fileProcessingService.processFile(userId,callbackData))).isFailure) {
               sessionCacheService.updateFileSession(userId,callbackData,None)
             }
-          case STATUS_ERROR => Logger.error(s"There is a problem with the file ERROR (${callbackData.fileId}), the status is:" +
-            s" ${callbackData.status} and the reason is: ${callbackData.reason.get}")
+          case STATUS_ERROR => Logger.error(s"[FileProcessingController] [statusCallback] There is a problem with the " +
+            s"file for userId ($userId) ERROR (${callbackData.fileId}), the status is: ${callbackData.status} and the reason is: ${callbackData.reason.get}")
             sessionCacheService.updateFileSession(userId,callbackData,None)
-          case _ => Logger.warn(s"There is a problem with the file (${callbackData.fileId}), the status is:" +
+          case _ => Logger.warn(s"There is a problem with the file (${callbackData.fileId}) for userId ($userId), the status is:" +
             s" ${callbackData.status}")
         }
 
