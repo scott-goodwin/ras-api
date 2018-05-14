@@ -131,13 +131,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupControllerFeb18.getResidencyStatus()
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .apply(FakeRequest(Helpers.GET, s"/residency-status")
             .withHeaders(acceptHeader)
             .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "NextCYStatus" -> "otherUKResident",
@@ -158,13 +158,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupControllerFeb19.getResidencyStatus()
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .apply(FakeRequest(Helpers.GET, s"/residency-status")
             .withHeaders(acceptHeader)
             .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "scotResident",
             "NextCYStatus" -> "otherUKResident",
@@ -185,13 +185,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupController.getResidencyStatus()
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .apply(FakeRequest(Helpers.GET, s"/residency-status")
             .withHeaders(acceptHeader)
             .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
@@ -208,13 +208,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, "Individual is deceased"))))
 
         await(TestLookupController.getResidencyStatus()
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .apply(FakeRequest(Helpers.GET, s"/residency-status")
             .withHeaders(acceptHeader)
             .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "false",
             "reason" -> STATUS_DECEASED,
             "nino" -> "LE241131B",
@@ -235,13 +235,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
         await(TestLookupController.getResidencyStatus()
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .apply(FakeRequest(Helpers.GET, s"/residency-status")
             .withHeaders(acceptHeader)
             .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
 
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
             "reason" -> "MATCHING_FAILED",
@@ -259,13 +259,13 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
         when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
   
         await(TestLookupController.getResidencyStatus()
-          .apply(FakeRequest(Helpers.GET, s"/relief-at-source/customer/residency-status")
+          .apply(FakeRequest(Helpers.GET, s"/residency-status")
           .withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites))))
   
         verify(mockAuditService).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
                               "successfulLookup" -> "false",
                               "reason" -> s"$STATUS_INTERNAL_SERVER_ERROR",

@@ -47,7 +47,7 @@ trait AuditServiceSpec extends UnitSpec with MockitoSugar with OneAppPerTest wit
 
     val auditDataMap: Map[String, String] = Map("testKey" -> "testValue")
 
-    "build an audit event with the correct mandatory details" in {//new FakeAppWithAppName {
+    "build an audit event with the correct mandatory details" in {
 
       val result = SUT.audit(fakeAuditType, fakeEndpoint, auditDataMap)
       val captor = ArgumentCaptor.forClass(classOf[DataEvent])
