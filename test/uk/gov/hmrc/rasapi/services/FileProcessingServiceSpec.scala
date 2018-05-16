@@ -47,7 +47,7 @@ import java.nio.charset.StandardCharsets
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
-  implicit val fakeReq = FakeRequest("POST", "/relief-at-source/customer/residency-status")
+  implicit val fakeReq = FakeRequest("POST", "/residency-status")
 
   val mockFileUploadConnector = mock[FileUploadConnector]
 
@@ -163,7 +163,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         verify(mockAuditService, times(4)).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "NextCYStatus" -> "otherUKResident",
@@ -233,7 +233,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         verify(mockAuditService, times(4)).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "scotResident",
             "NextCYStatus" -> "scotResident",
@@ -303,7 +303,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         verify(mockAuditService, times(4)).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "nino" -> "LE241131B",
@@ -372,7 +372,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         verify(mockAuditService, times(4)).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
             "reason" -> "MATCHING_FAILED",
@@ -441,7 +441,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         verify(mockAuditService, times(4)).audit(
           auditType = Meq("ReliefAtSourceResidency"),
-          path = Meq(s"/relief-at-source/customer/residency-status"),
+          path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
             "reason" -> s"$STATUS_DECEASED",
