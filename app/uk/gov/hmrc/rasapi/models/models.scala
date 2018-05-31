@@ -37,6 +37,7 @@ package object models {
     private val missing = "MISSING_FIELD"
     private val invalidDateValidation = "INVALID_DATE"
     private val dateRegex = "^[\\d]{4}-[\\d]{2}-[\\d]{2}$"
+    private val ukDateRegex = "^[\\d]{2}/[\\d]{2}/[\\d]{4}$"
     private val ninoRegex = "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"
     val dateFormat = "yyyy-MM-dd"
 
@@ -58,8 +59,7 @@ package object models {
 
     val name: Reads[Name] = nameReads()
 
-    // ISO Date is a date which is not in the future.
-    def isoDate(dateFormat: String = "yyyy-MM-dd"): Reads[DateTime] = isoDateReads()
+    val isoDate: Reads[DateTime] = isoDateReads()
 
     /**
       * Ensures that a name only contains specific characters and is between 1 and 35 characters long,
