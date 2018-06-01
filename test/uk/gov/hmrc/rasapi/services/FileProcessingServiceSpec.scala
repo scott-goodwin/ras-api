@@ -677,14 +677,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
         }
 
-        "parse line as raw data and convert to RawMemberDetails object when there is and invalid date format" in {
-          val inputData = "LE241131B,Jim,Jimson,01/01/2017"
-
-          val result = SUT.createMatchingData(inputData)
-
-          result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-        }
-
         "parse line as raw data and convert to RawMemberDetails object when there is a missing date" in {
           val inputData = "LE241131B,Jim,Jimson,"
 

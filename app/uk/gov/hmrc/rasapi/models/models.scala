@@ -32,16 +32,24 @@ package object models {
 
   object JsonReads {
 
+    import Extensions._
+
     private val invalidDataType = "INVALID_DATA_TYPE"
     private val invalidFormat = "INVALID_FORMAT"
     private val missing = "MISSING_FIELD"
     private val invalidDateValidation = "INVALID_DATE"
-    private val dateRegex = "^[\\d]{4}-[\\d]{2}-[\\d]{2}$"
-    private val ukDateRegex = "^[\\d]{2}/[\\d]{2}/[\\d]{4}$"
     private val ninoRegex = "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"
-    val dateFormat = "yyyy-MM-dd"
+
+    private val acceptedDatePatterns = Map(
+      "yyyy-MM-dd" -> "^[\\d]{4}-[\\d]{2}-[\\d]{2}$",
+      "dd/MM/yyyy" -> "^[\\d]{2}/[\\d]{2}/[\\d]{4}$"
+    )
 
     val nino: Reads[NINO] = ninoReads()
+
+    val name: Reads[Name] = nameReads()
+
+    val isoDate: Reads[DateTime] = isoDateReads()
 
     private def ninoReads(): Reads[NINO] = new Reads[NINO] {
 
@@ -56,10 +64,6 @@ package object models {
         }
       }
     }
-
-    val name: Reads[Name] = nameReads()
-
-    val isoDate: Reads[DateTime] = isoDateReads()
 
     /**
       * Ensures that a name only contains specific characters and is between 1 and 35 characters long,
@@ -91,28 +95,53 @@ package object models {
     private def isoDateReads(): Reads[DateTime] = new Reads[DateTime] {
 
       def reads(json: JsValue): JsResult[DateTime] = json match {
-        case JsString(s) => if (s.trim.isEmpty) JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
-        else {
-          s.matches(dateRegex) match {
-            case true => {
-              val dt = scala.util.control.Exception.allCatch[DateTime] opt (DateTime.parse(s, DateTimeFormat.forPattern(dateFormat)))
-              dt match {
-                case Some(d: DateTime) => {
-                  if (d.isAfterNow) {
-                    JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
-                  }
-                  else {
-                    JsSuccess(d)
-                  }
-                }
-                case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
+        case JsString(s) if !s.trim.isEmpty =>
+          s.extractDateFormat(acceptedDatePatterns) match {
+            case Some(format) =>
+              s.toDateTime(format) match {
+                case Some(d: DateTime) if !d.isAfterNow => JsSuccess(d)
+                case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDateValidation))))
               }
-            }
-            case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
+            case None => JsError(Seq(JsPath() -> Seq(ValidationError(invalidFormat))))
           }
-        }
+        case JsString(s) if s.trim.isEmpty => JsError(Seq(JsPath() -> Seq(ValidationError(missing))))
         case _ => JsError(Seq(JsPath() -> Seq(ValidationError(invalidDataType))))
       }
     }
   }
+
+  object Extensions {
+
+    implicit class StringDateUtils(date: String) {
+
+      /**
+        * Given a map of date formats (ie dd/mm/yyyy) and date regexes (ie [\\d]{2}/[\\d]{2}/[\\d]{4}),
+        * it will find the first regex in the map for which the string is a match
+        * and return the associated date format
+        *
+        * for example, it will return "dd/mm/yyyy" for an input string like "12/01/1999"
+        *
+        * @param patterns
+        * @return
+        */
+      def extractDateFormat(patterns: Map[String, String]): Option[String] = {
+        patterns.find(pattern => date.matches(pattern._2)) match {
+          case Some((format, _)) => Some(format)
+          case _ => None
+        }
+      }
+
+      /**
+        * Converts to DateTime a string passed in in a specific format (ie, "dd/mm/yyyy")
+        *
+        * @param format
+        * @return
+        */
+      def toDateTime(format: String): Option[DateTime] = {
+        scala.util.control.Exception.allCatch[DateTime] opt (DateTime.parse(date, DateTimeFormat.forPattern(format)))
+      }
+    }
+
+  }
+
 }
