@@ -80,12 +80,12 @@ trait ResultsGenerator {
           case Left(residencyStatus) => {
             val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
             else residencyStatus.copy(nextYearForecastResidencyStatus = None)
-            auditResponse(failureReason = None, nino = Some(memberDetails.nino),
+            auditResponse(failureReason = None, nino = memberDetails.nino,
               residencyStatus = Some(resStatus), userId = userId, fileId = fileId)
             inputRow + comma + resStatus.toString
           }
           case Right(residencyStatusFailure) => {
-            auditResponse(failureReason = Some(residencyStatusFailure.code.replace(FILE_PROCESSING_MATCHING_FAILED, "MATCHING_FAILED")), nino = Some(memberDetails.nino),
+            auditResponse(failureReason = Some(residencyStatusFailure.code.replace(FILE_PROCESSING_MATCHING_FAILED, "MATCHING_FAILED")), nino = memberDetails.nino,
               residencyStatus = None, userId = userId, fileId = fileId)
 
             inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
@@ -129,25 +129,23 @@ trait ResultsGenerator {
     * @param request Object containing request made by the user
     * @param hc Headers
     */
-  private def auditResponse(failureReason: Option[String], nino: Option[String],
-                            residencyStatus: Option[ResidencyStatus], userId: String, fileId: String)
-                           (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
+  private def auditResponse(failureReason: Option[String], nino: String, residencyStatus: Option[ResidencyStatus],
+    userId: String, fileId: String)(implicit request: Request[AnyContent], hc: HeaderCarrier) = {
 
-    val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
-    val fileIdMap: Map[String, String] = Map("fileId" -> fileId)
-    val nextYearStatusMap: Map[String, String] = if (residencyStatus.nonEmpty) residencyStatus.get.nextYearForecastResidencyStatus
-                                                    .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
-                                                 else Map()
-    val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
-                                                                            "reason" -> reason))
-                                                                            .getOrElse(Map(
-                                                                              "successfulLookup" -> "true",
-                                                                              "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
-                                                                            ) ++ nextYearStatusMap)
-
-    auditService.audit(auditType = "ReliefAtSourceResidency",
+    auditService.audit(
+      auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "FE_BULK") ++ ninoMap ++ fileIdMap
+      auditData = Map(
+        "nino" -> nino,
+        "fileId" -> fileId,
+        "userIdentifier" -> userId,
+        "requestSource" -> "FE_BULK",
+        "NextCYStatus" -> residencyStatus.flatMap(_.nextYearForecastResidencyStatus).getOrElse("").toString,
+        "successfulLookup" -> failureReason.getOrElse("").isEmpty.toString,
+        "reason" -> failureReason.getOrElse(""),
+        "CYStatus" -> residencyStatus.map(_.currentYearResidencyStatus).getOrElse("")).filterNot(_._2 == "")
     )
+
   }
+
 }
