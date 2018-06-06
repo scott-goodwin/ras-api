@@ -81,12 +81,12 @@ trait ResultsGenerator {
             val resStatus = if (residencyYearResolver.isBetweenJanAndApril()) updateResidencyResponse(residencyStatus)
             else residencyStatus.copy(nextYearForecastResidencyStatus = None)
             auditResponse(failureReason = None, nino = Some(memberDetails.nino),
-              residencyStatus = Some(resStatus), userId = userId)
+              residencyStatus = Some(resStatus), userId = userId, fileId = fileId)
             inputRow + comma + resStatus.toString
           }
           case Right(residencyStatusFailure) => {
             auditResponse(failureReason = Some(residencyStatusFailure.code.replace(FILE_PROCESSING_MATCHING_FAILED, "MATCHING_FAILED")), nino = Some(memberDetails.nino),
-              residencyStatus = None, userId = userId)
+              residencyStatus = None, userId = userId, fileId = fileId)
 
             inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
                                                           .replace(MATCHING_FAILED, FILE_PROCESSING_MATCHING_FAILED)
@@ -130,10 +130,11 @@ trait ResultsGenerator {
     * @param hc Headers
     */
   private def auditResponse(failureReason: Option[String], nino: Option[String],
-                            residencyStatus: Option[ResidencyStatus], userId: String)
+                            residencyStatus: Option[ResidencyStatus], userId: String, fileId: String)
                            (implicit request: Request[AnyContent], hc: HeaderCarrier): Unit = {
 
     val ninoMap: Map[String, String] = nino.map(nino => Map("nino" -> nino)).getOrElse(Map())
+    val fileIdMap: Map[String, String] = Map("fileId" -> fileId)
     val nextYearStatusMap: Map[String, String] = if (residencyStatus.nonEmpty) residencyStatus.get.nextYearForecastResidencyStatus
                                                     .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
                                                  else Map()
@@ -146,7 +147,7 @@ trait ResultsGenerator {
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,
-      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "FE_BULK") ++ ninoMap
+      auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "FE_BULK") ++ ninoMap ++ fileIdMap
     )
   }
 }

@@ -167,6 +167,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "NextCYStatus" -> "otherUKResident",
+            "fileId" -> fileId,
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -237,6 +238,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "scotResident",
             "NextCYStatus" -> "scotResident",
+            "fileId" -> fileId,
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -306,6 +308,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
+            "fileId" -> fileId,
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -375,6 +378,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
+            "fileId" -> fileId,
             "reason" -> "MATCHING_FAILED",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -444,6 +448,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
+            "fileId" -> fileId,
             "reason" -> s"$STATUS_DECEASED",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
