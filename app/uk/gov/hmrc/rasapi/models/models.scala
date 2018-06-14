@@ -42,13 +42,13 @@ package object models {
 
     private val acceptedDatePatterns = Map(
       "yyyy-MM-dd" -> "^[\\d]{4}-[\\d]{2}-[\\d]{2}$",
-      "dd/MM/yyyy" -> "^[\\d]{2}/[\\d]{2}/[\\d]{4}$"
+      "dd/MM/yyyy" -> "^[\\d]{2}/[\\d]{2}/[\\d]{4}$",
+      "dd-MM-yyyy" -> "^[\\d]{2}-[\\d]{2}-[\\d]{4}$",
+      "yyyy/MM/dd" -> "^[\\d]{4}/[\\d]{2}/[\\d]{2}$"
     )
 
     val nino: Reads[NINO] = ninoReads()
-
     val name: Reads[Name] = nameReads()
-
     val isoDate: Reads[DateTime] = isoDateReads()
 
     private def ninoReads(): Reads[NINO] = new Reads[NINO] {

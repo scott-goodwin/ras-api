@@ -632,6 +632,26 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         }
       }
 
+      "date format is yyyy/mm/dd" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,1995/02/21"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is dd-mm-yyyy" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,21-02-1995"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
       "date format is yyyy-mm-dd" when {
 
         "parse line as raw data and convert to IndividualDetails object" in {
@@ -660,14 +680,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         "parse line as raw data and convert to RawMemberDetails object when there is a date not in yyyy-mm-dd format" in {
           val inputData = "LE241131B,Jim,Jimson,89-09-29"
-
-          val result = SUT.createMatchingData(inputData)
-
-          result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-        }
-
-        "parse line as raw data and convert to RawMemberDetails object when there is a date in yyyy/mm/dd format" in {
-          val inputData = "LE241131B,Jim,Jimson,1999/09/29"
 
           val result = SUT.createMatchingData(inputData)
 
