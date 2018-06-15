@@ -36,6 +36,13 @@ object IndividualDetails {
       (JsPath \ "dateOfBirth").read[DateTime](JsonReads.isoDate).map(new DateTime(_))
     )(IndividualDetails.apply _)
 
+  implicit val individualDetailsBulkReads: Reads[IndividualDetails] = (
+    (JsPath \ "nino").read[NINO](JsonReads.nino).map(nino => if(nino.length == 8) s"${nino.trim.toUpperCase} " else nino.toUpperCase) and
+      (JsPath \ "firstName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
+      (JsPath \ "lastName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
+      (JsPath \ "dateOfBirth").read[DateTime](JsonReads.bulkDate).map(new DateTime(_))
+    )(IndividualDetails.apply _)
+
   implicit val individualDetailssWrites: Writes[IndividualDetails] = (
     (JsPath \ "nino").write[String] and
       (JsPath \ "firstName").write[String] and

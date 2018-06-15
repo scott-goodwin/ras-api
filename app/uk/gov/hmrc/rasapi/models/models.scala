@@ -40,8 +40,11 @@ package object models {
     private val invalidDateValidation = "INVALID_DATE"
     private val ninoRegex = "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"
 
-    private val acceptedDatePatterns = Map(
-      "yyyy-MM-dd" -> "^[\\d]{4}-[\\d]{2}-[\\d]{2}$",
+    private val isoDatePattern = Map(
+      "yyyy-MM-dd" -> "^[\\d]{4}-[\\d]{2}-[\\d]{2}$"
+    )
+
+    private val bulkDatePatterns = isoDatePattern ++ Map(
       "dd/MM/yyyy" -> "^[\\d]{2}/[\\d]{2}/[\\d]{4}$",
       "dd-MM-yyyy" -> "^[\\d]{2}-[\\d]{2}-[\\d]{4}$",
       "yyyy/MM/dd" -> "^[\\d]{4}/[\\d]{2}/[\\d]{2}$"
@@ -49,7 +52,8 @@ package object models {
 
     val nino: Reads[NINO] = ninoReads()
     val name: Reads[Name] = nameReads()
-    val isoDate: Reads[DateTime] = isoDateReads()
+    val isoDate: Reads[DateTime] = dateReads(isoDatePattern)
+    val bulkDate: Reads[DateTime] = dateReads(bulkDatePatterns)
 
     private def ninoReads(): Reads[NINO] = new Reads[NINO] {
 
@@ -90,13 +94,12 @@ package object models {
       * Reads a JSON value as a joda.org.time.DateTime object.
       * This date cannot be in the future.
       *
-      * @return
+      * @param patterns
       */
-    private def isoDateReads(): Reads[DateTime] = new Reads[DateTime] {
-
+    private def dateReads(patterns: Map[String, String]): Reads[DateTime] = new Reads[DateTime] {
       def reads(json: JsValue): JsResult[DateTime] = json match {
         case JsString(s) if !s.trim.isEmpty =>
-          s.extractDateFormat(acceptedDatePatterns) match {
+          s.extractDateFormat(patterns) match {
             case Some(format) =>
               s.toDateTime(format) match {
                 case Some(d: DateTime) if !d.isAfterNow => JsSuccess(d)
