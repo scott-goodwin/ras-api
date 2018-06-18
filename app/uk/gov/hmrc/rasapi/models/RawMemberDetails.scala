@@ -29,17 +29,22 @@ object RawMemberDetails {
 case class IndividualDetails(nino: NINO, firstName: Name, lastName: Name, dateOfBirth: DateTime)
 
 object IndividualDetails {
-  implicit val individualDetailsReads: Reads[IndividualDetails] = (
-    (JsPath \ "nino").read[NINO](JsonReads.nino).map(nino => if(nino.length == 8) s"${nino.trim.toUpperCase} " else nino.toUpperCase) and
-      (JsPath \ "firstName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
-      (JsPath \ "lastName").read[Name](JsonReads.name).map(name => name.toUpperCase) and
-      (JsPath \ "dateOfBirth").read[DateTime](JsonReads.isoDate("yyyy-MM-dd")).map(new DateTime(_))
-    )(IndividualDetails.apply _)
+
+  implicit val individualDetailsReads = individualDetailsReadsWith(JsonReads.isoDate)
+
+  implicit val individualDetailsBulkReads = individualDetailsReadsWith(JsonReads.bulkDate)
 
   implicit val individualDetailssWrites: Writes[IndividualDetails] = (
     (JsPath \ "nino").write[String] and
       (JsPath \ "firstName").write[String] and
       (JsPath \ "lastName").write[String] and
-      (JsPath \ "dob").write[String].contramap[DateTime](date => date.toString("yyyy-MM-dd"))
+      (JsPath \ "dob").write[String].contramap[DateTime](_.toString("yyyy-MM-dd"))
     )(unlift(IndividualDetails.unapply))
+
+  private def individualDetailsReadsWith(dateTimeReads: Reads[DateTime]): Reads[IndividualDetails] =
+    ((JsPath \ "nino").read[NINO](JsonReads.nino).map(_.padTo(9, " ").mkString.toUpperCase) and
+        (JsPath \ "firstName").read[Name](JsonReads.name).map(_.toUpperCase) and
+        (JsPath \ "lastName").read[Name](JsonReads.name).map(_.toUpperCase) and
+        (JsPath \ "dateOfBirth").read[DateTime](dateTimeReads).map(new DateTime(_))
+      )(IndividualDetails.apply _)
 }

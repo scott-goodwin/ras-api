@@ -597,13 +597,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     }
 
     "createMatchingData" when {
-      "parse line as raw data and convert to IndividualDetails object" in {
-        val inputData = "AB123456C,John,Smith,1995-02-21"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
-      }
 
       "parse line as raw data and convert to RawMemberDetails object when there are 4 columns with at least one containing empty data" in {
         val inputData = ",Smith,AB123456C,90-02-21"
@@ -611,62 +604,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val result = SUT.createMatchingData(inputData)
 
         result shouldBe Right(List("nino-MISSING_FIELD", "lastName-INVALID_FORMAT", "dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is an invalid date" in {
-        val inputData = "LE241131B,Jim,Jimson,1989-02-31"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a caught invalid date" in {
-        val inputData = "LE241131B,Jim,Jimson,1111-15-15"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a date not in yyyy-mm-dd format" in {
-        val inputData = "LE241131B,Jim,Jimson,89-09-29"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a date in yyyy/mm/dd format" in {
-        val inputData = "LE241131B,Jim,Jimson,1999/09/29"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a date of birth in the future" in {
-        val inputData = "LE241131B,Jim,Jimson,2099-01-01"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is and invalid date format" in {
-        val inputData = "LE241131B,Jim,Jimson,01/01/2017"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a missing date" in {
-        val inputData = "LE241131B,Jim,Jimson,"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-MISSING_FIELD"))
       }
 
       "parse line as raw data and convert to RawMemberDetails object when there are less than 3 columns" in {
@@ -683,6 +620,87 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val result = SUT.createMatchingData(inputData)
 
         result shouldBe Right(List("nino-MISSING_FIELD", "lastName-MISSING_FIELD", "dateOfBirth-MISSING_FIELD", "firstName-MISSING_FIELD"))
+      }
+
+      "date format is dd/mm/yyyy" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,21/02/1995"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is yyyy/mm/dd" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,1995/02/21"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is dd-mm-yyyy" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,21-02-1995"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is yyyy-mm-dd" when {
+
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,1995-02-21"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is an invalid date" in {
+          val inputData = "LE241131B,Jim,Jimson,1989-02-31"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a caught invalid date" in {
+          val inputData = "LE241131B,Jim,Jimson,1111-15-15"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a date not in yyyy-mm-dd format" in {
+          val inputData = "LE241131B,Jim,Jimson,89-09-29"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a date of birth in the future" in {
+          val inputData = "LE241131B,Jim,Jimson,2099-01-01"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a missing date" in {
+          val inputData = "LE241131B,Jim,Jimson,"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-MISSING_FIELD"))
+        }
       }
     }
 

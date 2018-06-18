@@ -26,7 +26,7 @@ trait MicroService {
 
   lazy val scoverageSettings = {
     Seq(
-      ScoverageKeys.coverageExcludedPackages := "<empty>;testOnlyDoNotUseInAppConf.*;uk.gov.hmrc.rasapi.config.*;conf.*;uk.gov.hmrc.rasapi.models.*;prod;app;uk.gov.hmrc;uk.gov.hmrc.rasapi;uk.gov.hmrc.rasapi.views.*;definition.*;ras.*;uk.gov.hmrc.rasapi.controllers.Documentation;uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector;dev.*;matching.*  ",
+      ScoverageKeys.coverageExcludedPackages := "<empty>;testOnlyDoNotUseInAppConf.*;uk.gov.hmrc.rasapi.config.*;conf.*;prod;app;uk.gov.hmrc;uk.gov.hmrc.rasapi.views.*;definition.*;ras.*;uk.gov.hmrc.rasapi.controllers.Documentation;uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector;dev.*;matching.*  ",
       ScoverageKeys.coverageMinimum := 70,
       ScoverageKeys.coverageFailOnMinimum := false,
       ScoverageKeys.coverageHighlighting := true,
