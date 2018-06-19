@@ -18,17 +18,15 @@ package uk.gov.hmrc.rasapi.connectors
 
 import java.io.{BufferedReader, InputStreamReader}
 
-import akka.actor.{ActorSystem, InvalidMessageException}
+import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.mockito.cglib.proxy.UndeclaredThrowableException
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
-import play.api.libs.json
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse, RequestTimeoutException}
 import uk.gov.hmrc.play.config.ServicesConfig

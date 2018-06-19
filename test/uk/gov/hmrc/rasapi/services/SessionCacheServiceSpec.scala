@@ -44,7 +44,8 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   val json = Json.toJson(rasSession)
 
   val mockSessionCache = mock[ShortLivedHttpCaching]
-  val SUT = new SessionCacheService {
+
+  object SUT extends SessionCacheService {
     override val sessionCache: ShortLivedHttpCaching = mockSessionCache
     when(sessionCache.fetchAndGetEntry[FileSession] (any(), any(),any())
       (any(),any(), any()))
@@ -57,9 +58,26 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
 
   "SessionCacheService" should {
     "update session cache with processing status" in {
-      val results = List("Nino, firstName, lastName, dob, cyResult, cy+1Result")
-      val res = await(SUT.updateFileSession("1234",callbackData,Some(resultsFile),None))
-      res.data.get("1234").get shouldBe json}
-
+      val res = await(SUT.updateFileSession("1234", callbackData, Some(resultsFile), None))
+      res.data.get("1234").get shouldBe json
     }
+    "throw RuntimeException when something goes wrong when fetching FileSession" in {
+      when(mockSessionCache.fetchAndGetEntry[FileSession](any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.failed(new RuntimeException()))
+      val exception = intercept[RuntimeException] {
+        await(SUT.updateFileSession("1234", callbackData, Some(resultsFile), None))
+      }
+      exception.getMessage.contains("Error in saving sessionCache") shouldBe true
+    }
+    "throw RuntimeException when something goes wrong when storing FileSession" in {
+      when(mockSessionCache.fetchAndGetEntry[FileSession](any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(Some(rasSession)))
+      when(mockSessionCache.cache[FileSession] (any(), any(),any(),any())(any[Writes[FileSession]], any[HeaderCarrier], any()))
+        .thenReturn(Future.failed(new RuntimeException()))
+      val exception = intercept[RuntimeException] {
+        await(SUT.updateFileSession("1234", callbackData, Some(resultsFile), None))
+      }
+      exception.getMessage.contains("Error in saving sessionCache") shouldBe true
+    }
+  }
 }
