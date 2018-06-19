@@ -18,19 +18,23 @@ package uk.gov.hmrc.rasapi.connectors
 
 import java.io.{BufferedReader, InputStreamReader}
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, InvalidMessageException}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import org.mockito.Matchers._
 import org.mockito.Mockito._
+import org.mockito.cglib.proxy.UndeclaredThrowableException
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
+import play.api.libs.json
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.models.FileMetadata
 import uk.gov.hmrc.rasapi.services.RASWsHelpers
 
 import scala.concurrent.Future
@@ -49,6 +53,9 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
   val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
   val fileId: String = "file-id-1"
   val userId: String = "A1234567"
+  val originalFileName: String = "origFileName"
+  val dateCreated: String = "2018-01-01T00:00:00Z"
+  val fileMetadata: FileMetadata = FileMetadata(fileId, originalFileName, dateCreated)
 
 
   "getFile" should {
@@ -71,6 +78,19 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
 
       (Iterator continually reader.readLine takeWhile (_ != null) toList) should contain theSameElementsAs List("Test", "Passed")
 
+    }
+  }
+
+  "getFileMetadata" should {
+    "return the original filename when file upload returns 200" in {
+      when(mockWsHttp.doGet(any())(any())).thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(fileMetadata)))))
+      val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
+      result.get shouldBe fileMetadata
+    }
+    "return None when file upload does not return 200" in {
+      when(mockWsHttp.doGet(any())(any())).thenReturn(Future.successful(HttpResponse(404)))
+      val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
+      result shouldBe None
     }
   }
 
