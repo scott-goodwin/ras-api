@@ -27,7 +27,7 @@ import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.{CacheMap, ShortLivedHttpCaching}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, FileMetadata, FileSession, ResultsFileMetaData}
 
 import scala.concurrent.Future
 
@@ -35,10 +35,12 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   implicit val hc: HeaderCarrier = HeaderCarrier()
   val fileId = "file-id-1"
   val fileStatus = "AVAILABLE"
+  val originalFileName = "originalFileName"
   val reason: Option[String] = None
   val callbackData = CallbackData("1234", fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
-  val rasSession = FileSession(Some(callbackData), Some(resultsFile), "userId", Some(DateTime.now().getMillis))
+  val fileMetadata = FileMetadata(fileId, originalFileName, DateTime.now().toString)
+  val rasSession = FileSession(Some(callbackData), Some(resultsFile), "userId", Some(DateTime.now().getMillis), Some(fileMetadata))
   val json = Json.toJson(rasSession)
 
   val mockSessionCache = mock[ShortLivedHttpCaching]
@@ -56,7 +58,7 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   "SessionCacheService" should {
     "update session cache with processing status" in {
       val results = List("Nino, firstName, lastName, dob, cyResult, cy+1Result")
-      val res = await(SUT.updateFileSession("1234",callbackData,Some(resultsFile)))
+      val res = await(SUT.updateFileSession("1234",callbackData,Some(resultsFile),None))
       res.data.get("1234").get shouldBe json}
 
     }
