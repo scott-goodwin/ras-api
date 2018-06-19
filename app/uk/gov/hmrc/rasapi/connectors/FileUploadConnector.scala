@@ -36,7 +36,6 @@ trait FileUploadConnector extends ServicesConfig {
   val wsHttp: WSHttp
 
   lazy val serviceUrl = baseUrl("file-upload")
-  lazy val fileUploadFEBaseUrl = baseUrl("file-upload-frontend")
   lazy val fileUploadUrlSuffix = getString("file-upload-url-suffix")
 
 

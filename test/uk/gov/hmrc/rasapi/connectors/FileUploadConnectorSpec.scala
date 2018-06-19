@@ -30,7 +30,7 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
 import play.api.libs.json
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse, RequestTimeoutException}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.WSHttp
@@ -60,35 +60,45 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
 
   "getFile" should {
 
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+
+    val streamResponse:StreamedResponse = StreamedResponse(DefaultWSResponseHeaders(200, Map("CONTENT_TYPE" -> Seq("application/octet-stream"))),
+      Source.apply[ByteString](Seq(ByteString("Test"),  ByteString("\r\n"), ByteString("Passed")).to[scala.collection.immutable.Iterable]) )
+
     "return an StreamedResponse from File-Upload service" in {
-
-      implicit val system = ActorSystem()
-      implicit val materializer = ActorMaterializer()
-
-      val streamResponse:StreamedResponse = StreamedResponse(DefaultWSResponseHeaders(200, Map("CONTENT_TYPE" -> Seq("application/octet-stream"))),
-        Source.apply[ByteString](Seq(ByteString("Test"),  ByteString("\r\n"), ByteString("Passed")).to[scala.collection.immutable.Iterable]) )
-
       when(mockWsHttp.buildRequestWithStream(any())(any())).thenReturn(Future.successful(streamResponse))
 
       val values = List("Test", "Passed")
-
       val result = await(TestConnector.getFile(envelopeId, fileId, userId))
-
       val reader = new BufferedReader(new InputStreamReader(result.get))
 
       (Iterator continually reader.readLine takeWhile (_ != null) toList) should contain theSameElementsAs List("Test", "Passed")
+    }
+    "return a RuntimeException when File Upload throws error" in {
+      when(mockWsHttp.buildRequestWithStream(any())(any())).thenReturn(Future.failed(new RequestTimeoutException("")))
 
+      val exception = intercept[RuntimeException] {
+        await(TestConnector.getFile(envelopeId, fileId, userId))
+      }
+
+      exception.getMessage.contains("Error Streaming file from file-upload service") shouldBe true
     }
   }
 
   "getFileMetadata" should {
-    "return the original filename when file upload returns 200" in {
+    "return the original filename when file metadata returns 200" in {
       when(mockWsHttp.doGet(any())(any())).thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(fileMetadata)))))
       val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
       result.get shouldBe fileMetadata
     }
-    "return None when file upload does not return 200" in {
+    "return None when file metadata does not return 200" in {
       when(mockWsHttp.doGet(any())(any())).thenReturn(Future.successful(HttpResponse(404)))
+      val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
+      result shouldBe None
+    }
+    "return None when file metadata return an exception" in {
+      when(mockWsHttp.doGet(any())(any())).thenReturn(Future.failed(new RequestTimeoutException("")))
       val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
       result shouldBe None
     }
@@ -102,6 +112,11 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
     }
     "failed delete request to file-upload service" in {
       when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(400)))
+      val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
+      result shouldBe false
+    }
+    "return false when delete returns an exception" in {
+      when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.failed(new RequestTimeoutException("")))
       val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
       result shouldBe false
     }
