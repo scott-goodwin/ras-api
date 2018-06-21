@@ -26,7 +26,8 @@ import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 
@@ -39,7 +40,7 @@ trait DesConnector extends ServicesConfig {
 
   val edhUrl: String
 
-  val allowNoNextYearStatus = AppContext.allowNoNextYearStatus
+  val allowNoNextYearStatus: Boolean
 
   val uk = "Uk"
   val scot = "Scottish"
@@ -50,6 +51,7 @@ trait DesConnector extends ServicesConfig {
   val error_Deceased: String
   val error_MatchingFailed: String
 
+  val retryLimit: Int
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
@@ -63,31 +65,53 @@ trait DesConnector extends ServicesConfig {
       "Content-Type" -> "application/json",
       "authorization" -> s"Bearer ${AppContext.desAuthToken}")
 
+    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+
+      if (retryCount > 1) {
+        Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount for userId ($userId).")
+      }
+
+      sendResidencyStatusRequest(uri, member, userId, desHeaders)(rasHeaders) flatMap {
+        case Left(result) => Future.successful(Left(result))
+        case Right(result) if retryCount <= retryLimit => getResultAndProcess(memberDetails, retryCount + 1)
+        case Right(result) if retryCount > retryLimit => Future.successful(Right(result))
+      }
+    }
+
+    getResultAndProcess(member)
+  }
+
+  private def sendResidencyStatusRequest(uri: String, member: IndividualDetails, userId: String,
+                                         desHeaders: Seq[(String, String)])(implicit rasHeaders: HeaderCarrier): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+
     val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
-    result.map(response => resolveResponse(response, userId, member.nino)).recover {
-      case badRequestEx: BadRequestException =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
-          s"valid. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-      case notFoundEx: NotFoundException =>
-        Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
-      case tooManyEx: TooManyRequestException =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
-          s"from the HoD. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-      case requestTimeOutEx: RequestTimeoutException =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-      case th: Throwable =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. userId ($userId).Exception message: ${th.getMessage}.")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-      case _ =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-    }
+      result.map(response => resolveResponse(response, userId, member.nino)).recover {
+        case badRequestEx: BadRequestException =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
+            s"valid. userId ($userId).")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        case notFoundEx: NotFoundException =>
+          Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
+        case tooManyEx: TooManyRequestException =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
+            s"from the HoD. userId ($userId).")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        case requestTimeOutEx: RequestTimeoutException =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        case serviceUnavailable: ServiceUnavailableException =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Service unavailable. userId ($userId).")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        case th: Throwable =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. userId ($userId).Exception message: ${th.getMessage}.")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        case _ =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD. userId ($userId).")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      }
   }
 
   private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
@@ -136,5 +160,7 @@ object DesConnector extends DesConnector {
   override val error_InternalServerError: String = AppContext.internalServerErrorStatus
   override val error_Deceased: String = AppContext.deceasedStatus
   override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+  override val allowNoNextYearStatus: Boolean = AppContext.allowNoNextYearStatus
+  override val retryLimit: Int = AppContext.requestRetryLimit
   // $COVERAGE-ON$
 }

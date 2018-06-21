@@ -29,6 +29,7 @@ import play.api.mvc.{AnyContent, Request}
 import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 object FileProcessingService extends FileProcessingService {
@@ -39,11 +40,11 @@ object FileProcessingService extends FileProcessingService {
   override val auditService: AuditService = AuditService
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
-  override val retryLimit: Int = AppContext.requestRetryLimit
   override val DECEASED: String = AppContext.deceasedStatus
   override val MATCHING_FAILED: String = AppContext.matchingFailedStatus
   override val INTERNAL_SERVER_ERROR: String = AppContext.internalServerErrorStatus
   override val FILE_PROCESSING_MATCHING_FAILED: String = AppContext.fileProcessingMatchingFailedStatus
+  override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = AppContext.fileProcessingInternalServerErrorStatus
 }
 
 trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
@@ -72,6 +73,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData, sessionCacheService: SessionCacheService)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileResultsMetrics = Metrics.register(fileResults).time
     val writer = createFileWriter(callbackData.fileId, userId)
+
     try{
       val dataIterator = inputFileData.get.toList
       Logger.warn(s"file data size ${dataIterator.size} for user $userId")

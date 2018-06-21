@@ -68,11 +68,11 @@ trait RasFileWriter {
     }
   }
 
-  def writeResultToFile(writer:BufferedWriter, line:String, userId: String): Boolean = {
+  def writeResultToFile(writer:BufferedWriter, line: String, userId: String): Boolean = {
     try {
-       writer.write(line.toString)
-        writer.newLine
-      }
+      writer.write(line)
+      writer.newLine()
+    }
     catch {
       case ex: Throwable => Logger.error(s"Exception in writing line to the results file ${ex.getMessage} for userId ($userId).")
         throw new RuntimeException(s"Exception in writing line to the results file ${ex.getMessage}")
