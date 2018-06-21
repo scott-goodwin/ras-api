@@ -37,7 +37,7 @@ object FileSession {
   implicit val format = Json.format[FileSession]
 }
 
-case class FileMetadata(id: String, name: String, created: String)
+case class FileMetadata(id: String, name: Option[String], created: Option[String])
 
 object FileMetadata {
   implicit val format = Json.format[FileMetadata]

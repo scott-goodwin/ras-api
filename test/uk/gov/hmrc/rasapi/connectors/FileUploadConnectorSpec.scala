@@ -53,7 +53,7 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
   val userId: String = "A1234567"
   val originalFileName: String = "origFileName"
   val dateCreated: String = "2018-01-01T00:00:00Z"
-  val fileMetadata: FileMetadata = FileMetadata(fileId, originalFileName, dateCreated)
+  val fileMetadata: FileMetadata = FileMetadata(fileId, Some(originalFileName), Some(dateCreated))
 
 
   "getFile" should {

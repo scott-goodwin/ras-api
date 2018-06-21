@@ -39,7 +39,7 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
   val reason: Option[String] = None
   val callbackData = CallbackData("1234", fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
-  val fileMetadata = FileMetadata(fileId, originalFileName, DateTime.now().toString)
+  val fileMetadata = FileMetadata(fileId, None, None)
   val rasSession = FileSession(Some(callbackData), Some(resultsFile), "userId", Some(DateTime.now().getMillis), Some(fileMetadata))
   val json = Json.toJson(rasSession)
 
