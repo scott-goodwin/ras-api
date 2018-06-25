@@ -23,7 +23,9 @@ import uk.gov.hmrc.rasapi.repository.RasRepository
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DataCleansingService {
+object DataCleansingService extends DataCleansingService
+
+trait DataCleansingService {
 
   def removeOrphanedChunks():Future[Seq[BSONObjectID]] = {
 

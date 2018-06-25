@@ -34,6 +34,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
+import uk.gov.hmrc.rasapi.services.DataCleansingService
 
 trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
 
@@ -41,11 +42,17 @@ trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
   val slConnector: ServiceLocatorConnector
   implicit val hc: HeaderCarrier
 
+
   override def onStart(app: Application): Unit = {
     super.onStart(app)
     registrationEnabled match {
       case true => {Logger.info("Starting Registration"); slConnector.register}
       case false => Logger.warn("Registration in Service Locator is disabled")
+    }
+    AppContext.removeChunksDataExerciseEnabled match {
+      case true => {Logger.info("Starting Data Exercise for removing of chunks"); DataCleansingService.removeOrphanedChunks()}
+      case false => Logger.warn("No data Exercise carried ")
+
     }
   }
 }

@@ -28,29 +28,33 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class DataCleansingServiceSpec extends UnitSpec with MockitoSugar with OneAppPerTest
 with BeforeAndAfter  {
   before{
-    RepositoriesHelper.rasFileRepository.removeAll()
-    RepositoriesHelper.rasBulkOperationsRepository.removeAll()
+    await(RepositoriesHelper.rasFileRepository.removeAll())
+    await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
+  }
+  after{
+    await(RepositoriesHelper.rasFileRepository.removeAll())
+    await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
 
   }
-
-  val service = new DataCleansingService()
-
   "DataCleansingService" should{
 
     "remove orphaned chunks" in  {
       val testFiles = RepositoriesHelper.createTestDataForDataCleansing().map(_.id.asInstanceOf[BSONObjectID])
 
-      val result = await(service.removeOrphanedChunks())
+      val result = await(DataCleansingService.removeOrphanedChunks())
+      Thread.sleep(20000)
 
       result shouldEqual  testFiles
     }
     " not remove chunks that are not orphoned" in  {
       val testData1 = await(RepositoriesHelper.saveTempFile("user14","envelope14","fileId14"))
-      val testData2=  await(RepositoriesHelper.saveTempFile("user15","envelope15","fileId16"))
+      val testData2=  await(RepositoriesHelper.saveTempFile("user15","envelope15","fileId15"))
 
-      val result = await(service.removeOrphanedChunks())
+      val result = await(DataCleansingService.removeOrphanedChunks())
 
       result.size shouldEqual 0
+      await(RepositoriesHelper.rasFileRepository.remove("fileId14"))
+      await(RepositoriesHelper.rasFileRepository.remove("fileId15"))
     }
   }
 
