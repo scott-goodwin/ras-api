@@ -20,7 +20,7 @@ import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
 import uk.gov.hmrc.rasapi.config.RasShortLivedHttpCaching
-import uk.gov.hmrc.rasapi.models.{CallbackData, FileSession, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, FileMetadata, FileSession, ResultsFileMetaData}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -29,11 +29,13 @@ trait SessionCacheService {
   val sessionCache: ShortLivedHttpCaching = RasShortLivedHttpCaching
   private val source = "ras"
   private val formId = "fileSession"
-  def updateFileSession(userId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData])(implicit hc: HeaderCarrier) = {
+  private val fileMetadata = "fileMetadata"
+
+  def updateFileSession(userId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData], fileMetadata: Option[FileMetadata])(implicit hc: HeaderCarrier) = {
 
     sessionCache.fetchAndGetEntry[FileSession](source,userId,formId).flatMap{ session =>
     sessionCache.cache[FileSession](source,userId,formId,
-      FileSession(Some(userFile), resultsFile, userId, session.get.uploadTimeStamp) ).recover {
+      FileSession(Some(userFile), resultsFile, userId, session.get.uploadTimeStamp, fileMetadata) ).recover {
         case ex: Throwable => Logger.error(s"unable to save FileSession to cache => " +
           s"userId ($userId) , userFile : ${userFile.toString} , resultsFile id : " +
           s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
@@ -51,7 +53,6 @@ trait SessionCacheService {
     }
 
   }
-
 }
 
 object SessionCacheService extends SessionCacheService {
