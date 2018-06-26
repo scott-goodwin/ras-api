@@ -18,6 +18,12 @@ package uk.gov.hmrc.rasapi.models
 
 import play.api.libs.json.Json
 
+case class FileMetadata(id: String, name: Option[String], created: Option[String])
+
+object FileMetadata {
+  implicit val format = Json.format[FileMetadata]
+}
+
 case class CallbackData(envelopeId: String, fileId: String, status: String, reason: Option[String])
 
 object CallbackData {
@@ -35,10 +41,4 @@ case class FileSession(userFile: Option[CallbackData], resultsFile: Option[Resul
 
 object FileSession {
   implicit val format = Json.format[FileSession]
-}
-
-case class FileMetadata(id: String, name: Option[String], created: Option[String])
-
-object FileMetadata {
-  implicit val format = Json.format[FileMetadata]
 }
