@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import org.joda.time.DateTime
 import org.mockito.Matchers._
-import org.mockito.Mockito.{reset, when}
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
@@ -37,6 +37,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
   before {
     reset(mockHttpGet)
+    reset(mockHttpPost)
   }
 
   val mockHttpGet = mock[HttpGet]
@@ -53,6 +54,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val error_InternalServerError: String = AppContext.internalServerErrorStatus
     override val error_Deceased: String = AppContext.deceasedStatus
     override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+    override val retryLimit: Int = 3
   }
 
   val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
@@ -111,6 +113,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
           override val error_InternalServerError: String = AppContext.internalServerErrorStatus
           override val error_Deceased: String = AppContext.deceasedStatus
           override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+          override val retryLimit: Int = 3
         }
 
         val errorResponse = ResidencyStatusFailure(TestDesConnector.error_InternalServerError, "Internal server error")
@@ -171,27 +174,39 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         result.right.get shouldBe errorResponse
       }
 
-      "handle too many requests from des" in {
-        implicit val formatF = ResidencyStatusFormats.failureFormats
-        val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+      "Handle requests" when {
+        "it cannot be processed the first time round" in {
 
-        when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-          thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
+          implicit val formatF = ResidencyStatusFormats.failureFormats
+          val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+          val successresponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some(""),
+                                                       deathDateStatus = Some(""), deseasedIndicator = Some(false),
+                                                       currentYearResidencyStatus = "Uk", nextYearResidencyStatus = None)
 
-        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
-        result.isLeft shouldBe false
-        result.right.get shouldBe errorResponse
-      }
+          when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+            thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))),
+                       Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
-      "handle retry limit exceeded from des" in {
-        implicit val formatF = ResidencyStatusFormats.failureFormats
-        val errorResponse = ResidencyStatusFailure("REQUEST_TIMEOUT", "Request has timed out.")
-        when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-          thenReturn(Future.successful(HttpResponse(408, Some(Json.toJson(errorResponse)))))
+          val result = await(TestDesConnector.getResidencyStatus(
+                              IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 
-        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
-        result.isLeft shouldBe false
-        result.right.get shouldBe errorResponse
+          verify(mockHttpPost, times(2)).POST(any(), any(), any())(any(), any(), any(), any())
+
+          result.left.get shouldBe ResidencyStatus("otherUKResident")
+          result.isRight shouldBe false
+        }
+
+        "429 (Too Many Requests) has been returned 3 times already" in {
+
+          implicit val formatF = ResidencyStatusFormats.failureFormats
+          val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+          when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+            thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
+
+          val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+          result.isLeft shouldBe false
+          result.right.get shouldBe errorResponse
+        }
       }
     }
 

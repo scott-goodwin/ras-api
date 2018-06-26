@@ -46,16 +46,18 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
       Files.deleteIfExists(res._1)
 
     }
+
     "writes data to the file " in {
       val res = fileWriter.createFileWriter("5678", userId)
       Files.exists(res._1) shouldBe true
       resultsArr.foreach(str => fileWriter.writeResultToFile(res._2,str, userId))
       fileWriter.closeWriter(res._2)
-      val lines = Source.fromFile(res._1.toFile).getLines.toArray
-      lines.size shouldBe 3
+      val lines = Source.fromFile(res._1.toFile).getLines().toArray
+//      lines.size shouldBe 3
       lines should contain theSameElementsAs resultsArr
       Files.deleteIfExists(res._1)
     }
+
     "closes fileWriter " in {
       val res = fileWriter.createFileWriter("789", userId)
       Files.exists(res._1) shouldBe true
@@ -64,5 +66,4 @@ class RasFileWriterSpec extends UnitSpec with OneServerPerSuite with ScalaFuture
 
     }
   }
-
 }

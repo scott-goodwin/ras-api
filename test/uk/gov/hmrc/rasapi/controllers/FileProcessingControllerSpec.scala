@@ -38,7 +38,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
   val reason: Option[String] = None
   val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
   val resultsFile = ResultsFileMetaData(fileId,Some("fileName.csv"),Some(1234L),123,1234L)
-  val userId = Random.nextString(5)
+  val userId: String = Random.nextInt(5).toString
 
   val mockFileProcessingService = mock[FileProcessingService]
   val mockSessionCacheService = mock[SessionCacheService]

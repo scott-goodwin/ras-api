@@ -25,9 +25,10 @@ import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus, ResidencyStatusFailure}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ResultsGenerator {
   val comma = ","
@@ -43,38 +44,14 @@ trait ResultsGenerator {
   val MATCHING_FAILED: String
   val INTERNAL_SERVER_ERROR: String
   val FILE_PROCESSING_MATCHING_FAILED: String
+  val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String
 
-  val retryLimit: Int
-
-  def fetchResult(inputRow:String, userId: String, fileId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]):String = {
-
-    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): Either[ResidencyStatus, ResidencyStatusFailure] = {
-
-      if (retryCount > 1) {
-        Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount for userId " +
-          s"($userId) with fileId ($fileId).")
-      }
-
-      try {
-        Await.result(desConnector.getResidencyStatus(memberDetails, userId), 5 second)
-      }
-      catch {
-        case _ =>
-          Logger.warn(s"[ResultsGenerator] Future timed out to des connector for userId ($userId) with fileId ($fileId).")
-          if (retryCount < retryLimit) {
-            getResultAndProcess(memberDetails, retryCount = retryCount + 1)
-          }
-          else {
-            Logger.warn("[ResultsGenerator] Retry limit exceeded, record failed for userId ($userId) with fileId ($fileId).")
-            Right(ResidencyStatusFailure("problem-getting-status", "please try again."))
-          }
-      }
-    }
+  def fetchResult(inputRow:String, userId: String, fileId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]): String = {
 
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) => {
-        val result = getResultAndProcess(memberDetails)
+        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId), 20 second)
 
         result match {
           case Left(residencyStatus) => {
@@ -90,6 +67,7 @@ trait ResultsGenerator {
 
             inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
                                                           .replace(MATCHING_FAILED, FILE_PROCESSING_MATCHING_FAILED)
+                                                          .replace(INTERNAL_SERVER_ERROR, FILE_PROCESSING_INTERNAL_SERVER_ERROR)
           }
         }
       }
