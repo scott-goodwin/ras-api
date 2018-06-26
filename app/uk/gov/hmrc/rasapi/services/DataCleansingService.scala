@@ -32,13 +32,17 @@ trait DataCleansingService {
     for {
       chunks <- RasRepository.chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
 
-      fileInfoList <- processFutures(chunks)(RasRepository.filerepo.isFileExists(_))
+      fileInfoList <- {       Logger.warn("1 ~~~~~~~~####### chunks to verify #########~~~~~~:-" + chunks.size )
+
+        processFutures(chunks)(RasRepository.filerepo.isFileExists(_))}
 
       chunksDeleted <- {
         val parentFileIds = fileInfoList.filter(_.isDefined).map(rec => rec.get.id.asInstanceOf[BSONObjectID])
         val chunksToBeDeleted = chunks.diff(parentFileIds)
+        Logger.warn("2 ~~~~~~~~####### fileId's to be deleted #########~~~~~~:-"+ chunksToBeDeleted.size )
+
         val res = processFutures(chunksToBeDeleted)(fileId => {
-          Logger.warn("RAS fileId being deleted: " + fileId)
+          Logger.warn("3 ~~~~~###### RAS fileId being deleted  #########~~~~~~" + fileId)
           RasRepository.chunksRepo.removeChunk(fileId)
         })
         Future(chunksToBeDeleted)

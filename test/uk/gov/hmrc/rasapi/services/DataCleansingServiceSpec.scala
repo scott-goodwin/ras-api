@@ -18,14 +18,15 @@ package uk.gov.hmrc.rasapi.services
 
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.OneAppPerTest
+import org.scalatestplus.play.OneAppPerSuite
+import play.api.Logger
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DataCleansingServiceSpec extends UnitSpec with MockitoSugar with OneAppPerTest
+class DataCleansingServiceSpec extends UnitSpec with MockitoSugar with OneAppPerSuite
 with BeforeAndAfter  {
   before{
     await(RepositoriesHelper.rasFileRepository.removeAll())
@@ -36,16 +37,10 @@ with BeforeAndAfter  {
     await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
 
   }
+  val testFiles = RepositoriesHelper.createTestDataForDataCleansing().map(_.id.asInstanceOf[BSONObjectID])
+
   "DataCleansingService" should{
 
-    "remove orphaned chunks" in  {
-      val testFiles = RepositoriesHelper.createTestDataForDataCleansing().map(_.id.asInstanceOf[BSONObjectID])
-
-      val result = await(DataCleansingService.removeOrphanedChunks())
-      Thread.sleep(20000)
-
-      result shouldEqual  testFiles
-    }
     " not remove chunks that are not orphoned" in  {
       val testData1 = await(RepositoriesHelper.saveTempFile("user14","envelope14","fileId14"))
       val testData2=  await(RepositoriesHelper.saveTempFile("user15","envelope15","fileId15"))
@@ -56,6 +51,15 @@ with BeforeAndAfter  {
       await(RepositoriesHelper.rasFileRepository.remove("fileId14"))
       await(RepositoriesHelper.rasFileRepository.remove("fileId15"))
     }
+
+    "remove orphaned chunks" in  {
+      Logger.warn("1 ~~~~~~~~####### Testing Data Cleansing" )
+      val result = await(DataCleansingService.removeOrphanedChunks())
+      Logger.warn("7 ~~~~~~~~####### results complete" )
+
+      result shouldEqual  testFiles
+    }
+
   }
 
 }
