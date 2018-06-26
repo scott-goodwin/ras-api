@@ -20,7 +20,7 @@ import java.nio.file.Files
 
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.rasapi.services
 
 import java.io.{ByteArrayInputStream, FileInputStream}
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import org.joda.time.DateTime
@@ -29,10 +30,9 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
-import uk.gov.hmrc.http.{HeaderCarrier, RequestTimeoutException}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models._
@@ -41,12 +41,9 @@ import uk.gov.hmrc.rasapi.repositories.TestFileWriter
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Random, Try}
-import java.nio.charset.StandardCharsets
+import scala.util.Random
 
-import play.api.Logger
-
-class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
+class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val fakeReq = FakeRequest("POST", "/residency-status")
@@ -74,7 +71,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override def getCurrentDate: DateTime = new DateTime("2018-04-04")
 
     override val allowDefaultRUK: Boolean = false
-    override val retryLimit: Int = 3
 
     override val DECEASED: String = STATUS_DECEASED
     override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
@@ -121,7 +117,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
 
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
@@ -194,7 +189,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2019-02-04")
 
           override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
 
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
@@ -266,7 +260,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-06-04")
 
           override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
 
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
@@ -407,7 +400,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
 
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED

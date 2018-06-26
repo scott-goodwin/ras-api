@@ -37,7 +37,6 @@ with BeforeAndAfter  {
     await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
 
   }
-  val testFiles = RepositoriesHelper.createTestDataForDataCleansing().map(_.id.asInstanceOf[BSONObjectID])
 
   "DataCleansingService" should{
 
@@ -54,6 +53,8 @@ with BeforeAndAfter  {
 
     "remove orphaned chunks" in  {
       Logger.warn("1 ~~~~~~~~####### Testing Data Cleansing" )
+      val testFiles = RepositoriesHelper.createTestDataForDataCleansing().map(_.id.asInstanceOf[BSONObjectID])
+
       val result = await(DataCleansingService.removeOrphanedChunks())
       Logger.warn("7 ~~~~~~~~####### results complete" )
 
