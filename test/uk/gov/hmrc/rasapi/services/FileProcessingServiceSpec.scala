@@ -145,7 +145,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -217,7 +217,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -288,7 +288,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -358,7 +358,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -428,7 +428,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -655,7 +655,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -688,7 +688,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         await(SUT.manipulateFile(null, "user1234", callbackData, mockSessionCache))
 
         val captor = ArgumentCaptor.forClass(classOf[CallbackData])
-        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any())(any())
+        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any(), any())(any())
 
         val resultsFileMetaData = captor.getValue
         resultsFileMetaData.status shouldBe "ERROR"

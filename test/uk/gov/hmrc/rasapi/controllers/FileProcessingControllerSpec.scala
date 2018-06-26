@@ -80,7 +80,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with OneAp
           .withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
-        verify(mockSessionCacheService).updateFileSession(Meq(userId),Meq(callbackData),Meq(None))(any())
+        verify(mockSessionCacheService).updateFileSession(Meq(userId),Meq(callbackData),Meq(None),Meq(None))(any())
 
         status(result) shouldBe OK
       }

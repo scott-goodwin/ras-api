@@ -23,7 +23,7 @@ import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, FileMetadata, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.repository.RasRepository
 import play.api.mvc.{AnyContent, Request}
 import java.nio.file.Path
@@ -90,7 +90,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       {
         case ex:Throwable => {
           Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
-          sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
+          sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
           fileResultsMetrics.stop
         }
       }
@@ -107,13 +107,22 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
         result match {
           case Success(file) =>
             Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
-            SessionCacheService.updateFileSession(userId, callbackData,
-            Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length)))
+
+            val resultsFileMetaData = Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length))
+
+            fileUploadConnector.getFileMetadata(callbackData.envelopeId, callbackData.fileId, userId).onComplete {
+              case Success(metadata) =>
+                SessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, metadata)
+              case Failure(ex) =>
+                Logger.error(s"Failed to get File Metadata for file (${file.id}), for user ID: $userId.", ex)
+                SessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, None)
+            }
+
             Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
 
           case Failure(ex) => {
             Logger.error(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}")
-            SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None)
+            SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
           }
           //delete result  a future ind
         }
