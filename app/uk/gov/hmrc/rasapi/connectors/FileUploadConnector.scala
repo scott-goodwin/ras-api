@@ -25,6 +25,7 @@ import play.api.Logger
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.models.FileMetadata
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -35,7 +36,6 @@ trait FileUploadConnector extends ServicesConfig {
   val wsHttp: WSHttp
 
   lazy val serviceUrl = baseUrl("file-upload")
-  lazy val fileUploadFEBaseUrl = baseUrl("file-upload-frontend")
   lazy val fileUploadUrlSuffix = getString("file-upload-url-suffix")
 
 
@@ -54,6 +54,25 @@ trait FileUploadConnector extends ServicesConfig {
     }
   }
 
+  def getFileMetadata(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
+
+    Logger.warn(s"Get to file-upload with URI : /file-upload/envelopes/${envelopeId}/files/${fileId}/metadata for userId ($userId).")
+    wsHttp.doGet(s"$serviceUrl/$fileUploadUrlSuffix/${envelopeId}/files/${fileId}/metadata").map { res =>
+      if (res.status == 200) {
+        Logger.warn(s"File metadata successfully retrieved from file-upload for userId ($userId).")
+        Some(res.json.as[FileMetadata])
+      }
+      else {
+        Logger.error(s"Failed to retrieve file metadata for userId ($userId). Status ${res.status}.")
+        None
+      }
+    } recover {
+      case ex: Throwable =>
+        Logger.error(s"Exception thrown while retrieving file metadata for userId ($userId). Session will continue with a default filename.", ex)
+        None
+    }
+  }
+
   def deleteUploadedFile(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
     wsHttp.doDelete(s"$serviceUrl/$fileUploadUrlSuffix/${envelopeId}/files/${fileId}").map { res =>
@@ -66,7 +85,7 @@ trait FileUploadConnector extends ServicesConfig {
         false
        }
     }.recover{
-      case _ => Logger.error(s"failed to execute delete user file => envelopeID : ${envelopeId}/files/${fileId} for userId ($userId).")
+      case _ => Logger.error(s"Failed to execute delete user file => envelopeID : ${envelopeId}/files/${fileId} for userId ($userId).")
         false
     }
   }

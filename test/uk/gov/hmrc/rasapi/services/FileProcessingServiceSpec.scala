@@ -17,7 +17,6 @@
 package uk.gov.hmrc.rasapi.services
 
 import java.io.{ByteArrayInputStream, FileInputStream}
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import org.joda.time.DateTime
@@ -33,6 +32,7 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.http.{HeaderCarrier, RequestTimeoutException}
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models._
@@ -41,10 +41,12 @@ import uk.gov.hmrc.rasapi.repositories.TestFileWriter
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
+import java.nio.charset.StandardCharsets
 
-class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures
-  with MockitoSugar with BeforeAndAfter {
+import play.api.Logger
+
+class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter with RepositoriesHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val fakeReq = FakeRequest("POST", "/residency-status")
@@ -60,6 +62,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   val STATUS_INTERNAL_SERVER_ERROR: String = "INTERNAL_SERVER_ERROR"
   val STATUS_FILE_PROCESSING_MATCHING_FAILED: String = "cannot_provide_status"
+  val STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = "problem-getting-status"
 
   val SUT = new FileProcessingService {
 
@@ -77,6 +80,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
     override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
     override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
+    override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR
   }
 
   def getTestFilePath = {
@@ -123,6 +127,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
+          override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR
         }
 
         when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -143,7 +148,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -159,6 +164,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
+
         Files.deleteIfExists(testFilePath)
 
         verify(mockAuditService, times(4)).audit(
@@ -167,6 +173,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
             "NextCYStatus" -> "otherUKResident",
+            "fileId" -> fileId,
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -193,6 +200,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
+          override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR
         }
 
         when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -213,7 +221,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -237,6 +245,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "scotResident",
             "NextCYStatus" -> "scotResident",
+            "fileId" -> fileId,
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -263,6 +272,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
+          override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR
         }
 
         when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -283,7 +293,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -306,6 +316,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/residency-status"),
           auditData = Meq(Map("successfulLookup" -> "true",
             "CYStatus" -> "otherUKResident",
+            "fileId" -> fileId,
             "nino" -> "LE241131B",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -326,12 +337,12 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
 
           override val DECEASED: String = STATUS_DECEASED
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
+          override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR
         }
 
         when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -352,7 +363,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -375,6 +386,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
+            "fileId" -> fileId,
             "reason" -> "MATCHING_FAILED",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
@@ -401,6 +413,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
           override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
           override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
+          override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR
         }
 
         when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
@@ -421,7 +434,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -444,131 +457,11 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
           path = Meq(s"/residency-status"),
           auditData = Meq(Map("nino" -> "LE241131B",
             "successfulLookup" -> "false",
+            "fileId" -> fileId,
             "reason" -> s"$STATUS_DECEASED",
             "userIdentifier" -> "user1234",
             "requestSource" -> "FE_BULK"))
         )(any())
-      }
-    }
-
-    "Handle requests" when {
-      "it cannot be processed the first time round" in {
-        val testFilePath = getTestFilePath
-
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-
-          override def getCurrentDate: DateTime = new DateTime("2018-06-04")
-
-          override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
-
-          override val DECEASED: String = STATUS_DECEASED
-          override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
-          override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
-          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
-        }
-
-        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
-
-        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
-        when(mockDesConnector.scotRes).thenReturn("scotResident")
-
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2018-2019 residency status" +
-          "LE241131B,Jim,Jimson,1990-02-21,otherUKResident" +
-          "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident" +
-          "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident" +
-          "LE241131B,MICHEAL,SLATER,1990-02-21,otherUKResident"
-
-        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
-        val fileId = Random.nextInt().toString
-        val fileStatus = "AVAILABLE"
-        val reason: Option[String] = None
-        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
-
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
-          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
-
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any()))
-          .thenReturn(Future.failed(new RequestTimeoutException("")))
-          .thenReturn(Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
-
-        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
-
-        await(SUT.processFile("user1234", callbackData))
-
-        Thread.sleep(20000)
-
-        verify(mockDesConnector, times(5)).getResidencyStatus(any(), any())
-
-        val res = await(rasFileRepository.fetchFile(fileId, userId))
-        var result = new String("")
-        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
-        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
-        Files.deleteIfExists(testFilePath)
-      }
-
-      "429 (Too Many Requests) has been returned 3 times already" in {
-        val testFilePath = getTestFilePath
-
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-
-          override def getCurrentDate: DateTime = new DateTime("2018-06-04")
-
-          override val allowDefaultRUK: Boolean = true
-          override val retryLimit: Int = 3
-
-          override val DECEASED: String = STATUS_DECEASED
-          override val MATCHING_FAILED: String = STATUS_MATCHING_FAILED
-          override val INTERNAL_SERVER_ERROR: String = STATUS_INTERNAL_SERVER_ERROR
-          override val FILE_PROCESSING_MATCHING_FAILED: String = STATUS_FILE_PROCESSING_MATCHING_FAILED
-        }
-
-        when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
-        when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
-
-        when(mockDesConnector.otherUk).thenReturn("otherUKResident")
-        when(mockDesConnector.scotRes).thenReturn("scotResident")
-
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2018-2019 residency status" +
-          s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_INTERNAL_SERVER_ERROR" +
-          s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_INTERNAL_SERVER_ERROR" +
-          s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_INTERNAL_SERVER_ERROR" +
-          s"LE241131B,MICHEAL,SLATER,1990-02-21,$STATUS_INTERNAL_SERVER_ERROR"
-
-        val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc651"
-        val fileId = Random.nextInt().toString
-        val fileStatus = "AVAILABLE"
-        val reason: Option[String] = None
-        val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
-
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
-          .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
-
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any()))
-          .thenReturn(Future.successful(Right(ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error."))))
-
-        when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
-
-        await(SUT.processFile("user1234", callbackData))
-
-        Thread.sleep(20000)
-
-        val res = await(rasFileRepository.fetchFile(fileId, userId))
-        var result = new String("")
-        val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
-        result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString
-        Files.deleteIfExists(testFilePath)
       }
     }
   }
@@ -592,13 +485,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     }
 
     "createMatchingData" when {
-      "parse line as raw data and convert to IndividualDetails object" in {
-        val inputData = "AB123456C,John,Smith,1995-02-21"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
-      }
 
       "parse line as raw data and convert to RawMemberDetails object when there are 4 columns with at least one containing empty data" in {
         val inputData = ",Smith,AB123456C,90-02-21"
@@ -606,62 +492,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val result = SUT.createMatchingData(inputData)
 
         result shouldBe Right(List("nino-MISSING_FIELD", "lastName-INVALID_FORMAT", "dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is an invalid date" in {
-        val inputData = "LE241131B,Jim,Jimson,1989-02-31"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a caught invalid date" in {
-        val inputData = "LE241131B,Jim,Jimson,1111-15-15"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a date not in yyyy-mm-dd format" in {
-        val inputData = "LE241131B,Jim,Jimson,89-09-29"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a date in yyyy/mm/dd format" in {
-        val inputData = "LE241131B,Jim,Jimson,1999/09/29"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a date of birth in the future" in {
-        val inputData = "LE241131B,Jim,Jimson,2099-01-01"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is and invalid date format" in {
-        val inputData = "LE241131B,Jim,Jimson,01/01/2017"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
-      }
-
-      "parse line as raw data and convert to RawMemberDetails object when there is a missing date" in {
-        val inputData = "LE241131B,Jim,Jimson,"
-
-        val result = SUT.createMatchingData(inputData)
-
-        result shouldBe Right(List("dateOfBirth-MISSING_FIELD"))
       }
 
       "parse line as raw data and convert to RawMemberDetails object when there are less than 3 columns" in {
@@ -678,6 +508,87 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val result = SUT.createMatchingData(inputData)
 
         result shouldBe Right(List("nino-MISSING_FIELD", "lastName-MISSING_FIELD", "dateOfBirth-MISSING_FIELD", "firstName-MISSING_FIELD"))
+      }
+
+      "date format is dd/mm/yyyy" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,21/02/1995"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is yyyy/mm/dd" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,1995/02/21"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is dd-mm-yyyy" when {
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,21-02-1995"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+      }
+
+      "date format is yyyy-mm-dd" when {
+
+        "parse line as raw data and convert to IndividualDetails object" in {
+          val inputData = "AB123456C,John,Smith,1995-02-21"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Left(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1995-02-21")))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is an invalid date" in {
+          val inputData = "LE241131B,Jim,Jimson,1989-02-31"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a caught invalid date" in {
+          val inputData = "LE241131B,Jim,Jimson,1111-15-15"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a date not in yyyy-mm-dd format" in {
+          val inputData = "LE241131B,Jim,Jimson,89-09-29"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_FORMAT"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a date of birth in the future" in {
+          val inputData = "LE241131B,Jim,Jimson,2099-01-01"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-INVALID_DATE"))
+        }
+
+        "parse line as raw data and convert to RawMemberDetails object when there is a missing date" in {
+          val inputData = "LE241131B,Jim,Jimson,"
+
+          val result = SUT.createMatchingData(inputData)
+
+          result shouldBe Right(List("dateOfBirth-MISSING_FIELD"))
+        }
       }
     }
 
@@ -750,7 +661,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        when(mockSessionCache.updateFileSession(any(), any(), any())(any()))
+        when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
         when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
@@ -783,7 +694,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         await(SUT.manipulateFile(null, "user1234", callbackData, mockSessionCache))
 
         val captor = ArgumentCaptor.forClass(classOf[CallbackData])
-        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any())(any())
+        verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any(), any())(any())
 
         val resultsFileMetaData = captor.getValue
         resultsFileMetaData.status shouldBe "ERROR"
