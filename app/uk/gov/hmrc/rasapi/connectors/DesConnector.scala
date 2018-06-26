@@ -73,7 +73,7 @@ trait DesConnector extends ServicesConfig {
 
       sendResidencyStatusRequest(uri, member, userId, desHeaders)(rasHeaders) flatMap {
         case Left(result) => Future.successful(Left(result))
-        case Right(result) if retryCount <= retryLimit => getResultAndProcess(memberDetails, retryCount + 1)
+        case Right(result) if retryCount < retryLimit => getResultAndProcess(memberDetails, retryCount + 1)
         case Right(result) if retryCount > retryLimit => Future.successful(Right(result))
       }
     }
