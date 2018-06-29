@@ -22,11 +22,12 @@ import org.scalatestplus.play.OneAppPerTest
 import reactivemongo.bson.BSONLong
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.repository.GridFsTTLIndexing
+import RepositoriesHelper.rasFileRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class GridFsTTLIndexingSpec extends UnitSpec with MockitoSugar with OneAppPerTest
-  with BeforeAndAfter with RepositoriesHelper {
+  with BeforeAndAfter {
 
   before{
     rasFileRepository.removeAll()
@@ -37,13 +38,13 @@ class GridFsTTLIndexingSpec extends UnitSpec with MockitoSugar with OneAppPerTes
   "ensure indexes and create if not available" in {
     object GridFsRepo extends GridFsTTLIndexing
     {
-      override lazy val expireAfterSeconds: Long = 60
+      override lazy val expireAfterSeconds: Long = 259200
     }
 
     val update = await(GridFsRepo.addAllTTLs(rasFileRepository.gridFSG))
     Thread.sleep(2000)
    val res =  await(rasFileRepository.gridFSG.files.indexesManager.list())
-    res.filter(_.name.get == "lastUpdatedIndex").head.options.get("expireAfterSeconds").get shouldBe BSONLong(60)
+    res.filter(_.name.get == "lastUpdatedIndex").head.options.get("expireAfterSeconds").get shouldBe BSONLong(259200)
 
   }
 }

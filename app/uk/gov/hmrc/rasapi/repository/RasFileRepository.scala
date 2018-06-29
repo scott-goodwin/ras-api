@@ -28,11 +28,10 @@ import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.config.AppContext
-import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFile}
+import uk.gov.hmrc.rasapi.models.{Chunks, ResultsFile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 
 object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
@@ -46,6 +45,7 @@ object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
     repo
   }
 
+  lazy val chunksRepo: RasChunksRepository = new RasChunksRepository(connection)
 
   // $COVERAGE-ON$
 }
@@ -53,7 +53,7 @@ object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
 class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[CallbackData, BSONObjectID]("rasFileStore", mongo, CallbackData.formats){
+  extends ReactiveRepository[Chunks, BSONObjectID]("rasFileStore", mongo, Chunks.format){
 
   private val contentType =  "text/csv"
   val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
@@ -85,21 +85,34 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
     }
   }
 
-  def removeFile(fileName:String, fileId:String, userId: String): Future[Boolean] = {
-        Logger.debug(s"file to remove => fileName: $fileName, file Id: $fileId for userId ($userId).")
-      gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map{
+  def isFileExists(fileId:BSONObjectID): Future[Option[ResultsFile]] = {
+    Logger.debug(s"Checking if file exists ${fileId} ")
+    gridFSG.find[BSONDocument, ResultsFile](BSONDocument("_id" -> fileId)).headOption.recover{
+      case ex:Throwable =>
+        Logger.error(s"error trying to find if parent file record Exists ${fileId} for . Exception: ${ex.getMessage}")
+        throw new RuntimeException("failed to check file exists due to error" + ex.getMessage)
+    }
+  }
 
-        res =>  res.writeErrors.isEmpty match {
-        case true =>  Await.result(gridFSG.chunks.remove[BSONDocument](BSONDocument("files_id"-> fileId )), 10 second)
+  def removeFile(fileName:String, fileId:String, userId: String): Future[Boolean] = {
+    Logger.debug(s"file to remove => fileName: $fileName, file Id: $fileId for userId ($userId).")
+    gridFSG.find[BSONDocument, ResultsFile](BSONDocument("filename" -> fileName)).headOption.map {
+      metaData =>
+        if(metaData.isDefined)
+          gridFSG.chunks.remove[BSONDocument](BSONDocument("files_id"-> metaData.get.id ))
+    }
+    gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName)).map{
+      res =>  res.writeErrors.isEmpty match {
+        case true =>
           Logger.warn(s"Results file removed successfully for userId ($userId) with the file named $fileName" )
           true
         case false =>  Logger.error(s"error while removing file ${res.writeErrors.toString} for userId ($userId).")
           false
-          }
-      }.recover {
-        case ex: Throwable =>
-          Logger.error(s"error trying to remove file ${fileName} ${ex.getMessage} for userId ($userId).")
-          throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
+      }
+    }.recover {
+      case ex: Throwable =>
+        Logger.error(s"error trying to remove file ${fileName} ${ex.getMessage} for userId ($userId).")
+        throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
     }
   }
 

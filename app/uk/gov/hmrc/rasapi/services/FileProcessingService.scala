@@ -16,20 +16,20 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import java.nio.file.Path
+
 import org.joda.time.DateTime
 import play.api.Logger
+import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models.{CallbackData, FileMetadata, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
 import uk.gov.hmrc.rasapi.repository.RasRepository
-import play.api.mvc.{AnyContent, Request}
-import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 object FileProcessingService extends FileProcessingService {
