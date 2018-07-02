@@ -40,11 +40,11 @@ class RasChunksRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Exec
 
   }
 
-  def removeChunk(filesId:BSONObjectID) = {
-    val query = BSONDocument("files_id" -> filesId)
+  def removeChunk(fileId:BSONObjectID) = {
+    val query = BSONDocument("files_id" -> fileId)
     collection.remove(query).map(res=> res.writeErrors.isEmpty).recover{
       case ex:Throwable =>
-        Logger.error(s"error removing chunk ${filesId} with the exception ${ex.getMessage}.")
+        Logger.error(s"error removing chunk ${fileId} with the exception ${ex.getMessage}.")
         false
     }
   }

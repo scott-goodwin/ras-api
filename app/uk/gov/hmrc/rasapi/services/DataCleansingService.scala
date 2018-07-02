@@ -32,29 +32,30 @@ trait DataCleansingService {
     for {
       chunks <- RasRepository.chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
 
-      fileInfoList <- {       Logger.warn("1 ~~~~~~~~####### chunks to verify #########~~~~~~:-" + chunks.size )
-
-        processFutures(chunks)(RasRepository.filerepo.isFileExists(_))}
+      fileInfoList <- {
+        Logger.warn(s"Size of chunks to verify is: ${chunks.size}" )
+        processFutures(chunks)(RasRepository.filerepo.isFileExists(_))
+      }
 
       chunksDeleted <- {
         val parentFileIds = fileInfoList.filter(_.isDefined).map(rec => rec.get.id.asInstanceOf[BSONObjectID])
         val chunksToBeDeleted = chunks.diff(parentFileIds)
-        Logger.warn("2 ~~~~~~~~####### fileId's to be deleted #########~~~~~~:-"+ chunksToBeDeleted.size )
+        Logger.warn(s"Size of fileId's to be deleted is: ${chunksToBeDeleted}")
 
         val res = processFutures(chunksToBeDeleted)(fileId => {
-          Logger.warn("3 ~~~~~###### RAS fileId being deleted  #########~~~~~~" + fileId)
-          RasRepository.chunksRepo.removeChunk(fileId)
+          Logger.warn(s"fileId to be deleted is: ${fileId}")
+          RasRepository.chunksRepo.removeChunk(fileId).map{
+            case true => Logger.warn(s"Chunk deletion succeeded, fileId is: ${fileId}")
+            case false => Logger.warn(s"Chunk deletion failed, fileId is: ${fileId}")
+          }
         })
         Future(chunksToBeDeleted)
       }
-
     } yield chunksDeleted
-
   }
 
   //Further refactor can be done on this
-  private def processFutures[A, B](seq: Iterable[A])(fn: A => Future[B])
-  : Future[List[B]] =
+  private def processFutures[A, B](seq: Iterable[A])(fn: A => Future[B]): Future[List[B]] =
     seq.foldLeft(Future(List.empty[B])) {
       (previousFuture, next) =>
         for {
@@ -62,5 +63,4 @@ trait DataCleansingService {
           next <- fn(next)
         } yield previousResults :+ next
     }
-
 }

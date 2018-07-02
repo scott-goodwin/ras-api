@@ -50,8 +50,8 @@ trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
       case false => Logger.warn("Registration in Service Locator is disabled")
     }
     AppContext.removeChunksDataExerciseEnabled match {
-      case true => {Logger.info("Starting Data Exercise for removing of chunks"); DataCleansingService.removeOrphanedChunks()}
-      case false => Logger.warn("No data Exercise carried ")
+      case true => {Logger.info("Starting data exercise for removing of chunks"); DataCleansingService.removeOrphanedChunks()}
+      case false => Logger.warn("No data exercise carried")
 
     }
   }
