@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.repository.RasRepository
+import uk.gov.hmrc.rasapi.repository.RasChunksRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -45,6 +46,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
   val fileRemove = "File-Remove"
   val fileServe = "File-Read"
   private val _contentType =   "application/csv"
+  lazy val chunksRepo = RasRepository.chunksRepo
 
   def serveFile(fileName:String):  Action[AnyContent] = Action.async {
     implicit request =>
@@ -83,6 +85,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
           deleteFile(fileName, fileId:String, id).map{ res=>
+            chunksRepo.removeChunk()
             apiMetrics.stop()
             if(res) Ok("") else InternalServerError
           }.recover {

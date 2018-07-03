@@ -24,6 +24,7 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.models.Chunks
 
 import scala.concurrent.ExecutionContext
+
 class RasChunksRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
   extends ReactiveRepository[Chunks, BSONObjectID]("resultsFiles.chunks", mongo, Chunks.format){
   def getAllChunks() ={

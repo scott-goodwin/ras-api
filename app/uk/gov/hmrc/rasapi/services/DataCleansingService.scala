@@ -33,7 +33,7 @@ trait DataCleansingService {
       chunks <- RasRepository.chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
 
       fileInfoList <- {
-        Logger.warn(s"Size of chunks to verify is: ${chunks.size}" )
+        Logger.warn(s"[data-cleansing-exercise] [chunk-size] Size of chunks to verify is: ${chunks.size}" )
         processFutures(chunks)(RasRepository.filerepo.isFileExists(_))
       }
 
