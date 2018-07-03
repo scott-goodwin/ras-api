@@ -95,11 +95,30 @@ trait DesConnector extends ServicesConfig {
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
-      result.map(response => resolveResponse(response, userId, member.nino)).recover {
-        case _ =>
-          Logger.error(s"[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD. userId ($userId).")
-          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-      }
+    result.map(response => resolveResponse(response, userId, member.nino)).recover {
+      case badRequestEx: BadRequestException =>
+        Logger.error(s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
+          s"valid. userId ($userId).")
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case notFoundEx: NotFoundException =>
+        Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
+      case tooManyEx: TooManyRequestException =>
+        Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
+          s"from the HoD. userId ($userId).")
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case requestTimeOutEx: RequestTimeoutException =>
+        Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case serviceUnavailable: ServiceUnavailableException =>
+        Logger.error(s"[DesConnector] [getResidencyStatus] Service unavailable. userId ($userId).")
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case th: Throwable =>
+        Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. userId ($userId).Exception message: ${th.getMessage}.")
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case _ =>
+        Logger.error(s"[DesConnector] [getResidencyStatus] Uncaught error occurred when calling the HoD. userId ($userId).")
+        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+    }
   }
 
   private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
@@ -126,22 +145,6 @@ trait DesConnector extends ServicesConfig {
               Left(ResidencyStatus(currentStatus, nextYearStatus))
             }
           }
-        }
-
-      case Failure(_) =>
-        httpResponse.status match {
-          case 400 => Logger.error("DesConnector resolveResponse | Data sent to the HOD was not sent in the correct format.")
-            Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
-          case 404 => Logger.info("DesConnector resolveResponse | Member not found.")
-            Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
-          case 408 => Logger.info("DesConnector resolveResponse | Request timed out.")
-            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-          case 429 => Logger.info("DesConnector resolveResponse | Too many requests sent to the HoD.")
-            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-          case 503 => Logger.info("DesConnector resolveResponse | Service Unavailable.")
-            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
-          case _ => Logger.error(s"Error from DES :${httpResponse.status} for userId ($userId).")
-            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
         }
     }
   }
