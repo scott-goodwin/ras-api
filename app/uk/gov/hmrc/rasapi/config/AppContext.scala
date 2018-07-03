@@ -42,4 +42,6 @@ object AppContext extends ServicesConfig {
   lazy val fileProcessingMatchingFailedStatus: String = current.configuration.getString("status.matching-failed.csv").getOrElse("cannot_provide_status")
   lazy val fileProcessingInternalServerErrorStatus: String = current.configuration.getString("status.internal-server-error.csv").getOrElse("problem-getting-status")
   lazy val internalServerErrorStatus: String = current.configuration.getString("status.internal-server-error.api").getOrElse("INTERNAL_SERVER_ERROR")
+  lazy val removeChunksDataExerciseEnabled: Boolean = current.configuration.getBoolean("remove-chunks-data-exercise.enabled").getOrElse(false)
+
 }

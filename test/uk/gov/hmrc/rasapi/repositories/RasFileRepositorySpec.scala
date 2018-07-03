@@ -17,20 +17,26 @@
 package uk.gov.hmrc.rasapi.repositories
 
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerTest
 import play.api.Logger
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import RepositoriesHelper.rasFileRepository
+import RepositoriesHelper.createFile
+import reactivemongo.bson.BSONObjectID
 
 class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest
-  with BeforeAndAfter with RepositoriesHelper {
+  with BeforeAndAfter  {
 
   val userId: String = "A1234567"
 
   before{
+    rasFileRepository.removeAll()
+  }
+  after{
     rasFileRepository.removeAll()
   }
 
@@ -43,27 +49,39 @@ class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTes
       val result =  await(rasFileRepository.getFile(file))
         val actual = result.toArray
       Logger.debug(actual.mkString)
-        actual shouldBe resultsArr
+        actual shouldBe RepositoriesHelper.resultsArr
     }
 
     "get File" in {
-      val resultFile = await(saveTempFile)
+      val resultFile = await(RepositoriesHelper.saveTempFile("user123","envelope123","file123"))
       Logger.debug("resultFile.id.toString  -> " + resultFile.id.toString)
       val res = await(rasFileRepository.fetchFile(resultFile.filename.get, userId))
      // res.get.data. shouldBe tempFile
       val result = ListBuffer[String]()
-      res.get.data run getAll map {bytes => result += new String(bytes)}
+      res.get.data run RepositoriesHelper.getAll map {bytes => result += new String(bytes)}
     }
 
 
     "removeFile" in {
-      val resultFile = await(saveTempFileToRemove)
-      Logger.warn(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
+      val resultFile = await(RepositoriesHelper.saveTempFile("user222","envelope222","file222"))
+      Logger.debug(s"file to remove ---> name : ${resultFile.filename.get} id = ${resultFile.id}  " )
 
       val res = await(rasFileRepository.removeFile(resultFile.filename.get,resultFile.id.toString, userId))
       res shouldBe true
       val fileData = await(rasFileRepository.fetchFile(resultFile.filename.get, userId))
       fileData.isDefined shouldBe false
     }
+
+    "check if File exists" in {
+      val resultFile = await(RepositoriesHelper.saveTempFile("user124","envelope124","file444"))
+      Logger.debug("resultFile.id.toString  -> " + resultFile.id.toString)
+      val res = await(rasFileRepository. isFileExists(
+        resultFile.id.asInstanceOf[BSONObjectID]))
+      // res.get.data. shouldBe tempFile
+        res.isDefined shouldBe true
+      await(rasFileRepository.removeFile(resultFile.filename.get,resultFile.id.toString, userId))
+
+    }
+
   }
 }

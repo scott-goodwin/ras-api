@@ -17,6 +17,14 @@
 package uk.gov.hmrc.rasapi.models
 
 import play.api.libs.json.Json
+import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+
+case class FileMetadata(id: String, name: Option[String], created: Option[String])
+
+object FileMetadata {
+  implicit val format = Json.format[FileMetadata]
+}
 
 case class CallbackData(envelopeId: String, fileId: String, status: String, reason: Option[String])
 
@@ -31,10 +39,10 @@ object ResultsFileMetaData {
 
 }
 
-case class FileMetadata(id: String, name: Option[String], created: Option[String])
-
-object FileMetadata {
-  implicit val format = Json.format[FileMetadata]
+case class Chunks(_id:BSONObjectID, files_id:BSONObjectID)
+object Chunks {
+  implicit val objectIdformats = ReactiveMongoFormats.objectIdFormats
+  implicit  val format = Json.format[Chunks]
 }
 
 case class FileSession(userFile: Option[CallbackData], resultsFile: Option[ResultsFileMetaData], userId: String, uploadTimeStamp : Option[Long], fileMetadata: Option[FileMetadata])
@@ -42,3 +50,4 @@ case class FileSession(userFile: Option[CallbackData], resultsFile: Option[Resul
 object FileSession {
   implicit val format = Json.format[FileSession]
 }
+
