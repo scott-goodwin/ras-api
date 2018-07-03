@@ -40,6 +40,7 @@ object ResultsFileMetaData {
 }
 
 case class Chunks(_id:BSONObjectID, files_id:BSONObjectID)
+
 object Chunks {
   implicit val objectIdformats = ReactiveMongoFormats.objectIdFormats
   implicit  val format = Json.format[Chunks]
@@ -50,4 +51,3 @@ case class FileSession(userFile: Option[CallbackData], resultsFile: Option[Resul
 object FileSession {
   implicit val format = Json.format[FileSession]
 }
-
