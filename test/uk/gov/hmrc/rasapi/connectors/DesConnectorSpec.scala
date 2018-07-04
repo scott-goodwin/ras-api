@@ -23,7 +23,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{NotFoundException, _}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models._
@@ -138,7 +138,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       implicit val formatF = ResidencyStatusFormats.failureFormats
       val errorResponse = ResidencyStatusFailure("STATUS_UNAVAILABLE", "Cannot provide a residency status for this pension scheme member.")
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(404, Some(Json.toJson(errorResponse)))))
+        thenThrow(new NotFoundException("Individual not matched"))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 
@@ -179,10 +179,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
     "handle bad request from des" in {
       implicit val formatF = ResidencyStatusFormats.failureFormats
-      val httpErrorResponse = ResidencyStatusFailure("BAD_REQUEST", "Bad Request")
       val expectedErrorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(400, Some(Json.toJson(httpErrorResponse)))))
+        thenThrow(new BadRequestException("Bad Request"))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 
