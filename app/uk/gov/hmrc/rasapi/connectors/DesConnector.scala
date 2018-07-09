@@ -75,12 +75,12 @@ trait DesConnector extends ServicesConfig {
 
       if (retryCount > 1) {
         Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount for userId ($userId).")
-        Thread.sleep(retryDelay) //Delay before sending to HoD to try to avoid transactions per second(tps) clash
       }
 
       sendResidencyStatusRequest(uri, member, userId, desHeaders)(rasHeaders) flatMap {
         case Left(result) => Future.successful(Left(result))
         case Right(result) if retryCount < retryLimit && isCodeRetryable(result.code) =>
+          Thread.sleep(retryDelay) //Delay before sending to HoD to try to avoid transactions per second(tps) clash
           getResultAndProcess(memberDetails, retryCount + 1)
         case Right(result) if retryCount >= retryLimit || !isCodeRetryable(result.code) =>
           Future.successful(Right(result.copy(code = result.code.replace(error_DoNotReProcess, error_InternalServerError))))
