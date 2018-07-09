@@ -77,7 +77,7 @@ trait DesConnector extends ServicesConfig {
         Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount for userId ($userId).")
       }
 
-      Thread.sleep(1000) // Testing results to see if improved processing or not
+//      Thread.sleep(1000) // Testing results to see if improved processing or not
 
       sendResidencyStatusRequest(uri, member, userId, desHeaders)(rasHeaders) flatMap {
         case Left(result) => Future.successful(Left(result))
