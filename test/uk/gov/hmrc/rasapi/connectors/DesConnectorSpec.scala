@@ -56,6 +56,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val error_MatchingFailed: String = AppContext.matchingFailedStatus
     override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
     override val retryLimit: Int = 3
+    override val retryDelay: Int = 500
     override val desUrlHeaderEnv: String = "DES HEADER"
     override val desAuthToken: String = "DES AUTH TOKEN"
   }
@@ -115,6 +116,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val retryLimit: Int = 3
+        override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
         override val desAuthToken: String = "DES AUTH TOKEN"
       }

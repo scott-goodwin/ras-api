@@ -96,7 +96,6 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       {
         case ex: NullPointerException => {
           Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
-//          ex.printStackTrace()
           sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
           fileResultsMetrics.stop
         }
@@ -121,8 +120,6 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       fileRepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
         result =>
 
-          Logger.warn("######################################## SAVE FILE ON COMPLETE") //TODO: Remove
-
           result match {
             case Success(file) =>
               Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
@@ -133,26 +130,20 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
                 case Success(metadata) =>
                   sessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, metadata)
                 case Failure(ex) =>
-                  Logger.warn(s"Failed to get File Metadata for file (${file.id}), for user ID: $userId.", ex) //TODO: Change warn back to error
+                  Logger.error(s"Failed to get File Metadata for file (${file.id}), for user ID: $userId.", ex)
                   sessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, None)
               }
 
               Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
 
             case Failure(ex) => {
-              Logger.warn(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}") //TODO: Change warn back to error
+              Logger.error(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}")
               sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
             }
             //delete result  a future ind
           }
           fileSaveMetrics.stop
           fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId, userId)
-      }
-    } catch {
-      case ex: NullPointerException => {
-        Logger.error(s"###### Caught Null pointer")
-//        ex.printStackTrace()
-        throw ex
       }
     }
   }

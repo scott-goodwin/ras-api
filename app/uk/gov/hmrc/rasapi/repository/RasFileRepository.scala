@@ -59,7 +59,7 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
   val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
 
   def saveFile(userId:String, envelopeId: String, filePath: Path, fileId: String): Future[ResultsFile] = {
-    Logger.warn("[RasFileRepository] Starting to save file...") // TODO: Remove
+    Logger.info("[RasFileRepository] Starting to save file")
     val fileToSave = DefaultFileToSave(s"${fileId}", Some(contentType),
       metadata = BSONDocument("envelopeId" -> envelopeId, "fileId" -> fileId, "userId" -> userId))
 
@@ -67,7 +67,7 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
       logger.warn(s"Saved File id is ${res.id} for userId ($userId)")
       res
     }.recover{case ex:Throwable =>
-        Logger.warn(s"error saving file -> $fileId for userId ($userId). Exception: ${ex.getMessage}") //TODO: Change back to error from warn
+        Logger.error(s"error saving file -> $fileId for userId ($userId). Exception: ${ex.getMessage}")
         throw new RuntimeException(s"failed to save file due to error" + ex.getMessage)
     }
   }
@@ -116,5 +116,4 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Execut
         throw new RuntimeException("failed to remove file due to error" + ex.getMessage)
     }
   }
-
 }
