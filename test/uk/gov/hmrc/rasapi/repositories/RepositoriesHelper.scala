@@ -42,6 +42,7 @@ object TestFileWriter extends RasFileWriter
       data.foreach { line => outputStream.write(line.toString)
         outputStream.newLine
       }
+
       file
     }
     catch {

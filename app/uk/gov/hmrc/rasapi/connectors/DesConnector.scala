@@ -99,7 +99,7 @@ trait DesConnector extends ServicesConfig {
       case badRequestEx: BadRequestException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
           s"valid. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
       case notFoundEx: NotFoundException =>
         Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
       case tooManyEx: TooManyRequestException =>
@@ -108,7 +108,7 @@ trait DesConnector extends ServicesConfig {
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
       case requestTimeOutEx: RequestTimeoutException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
       case serviceUnavailable: ServiceUnavailableException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Service unavailable. userId ($userId).")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
@@ -122,6 +122,7 @@ trait DesConnector extends ServicesConfig {
   }
 
   private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
+
     Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
       case Success(payload) =>
         payload.deseasedIndicator match {
@@ -145,6 +146,13 @@ trait DesConnector extends ServicesConfig {
               Left(ResidencyStatus(currentStatus, nextYearStatus))
             }
           }
+        }
+      case Failure(_) =>
+        Try(httpResponse.json.as[ResidencyStatusFailure](ResidencyStatusFormats.failureFormats)) match {
+          case Success(data) => Logger.debug(s"DesFailureResponse from DES :${data}")
+            Right(data)
+          case Failure(ex) => Logger.error(s"Error from DES :${ex.getMessage}")
+            Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
         }
     }
   }

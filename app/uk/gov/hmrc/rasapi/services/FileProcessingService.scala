@@ -27,7 +27,7 @@ import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
-import uk.gov.hmrc.rasapi.repository.RasRepository
+import uk.gov.hmrc.rasapi.repository.{RasFileRepository, RasRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -38,6 +38,8 @@ object FileProcessingService extends FileProcessingService {
   override val desConnector: DesConnector = DesConnector
   override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
   override val auditService: AuditService = AuditService
+  override val sessionCacheService: SessionCacheService = SessionCacheService
+  override val fileRepo: RasFileRepository = RasRepository.filerepo
   override def getCurrentDate: DateTime = DateTime.now()
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   override val DECEASED: String = AppContext.deceasedStatus
@@ -47,7 +49,11 @@ object FileProcessingService extends FileProcessingService {
   override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = AppContext.fileProcessingInternalServerErrorStatus
 }
 
-trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator with SessionCacheService {
+trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator {
+
+  val sessionCacheService: SessionCacheService
+  val fileRepo: RasFileRepository
+
   val fileProcess = "File-Processing"
   val fileRead = "File-Upload-Read"
   val fileResults = "File-Results"
@@ -63,14 +69,14 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       inputFileData =>
         if(inputFileData.isSuccess)
         {
-          manipulateFile(inputFileData, userId, callbackData, SessionCacheService)
+          manipulateFile(inputFileData, userId, callbackData)
         }
     }
 
     fileMetrics.stop
   }
 
-  def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData, sessionCacheService: SessionCacheService)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
+  def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileResultsMetrics = Metrics.register(fileResults).time
     val writer = createFileWriter(callbackData.fileId, userId)
 
@@ -88,6 +94,12 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
     } catch
       {
+        case ex: NullPointerException => {
+          Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
+//          ex.printStackTrace()
+          sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
+          fileResultsMetrics.stop
+        }
         case ex:Throwable => {
           Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
           sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
@@ -101,33 +113,47 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   }
 
   def saveFile(filePath: Path, userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
+
+    Logger.warn("[FileProcessingService] Starting to save file...")
+
     val fileSaveMetrics = Metrics.register(fileSave).time
-    RasRepository.filerepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
-      result =>
-        result match {
-          case Success(file) =>
-            Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
+    try {
+      fileRepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
+        result =>
 
-            val resultsFileMetaData = Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length))
+          Logger.warn("######################################## SAVE FILE ON COMPLETE") //TODO: Remove
 
-            fileUploadConnector.getFileMetadata(callbackData.envelopeId, callbackData.fileId, userId).onComplete {
-              case Success(metadata) =>
-                SessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, metadata)
-              case Failure(ex) =>
-                Logger.error(s"Failed to get File Metadata for file (${file.id}), for user ID: $userId.", ex)
-                SessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, None)
+          result match {
+            case Success(file) =>
+              Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
+
+              val resultsFileMetaData = Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length))
+
+              fileUploadConnector.getFileMetadata(callbackData.envelopeId, callbackData.fileId, userId).onComplete {
+                case Success(metadata) =>
+                  sessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, metadata)
+                case Failure(ex) =>
+                  Logger.warn(s"Failed to get File Metadata for file (${file.id}), for user ID: $userId.", ex) //TODO: Change warn back to error
+                  sessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, None)
+              }
+
+              Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
+
+            case Failure(ex) => {
+              Logger.warn(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}") //TODO: Change warn back to error
+              sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
             }
-
-            Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
-
-          case Failure(ex) => {
-            Logger.error(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}")
-            SessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
+            //delete result  a future ind
           }
-          //delete result  a future ind
-        }
-        fileSaveMetrics.stop
-        fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId, userId)
+          fileSaveMetrics.stop
+          fileUploadConnector.deleteUploadedFile(callbackData.envelopeId, callbackData.fileId, userId)
+      }
+    } catch {
+      case ex: NullPointerException => {
+        Logger.error(s"###### Caught Null pointer")
+//        ex.printStackTrace()
+        throw ex
+      }
     }
   }
 

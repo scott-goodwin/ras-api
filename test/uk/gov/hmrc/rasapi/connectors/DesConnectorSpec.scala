@@ -138,7 +138,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       implicit val formatF = ResidencyStatusFormats.failureFormats
       val errorResponse = ResidencyStatusFailure("STATUS_UNAVAILABLE", "Cannot provide a residency status for this pension scheme member.")
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenThrow(new NotFoundException("Individual not matched"))
+        thenReturn(Future.successful(HttpResponse(404, Some(Json.toJson(errorResponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 
@@ -165,9 +165,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
     "handle unexpected responses as 500 from des" in {
       implicit val formatF = ResidencyStatusFormats.failureFormats
-      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(500)))
       val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+        thenReturn(Future.successful(HttpResponse(500, Some(Json.toJson(errorResponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 
@@ -180,8 +180,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     "handle bad request from des" in {
       implicit val formatF = ResidencyStatusFormats.failureFormats
       val expectedErrorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+      val errorResponse = ResidencyStatusFailure("DO_NOT_RE_PROCESS", "Internal server error.")
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenThrow(new BadRequestException("Bad Request"))
+        thenReturn(Future.successful(HttpResponse(400, Some(Json.toJson(errorResponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 
