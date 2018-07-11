@@ -85,10 +85,18 @@ trait ResultsGenerator {
   }
 
   private def parseString(inputRow: String) = {
+    //val cols = removeDoubleQuotes(inputRow).split(comma)
     val cols = inputRow.split(comma)
     val res = cols ++ (for (x <- 0 until 4- cols.length ) yield "")
     RawMemberDetails(res(0),res(1),res(2),res(3))
   }
+
+  /*def removeDoubleQuotes(inputRow: String): String = {
+    inputRow match {
+      case s if s.startsWith("\"") && s.endsWith("\"") => s.drop(1).dropRight(1)
+      case _ => inputRow
+    }
+  }*/
 
   private def updateResidencyResponse(residencyStatus: ResidencyStatus): ResidencyStatus = {
 

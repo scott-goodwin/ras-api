@@ -584,6 +584,21 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
     }
 
+    /*"removeDoubleQuotes function" should {
+      "return the same string if it had no quotation marks" in {
+        val testString = "String with no quotation marks"
+        SUT.removeDoubleQuotes(testString) shouldBe testString
+      }
+      "return the same string if only one quotation mark is present" in {
+        val testString = "String with ending quotation mark\""
+        SUT.removeDoubleQuotes(testString) shouldBe testString
+      }
+      "return the string minus starting and ending quotation marks if both present" in {
+        val testString = "\"String with both quotation marks\""
+        SUT.removeDoubleQuotes(testString) shouldBe "String with both quotation marks"
+      }
+    }*/
+
     val data = IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1992-02-21"))
 
     "fetch result" when {
