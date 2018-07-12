@@ -51,7 +51,7 @@ trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
     }
     AppContext.removeChunksDataExerciseEnabled match {
       case true => {
-        Logger.info("[data-cleansing-exercise] [on-start] Starting data exercise for removing of chunks");
+        Logger.info("[data-cleansing-exercise] [on-start] Starting data exercise for removing of chunks")
         DataCleansingService.removeOrphanedChunks()
       }
       case false => Logger.warn("[data-cleansing-exercise] [on-start] No data exercise carried")

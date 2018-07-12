@@ -23,6 +23,7 @@ import play.api.http.HttpEntity
 import play.api.libs.json.Json.toJson
 import play.api.libs.streams.Streams
 import play.api.mvc.{Action, AnyContent, Request, Result}
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
@@ -31,13 +32,17 @@ import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.repository.RasRepository
 import uk.gov.hmrc.rasapi.repository.RasChunksRepository
+import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 
 object FileController extends FileController{
   override val authConnector: AuthConnector = RasAuthConnector
+  override val auditService: AuditService = AuditService
+  override lazy val chunksRepo = RasRepository.chunksRepo
 
 }
 
@@ -46,7 +51,9 @@ trait FileController extends BaseController with AuthorisedFunctions{
   val fileRemove = "File-Remove"
   val fileServe = "File-Read"
   private val _contentType =   "application/csv"
-  lazy val chunksRepo = RasRepository.chunksRepo
+  val chunksRepo: RasChunksRepository
+  val auditService: AuditService
+  def parseStringIdToBSONObjectId(id: String): Try[BSONObjectID] = BSONObjectID.parse(id)
 
   def serveFile(fileName:String):  Action[AnyContent] = Action.async {
     implicit request =>
@@ -85,10 +92,30 @@ trait FileController extends BaseController with AuthorisedFunctions{
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
           deleteFile(fileName, fileId:String, id).map{ res=>
+            parseStringIdToBSONObjectId(fileId) match {
+              case Success(bsonId) => chunksRepo.removeChunk(bsonId).map{
+                case true => Logger.warn(s"[FileController][remove] Chunk deletion succeeded, fileId is: ${fileId}")
+                  auditService.audit(auditType = "FileDeletion",
+                    path = request.path,
+                    auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "true")
+                  )
+                case false => Logger.error(s"[FileController][remove] Chunk deletion failed, fileId is: ${fileId}")
+                  auditService.audit(auditType = "FileDeletion",
+                    path = request.path,
+                    auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false")
+                  )
+              }
+              case Failure(ex) => Logger.error(s"[FileController][remove] The following fileId ($fileId) could not be converted to a BSONObjectId.")
+                auditService.audit(auditType = "FileDeletion",
+                  path = request.path,
+                  auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false",
+                    "reason" -> "fileId could not be converted to BSONObjectId")
+                )
+            }
             apiMetrics.stop()
             if(res) Ok("") else InternalServerError
           }.recover {
-            case ex: Throwable => Logger.error(s"[FileController] [remove] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
+            case ex: Throwable => Logger.error(s"[FileController][remove] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
               InternalServerError
           }
       } recoverWith{
