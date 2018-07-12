@@ -41,7 +41,7 @@ import uk.gov.hmrc.rasapi.repositories.TestFileWriter
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
 
@@ -584,21 +584,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
     }
 
-    /*"removeDoubleQuotes function" should {
-      "return the same string if it had no quotation marks" in {
-        val testString = "String with no quotation marks"
-        SUT.removeDoubleQuotes(testString) shouldBe testString
-      }
-      "return the same string if only one quotation mark is present" in {
-        val testString = "String with ending quotation mark\""
-        SUT.removeDoubleQuotes(testString) shouldBe testString
-      }
-      "return the string minus starting and ending quotation marks if both present" in {
-        val testString = "\"String with both quotation marks\""
-        SUT.removeDoubleQuotes(testString) shouldBe "String with both quotation marks"
-      }
-    }*/
-
     val data = IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1992-02-21"))
 
     "fetch result" when {
@@ -697,8 +682,9 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val fileStatus = "AVAILABLE"
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+        val inputFileData = Try(Iterator("\"LE241131B,Jim,Jimson,1990-02-21\""))
 
-        await(SUT.manipulateFile(null, "user1234", callbackData, mockSessionCache))
+        await(SUT.manipulateFile(inputFileData, "user1234", callbackData, mockSessionCache))
 
         val captor = ArgumentCaptor.forClass(classOf[CallbackData])
         verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any(), any())(any())
