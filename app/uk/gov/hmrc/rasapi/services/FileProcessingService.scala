@@ -74,11 +74,22 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     val fileResultsMetrics = Metrics.register(fileResults).time
     val writer = createFileWriter(callbackData.fileId, userId)
 
+    def removeDoubleQuotes(row: String): String = {
+      row match {
+        case s if s.startsWith("\"") && s.endsWith("\"") => s.drop(1).dropRight(1)
+        case _ => row
+      }
+    }
+
     try{
       val dataIterator = inputFileData.get.toList
       Logger.warn(s"file data size ${dataIterator.size} for user $userId")
       writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings", userId)
-      dataIterator.foreach(row => if (!row.isEmpty) writeResultToFile(writer._2,fetchResult(row,userId,callbackData.fileId), userId) )
+      dataIterator.foreach(row =>
+        if (!row.isEmpty) {
+          writeResultToFile(writer._2,fetchResult(removeDoubleQuotes(row),userId,callbackData.fileId), userId)
+        }
+      )
       closeWriter(writer._2)
       fileResultsMetrics.stop
 

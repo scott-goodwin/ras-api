@@ -41,7 +41,7 @@ import uk.gov.hmrc.rasapi.repositories.TestFileWriter
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
 
@@ -682,8 +682,9 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val fileStatus = "AVAILABLE"
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+        val inputFileData = Try(Iterator("\"LE241131B,Jim,Jimson,1990-02-21\""))
 
-        await(SUT.manipulateFile(null, "user1234", callbackData, mockSessionCache))
+        await(SUT.manipulateFile(inputFileData, "user1234", callbackData, mockSessionCache))
 
         val captor = ArgumentCaptor.forClass(classOf[CallbackData])
         verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any(), any())(any())
