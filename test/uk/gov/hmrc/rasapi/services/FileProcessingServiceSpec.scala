@@ -732,7 +732,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
         val inputFileData = Try(Iterator("\"LE241131B,Jim,Jimson,1990-02-21\""))
 
-        await(SUT.manipulateFile(inputFileData, "user1234", callbackData, mockSessionCache))
+        await(SUT.manipulateFile(inputFileData, "user1234", callbackData))
 
         val captor = ArgumentCaptor.forClass(classOf[CallbackData])
         verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any(), any())(any())
