@@ -30,8 +30,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.repository.RasRepository
-import uk.gov.hmrc.rasapi.repository.RasChunksRepository
+import uk.gov.hmrc.rasapi.repository.{RasChunksRepository, RasFileRepository, RasRepository}
 import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,11 +38,13 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 
-object FileController extends FileController{
+object FileController extends FileController {
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val authConnector: AuthConnector = RasAuthConnector
   override val auditService: AuditService = AuditService
   override lazy val chunksRepo = RasRepository.chunksRepo
-
+  override lazy val fileRepo = RasRepository.filerepo
+  // $COVERAGE-ON$
 }
 
 trait FileController extends BaseController with AuthorisedFunctions{
@@ -52,6 +53,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
   val fileServe = "File-Read"
   private val _contentType =   "application/csv"
   val chunksRepo: RasChunksRepository
+  val fileRepo: RasFileRepository
   val auditService: AuditService
   def parseStringIdToBSONObjectId(id: String): Try[BSONObjectID] = BSONObjectID.parse(id)
 
@@ -93,24 +95,33 @@ trait FileController extends BaseController with AuthorisedFunctions{
           val id = getEnrolmentIdentifier(enrols)
           deleteFile(fileName, fileId:String, id).map{ res=>
             parseStringIdToBSONObjectId(fileId) match {
-              case Success(bsonId) => chunksRepo.removeChunk(bsonId).map{
-                case true => Logger.warn(s"[FileController][remove] Chunk deletion succeeded, fileId is: ${fileId}")
+              case Success(bsonId) => chunksRepo.removeChunk(bsonId).map{ isChunkRemoved =>
+                if (isChunkRemoved) {
+                  Logger.warn(s"[FileController][remove] Chunk deletion succeeded, fileId is: ${fileId}")
                   auditService.audit(auditType = "FileDeletion",
                     path = request.path,
                     auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "true")
                   )
-                case false => Logger.error(s"[FileController][remove] Chunk deletion failed, fileId is: ${fileId}")
+                } else {
                   auditService.audit(auditType = "FileDeletion",
                     path = request.path,
                     auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false")
                   )
+                  Logger.error(s"[FileController][remove] Chunk deletion failed, fileId is: ${fileId}")
+                }
+              }.recover{
+                case ex: Throwable => {
+                  println(Console.YELLOW + s"Caught exception: ${ex.getMessage} ${ex.printStackTrace}" + Console.WHITE)
+                }
               }
-              case Failure(ex) => Logger.error(s"[FileController][remove] The following fileId ($fileId) could not be converted to a BSONObjectId.")
+              case Failure(ex) => {
+                Logger.error(s"[FileController][remove] The following fileId ($fileId) could not be converted to a BSONObjectId.")
                 auditService.audit(auditType = "FileDeletion",
                   path = request.path,
                   auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false",
                     "reason" -> "fileId could not be converted to BSONObjectId")
                 )
+              }
             }
             apiMetrics.stop()
             if(res) Ok("") else InternalServerError
@@ -124,8 +135,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
   }
 
   private def handleAuthFailure(implicit request: Request[_]): PartialFunction[Throwable, Future[Result]] =
-    PartialFunction[Throwable, Future[Result]]
-  {
+    PartialFunction[Throwable, Future[Result]] {
       case ex:InsufficientEnrolments => Logger.warn("[FileController] [handleAuthFailure] Insufficient privileges")
         Metrics.registry.counter(UNAUTHORIZED.toString)
 
@@ -141,9 +151,9 @@ trait FileController extends BaseController with AuthorisedFunctions{
 
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
 
-  def getFile(name:String, userId: String) = RasRepository.filerepo.fetchFile(name, userId)
+  def getFile(name:String, userId: String) = fileRepo.fetchFile(name, userId)
 
-  def deleteFile(name:String, fileId:String, userId: String):Future[Boolean] = RasRepository.filerepo.removeFile(name,fileId,userId)
+  def deleteFile(name:String, fileId:String, userId: String):Future[Boolean] = fileRepo.removeFile(name,fileId,userId)
   // $COVERAGE-ON$
 
 

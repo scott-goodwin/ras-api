@@ -33,7 +33,7 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
-import uk.gov.hmrc.rasapi.repository.{FileData, RasChunksRepository}
+import uk.gov.hmrc.rasapi.repository.{FileData, RasChunksRepository, RasFileRepository}
 import uk.gov.hmrc.rasapi.services.AuditService
 
 import scala.concurrent.Future
@@ -53,6 +53,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
   val mockAuthConnector = mock[RasAuthConnector]
   val mockAuditService = mock[AuditService]
   val mockRasChunksRepository = mock[RasChunksRepository]
+  val mockRasFileRepository = mock[RasFileRepository]
 
   val fileData = FileData(length = 124L,Enumerator("TEST START ".getBytes))
 
@@ -62,10 +63,13 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
     override def deleteFile(name: String,id:String, userId: String): Future[Boolean] = true
     override val auditService: AuditService = mockAuditService
     override val chunksRepo: RasChunksRepository = mockRasChunksRepository
+    override val fileRepo: RasFileRepository = mockRasFileRepository
   }
 
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
+
+  when(mockRasFileRepository.removeFile(any(), any(), any())).thenReturn(Future.successful(true))
 
   before{
     reset(mockAuditService)
@@ -99,6 +103,8 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         override val auditService: AuditService = mockAuditService
 
         override val chunksRepo: RasChunksRepository = mockRasChunksRepository
+
+        override val fileRepo: RasFileRepository = mockRasFileRepository
       }
 
       "the file is not available" in {
@@ -130,6 +136,8 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
           override val auditService: AuditService = mockAuditService
 
           override val chunksRepo: RasChunksRepository = mockRasChunksRepository
+
+          override val fileRepo: RasFileRepository = mockRasFileRepository
         }
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
@@ -156,6 +164,8 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
           override val auditService: AuditService = mockAuditService
 
           override val chunksRepo: RasChunksRepository = mockRasChunksRepository
+
+          override val fileRepo: RasFileRepository = mockRasFileRepository
 
           override def parseStringIdToBSONObjectId(id: String): Try[BSONObjectID] = Failure(new Throwable("Failure"))
         }
@@ -186,19 +196,21 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
           override val auditService: AuditService = mockAuditService
 
           override val chunksRepo: RasChunksRepository = mockRasChunksRepository
+
+          override val fileRepo: RasFileRepository = mockRasFileRepository
         }
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
         when(mockRasChunksRepository.removeChunk(any())).thenReturn(Future.successful(false))
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName,"5b46289f71f77f7bb48eda45").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName,"5b4628e02f00002501139c8c").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         result.header.status shouldBe Status.OK
 
         verify(mockAuditService).audit(
           auditType = Meq("FileDeletion"),
           path = any(),
           auditData = Meq(Map("userIdentifier" -> "A123456",
-            "fileId" -> "5b46289f71f77f7bb48eda45",
+            "fileId" -> "5b4628e02f00002501139c8c",
             "chunkDeletionSuccess" -> "false"))
         )(any())
       }
@@ -209,15 +221,18 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         val fileController = new FileController {
           override val authConnector: AuthConnector = mockAuthConnector
 
-          override def deleteFile(name: String,id:String, userId: String): Future[Boolean] = false
-
           override val auditService: AuditService = mockAuditService
 
           override val chunksRepo: RasChunksRepository = mockRasChunksRepository
+
+          override val fileRepo: RasFileRepository = mockRasFileRepository
         }
+
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
+        when(mockRasFileRepository.removeFile(any(), any(), any())).thenReturn(Future.successful(false))
+
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName,"2").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName,"5b4628e02f00002501139c8c").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
       }
     }
@@ -228,7 +243,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())).thenReturn(Future.failed(new InsufficientEnrolments))
 
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName, "1").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName, "5b4628e02f00002501139c8c").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         status(result) shouldBe UNAUTHORIZED
       }
     }
@@ -239,7 +254,7 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         when(mockAuthConnector.authorise[Option[String]](any(), any())(any(),any())).thenReturn(Future.failed(new SessionRecordNotFound))
 
         val fileName = "testFile.csv"
-        val result = await(fileController.remove(fileName,"2").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
+        val result = await(fileController.remove(fileName,"5b4628e02f00002501139c8c").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         status(result) shouldBe UNAUTHORIZED
       }
     }
