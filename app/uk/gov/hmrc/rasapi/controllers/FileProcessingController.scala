@@ -27,7 +27,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Try}
 
-
 object FileProcessingController extends FileProcessingController {
 
   override val fileProcessingService: FileProcessingService = FileProcessingService

@@ -37,7 +37,9 @@ import scala.concurrent.Future
 
 
 object FileController extends FileController{
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val authConnector: AuthConnector = RasAuthConnector
+  // $COVERAGE-ON$
 
 }
 
@@ -112,12 +114,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
         Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
   }
 
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-
   def getFile(name:String, userId: String) = RasRepository.filerepo.fetchFile(name, userId)
 
   def deleteFile(name:String, fileId:String, userId: String):Future[Boolean] = RasRepository.filerepo.removeFile(name,fileId,userId)
-  // $COVERAGE-ON$
-
-
 }
