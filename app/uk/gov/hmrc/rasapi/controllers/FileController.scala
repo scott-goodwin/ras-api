@@ -30,13 +30,16 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.repository.RasRepository
+import uk.gov.hmrc.rasapi.repository.RasChunksRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
 object FileController extends FileController{
+  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val authConnector: AuthConnector = RasAuthConnector
+  // $COVERAGE-ON$
 
 }
 
@@ -45,6 +48,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
   val fileRemove = "File-Remove"
   val fileServe = "File-Read"
   private val _contentType =   "application/csv"
+  lazy val chunksRepo = RasRepository.chunksRepo
 
   def serveFile(fileName:String):  Action[AnyContent] = Action.async {
     implicit request =>
@@ -110,12 +114,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
         Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
   }
 
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-
   def getFile(name:String, userId: String) = RasRepository.filerepo.fetchFile(name, userId)
 
   def deleteFile(name:String, fileId:String, userId: String):Future[Boolean] = RasRepository.filerepo.removeFile(name,fileId,userId)
-  // $COVERAGE-ON$
-
-
 }
