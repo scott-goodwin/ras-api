@@ -128,7 +128,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatus = ResidencyStatus("scotResident", Some("otherUKResident"))
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupControllerFeb18.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/residency-status")
@@ -155,7 +155,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatus = ResidencyStatus("scotResident", Some("otherUKResident"))
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupControllerFeb19.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/residency-status")
@@ -182,7 +182,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatus = ResidencyStatus("otherUKResident", Some("otherUKResident"))
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/residency-status")
@@ -205,7 +205,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, "Individual is deceased"))))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, "Individual is deceased"))))
 
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/residency-status")
@@ -232,7 +232,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatusFailure = ResidencyStatusFailure("STATUS_UNAVAILABLE", "")
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/residency-status")
@@ -256,7 +256,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatusFailure = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "")
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
   
         await(TestLookupController.getResidencyStatus()
           .apply(FakeRequest(Helpers.GET, s"/residency-status")
@@ -296,7 +296,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             }
           """.stripMargin)
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupControllerFeb18.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
@@ -321,7 +321,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             }
           """.stripMargin)
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupControllerFeb19.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
@@ -346,7 +346,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             }
           """.stripMargin)
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails.copy(nino = individualDetails.nino.toLowerCase))))
@@ -370,7 +370,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             }
           """.stripMargin)
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
@@ -394,7 +394,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
             }
           """.stripMargin)
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Left(residencyStatus)))
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/").withHeaders(acceptHeader)
           .withJsonBody(Json.toJson(individualDetails.copy(nino = "AA123456"))))
@@ -577,7 +577,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatusFailure = ResidencyStatusFailure("STATUS_UNAVAILABLE", "")
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader)
@@ -604,7 +604,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
 
         val residencyStatusFailure = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "")
 
-        when(mockDesConnector.getResidencyStatus(any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
 
         val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
           .withHeaders(acceptHeader)

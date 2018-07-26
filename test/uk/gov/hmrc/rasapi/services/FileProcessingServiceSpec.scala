@@ -157,7 +157,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any(), any())).thenReturn(
           Future.successful(Left(ResidencyStatus("scotResident", Some("otherUKResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -235,7 +235,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any(), any())).thenReturn(
           Future.successful(Left(ResidencyStatus("scotResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -312,7 +312,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any(), any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
@@ -388,7 +388,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any(), any())).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(code = s"$STATUS_FILE_PROCESSING_MATCHING_FAILED", reason = s"$STATUS_FILE_PROCESSING_MATCHING_FAILED"))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -464,7 +464,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any(), any())).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(code = s"$STATUS_DECEASED", reason = s"$STATUS_DECEASED"))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -623,7 +623,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
     "fetch result" when {
       "input row is valid and the date of processing is between january and april" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId, true)).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)
@@ -634,7 +634,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "input row is valid and the date of processing is between april and december" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId, true)).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(false)
@@ -645,7 +645,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "input row matching failed" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId, true)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(STATUS_MATCHING_FAILED, STATUS_MATCHING_FAILED))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId, fileId))
@@ -653,7 +653,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "input row returns deceased" in {
-        when(mockDesConnector.getResidencyStatus(data, userId)).thenReturn(
+        when(mockDesConnector.getResidencyStatus(data, userId, true)).thenReturn(
           Future.successful(Right(ResidencyStatusFailure(STATUS_DECEASED, STATUS_DECEASED))))
         val inputRow = "AB123456C,John,Smith,1992-02-21"
         val result = await(SUT.fetchResult(inputRow, userId, fileId))
@@ -695,7 +695,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockSessionCache.updateFileSession(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(CacheMap("sessionValue", Map("user1234" -> Json.toJson(callbackData)))))
 
-        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any())).thenReturn(
+        when(mockDesConnector.getResidencyStatus(any[IndividualDetails], any(), any())).thenReturn(
           Future.successful(Left(ResidencyStatus("otherUKResident", Some("scotResident")))))
 
         when(mockResidencyYearResolver.isBetweenJanAndApril()).thenReturn(true)

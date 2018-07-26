@@ -51,7 +51,7 @@ trait ResultsGenerator {
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) => {
-        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId), 20 second)
+        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId, isBulkRequest = true), 20 second)
 
         result match {
           case Left(residencyStatus) => {

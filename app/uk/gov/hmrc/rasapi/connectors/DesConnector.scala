@@ -52,15 +52,20 @@ trait DesConnector extends ServicesConfig {
   val desUrlHeaderEnv: String
   val desAuthToken: String
   val isRetryEnabled: Boolean
+  val isBulkRetryEnabled: Boolean
 
   val retryLimit: Int
   val retryDelay: Int
 
   lazy val nonRetryableErrors = List(error_MatchingFailed, error_Deceased, error_DoNotReProcess)
 
-  def isCodeRetryable(code: String): Boolean = isRetryEnabled && !nonRetryableErrors.contains(code)
+  def canRetryRequest(isBulkRequest: Boolean) = isRetryEnabled || (isBulkRetryEnabled && isBulkRequest)
 
-  def getResidencyStatus(member: IndividualDetails, userId: String):
+  def isCodeRetryable(code: String, isBulkRequest: Boolean): Boolean = {
+    canRetryRequest(isBulkRequest) && !nonRetryableErrors.contains(code)
+  }
+
+  def getResidencyStatus(member: IndividualDetails, userId: String, isBulkRequest: Boolean = false):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
     implicit val rasHeaders = HeaderCarrier()
@@ -80,10 +85,10 @@ trait DesConnector extends ServicesConfig {
 
       sendResidencyStatusRequest(uri, member, userId, desHeaders)(rasHeaders) flatMap {
         case Left(result) => Future.successful(Left(result))
-        case Right(result) if retryCount < retryLimit && isCodeRetryable(result.code) =>
+        case Right(result) if retryCount < retryLimit && isCodeRetryable(result.code, isBulkRequest) =>
           Thread.sleep(retryDelay) //Delay before sending to HoD to try to avoid transactions per second(tps) clash
           getResultAndProcess(memberDetails, retryCount + 1)
-        case Right(result) if retryCount >= retryLimit || !isCodeRetryable(result.code) =>
+        case Right(result) if retryCount >= retryLimit || !isCodeRetryable(result.code, isBulkRequest) =>
           Future.successful(Right(result.copy(code = result.code.replace(error_DoNotReProcess, error_InternalServerError))))
       }
     }
@@ -177,5 +182,6 @@ object DesConnector extends DesConnector {
   override val desAuthToken: String = AppContext.desAuthToken
   override val retryDelay: Int = AppContext.retryDelay
   override val isRetryEnabled: Boolean = AppContext.retryEnabled
+  override val isBulkRetryEnabled: Boolean = AppContext.bulkRetryEnabled
   // $COVERAGE-ON$
 }
