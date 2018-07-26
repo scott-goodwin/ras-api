@@ -51,13 +51,14 @@ trait DesConnector extends ServicesConfig {
   val error_DoNotReProcess: String
   val desUrlHeaderEnv: String
   val desAuthToken: String
+  val isRetryEnabled: Boolean
 
   val retryLimit: Int
   val retryDelay: Int
 
   lazy val nonRetryableErrors = List(error_MatchingFailed, error_Deceased, error_DoNotReProcess)
 
-  def isCodeRetryable(code: String): Boolean = !nonRetryableErrors.contains(code)
+  def isCodeRetryable(code: String): Boolean = isRetryEnabled && !nonRetryableErrors.contains(code)
 
   def getResidencyStatus(member: IndividualDetails, userId: String):
     Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
@@ -175,5 +176,6 @@ object DesConnector extends DesConnector {
   override val desUrlHeaderEnv: String = AppContext.desUrlHeaderEnv
   override val desAuthToken: String = AppContext.desAuthToken
   override val retryDelay: Int = AppContext.retryDelay
+  override val isRetryEnabled: Boolean = AppContext.retryEnabled
   // $COVERAGE-ON$
 }

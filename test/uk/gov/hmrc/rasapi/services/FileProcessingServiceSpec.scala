@@ -42,7 +42,7 @@ import uk.gov.hmrc.rasapi.repository.RasFileRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter{
 
@@ -61,6 +61,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   val STATUS_INTERNAL_SERVER_ERROR: String = "INTERNAL_SERVER_ERROR"
   val STATUS_FILE_PROCESSING_MATCHING_FAILED: String = "cannot_provide_status"
   val STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = "problem-getting-status"
+  val rasFileRepo: RasFileRepository = rasFileRepository
 
   val SUT = new FileProcessingService {
 
@@ -69,7 +70,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override val residencyYearResolver = mockResidencyYearResolver
     override val auditService: AuditService = mockAuditService
     override val sessionCacheService: SessionCacheService = mockSessionCache
-    override val fileRepo: RasFileRepository = rasFileRepository
+    override val fileRepo: RasFileRepository = rasFileRepo
 
     override def getCurrentDate: DateTime = new DateTime("2018-04-04")
 
@@ -91,7 +92,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     await(TestFileWriter.generateFile(successresultsArr.iterator))
   }
 
-  val userId: String = "user1234"
+  val userId: String = "A1234567"
   val fileId: String = "file-id-1234"
 
   when(mockDesConnector.otherUk).thenReturn("otherUKResident")
@@ -108,8 +109,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   "fetchResult" should {
     "successfully audit processed data" when {
       "there is a successful result returned when a request is made on 4th Feb 2018" in {
-
-        val rasFileRepo: RasFileRepository = rasFileRepository
 
         val testFilePath = getTestFilePath
 
@@ -189,8 +188,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
       "there is a successful result returned when a request is made on 4th Feb 2019" in {
 
-        val rasFileRepo: RasFileRepository = rasFileRepository
-
         val testFilePath = getTestFilePath
 
         val SUT = new FileProcessingService {
@@ -268,8 +265,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
       "there is a successful result returned when a request is made on 4th June 2018" in {
 
-        val rasFileRepo: RasFileRepository = rasFileRepository
-
         val testFilePath = getTestFilePath
 
         val SUT = new FileProcessingService {
@@ -346,8 +341,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
       "there is a matching failed result" in {
 
-        val rasFileRepo: RasFileRepository = rasFileRepository
-
         val testFilePath = getTestFilePath
 
         val SUT = new FileProcessingService {
@@ -423,8 +416,6 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       }
 
       "there is a deceased result" in {
-
-        val rasFileRepo: RasFileRepository = rasFileRepository
 
         val testFilePath = getTestFilePath
 
@@ -730,8 +721,9 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         val fileStatus = "AVAILABLE"
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
+        val inputFileData = Try(Iterator("\"LE241131B,Jim,Jimson,1990-02-21\""))
 
-        await(SUT.manipulateFile(null, "user1234", callbackData))
+        await(SUT.manipulateFile(inputFileData, "user1234", callbackData))
 
         val captor = ArgumentCaptor.forClass(classOf[CallbackData])
         verify(mockSessionCache, times(1)).updateFileSession(any(), captor.capture, any(), any())(any())

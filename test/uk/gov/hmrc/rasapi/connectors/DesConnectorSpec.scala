@@ -59,6 +59,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val retryDelay: Int = 500
     override val desUrlHeaderEnv: String = "DES HEADER"
     override val desAuthToken: String = "DES AUTH TOKEN"
+    override val isRetryEnabled: Boolean = true
   }
 
   val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
@@ -119,6 +120,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
         override val desAuthToken: String = "DES AUTH TOKEN"
+        override val isRetryEnabled: Boolean = true
       }
 
       val errorResponse = ResidencyStatusFailure(TestDesConnector.error_InternalServerError, "Internal server error.")
