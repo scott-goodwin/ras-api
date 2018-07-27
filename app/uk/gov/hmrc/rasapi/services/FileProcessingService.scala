@@ -105,11 +105,6 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
     } catch
       {
-        case ex: NullPointerException => {
-          Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
-          sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
-          fileResultsMetrics.stop
-        }
         case ex:Throwable => {
           Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
           sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
