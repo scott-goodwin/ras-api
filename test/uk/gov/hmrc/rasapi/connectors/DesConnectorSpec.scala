@@ -60,6 +60,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val desUrlHeaderEnv: String = "DES HEADER"
     override val desAuthToken: String = "DES AUTH TOKEN"
     override val isRetryEnabled: Boolean = true
+    override val isBulkRetryEnabled: Boolean = false
   }
 
   val individualDetails = IndividualDetails("LE241131B", "Joe", "Bloggs", new DateTime("1990-12-03"))
@@ -104,7 +105,86 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       result.left.get shouldBe ResidencyStatus("otherUKResident", None)
     }
 
-    "handle successful response when 200 is returned from des and only CY is present and feature toggle is turned off" in {
+    "handle unsuccessful response for bulk request when 429 is returned from des the first time around and CY and " +
+      "CYPlusOne is present and bulk retry is true but retry enabled is false" in {
+
+      implicit val formatF = ResidencyStatusFormats.failureFormats
+
+      object TestDesConnector extends DesConnector {
+        override val httpPost: HttpPost = mockHttpPost
+        override val desBaseUrl = ""
+        override val edhUrl: String = "test-url"
+        override val auditService: AuditService = mockAuditService
+        override val allowNoNextYearStatus: Boolean = true
+        override val error_InternalServerError: String = AppContext.internalServerErrorStatus
+        override val error_Deceased: String = AppContext.deceasedStatus
+        override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+        override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+        override val retryLimit: Int = 3
+        override val retryDelay: Int = 500
+        override val desUrlHeaderEnv: String = "DES HEADER"
+        override val desAuthToken: String = "DES AUTH TOKEN"
+        override val isRetryEnabled: Boolean = false
+        override val isBulkRetryEnabled: Boolean = true
+      }
+
+      val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+      val successresponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+        currentYearResidencyStatus = "Uk", nextYearResidencyStatus = Some("Scottish"))
+
+      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+        thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))),
+          Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH",
+                    new DateTime("1990-02-21")), userId, isBulkRequest = true))
+
+      result.isRight shouldBe false
+      result.left.get shouldBe ResidencyStatus("otherUKResident", Some("scotResident"))
+
+      verify(mockHttpPost, times(2)).POST(any(), any(), any())(any(), any(), any(), any())
+    }
+
+    "handle unsuccessful response for bulk request when 429 is returned from des the first time around and CY and " +
+      "CYPlusOne is present and bulk retry is false and retry enabled is false" in {
+
+      implicit val formatF = ResidencyStatusFormats.failureFormats
+
+      object TestDesConnector extends DesConnector {
+        override val httpPost: HttpPost = mockHttpPost
+        override val desBaseUrl = ""
+        override val edhUrl: String = "test-url"
+        override val auditService: AuditService = mockAuditService
+        override val allowNoNextYearStatus: Boolean = true
+        override val error_InternalServerError: String = AppContext.internalServerErrorStatus
+        override val error_Deceased: String = AppContext.deceasedStatus
+        override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+        override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+        override val retryLimit: Int = 3
+        override val retryDelay: Int = 500
+        override val desUrlHeaderEnv: String = "DES HEADER"
+        override val desAuthToken: String = "DES AUTH TOKEN"
+        override val isRetryEnabled: Boolean = false
+        override val isBulkRetryEnabled: Boolean = false
+      }
+
+      val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
+      val successresponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+        currentYearResidencyStatus = "Uk", nextYearResidencyStatus = Some("Scottish"))
+
+      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+        thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH",
+        new DateTime("1990-02-21")), userId, isBulkRequest = true))
+
+      result.isLeft shouldBe false
+      result.right.get shouldBe errorResponse
+
+      verify(mockHttpPost, times(1)).POST(any(), any(), any())(any(), any(), any(), any())
+    }
+
+    "handle successful response when 200 is returned from des and only CY is present and no next year status toggle is turned off" in {
 
       object TestDesConnector extends DesConnector {
         override val httpPost: HttpPost = mockHttpPost
@@ -121,6 +201,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val desUrlHeaderEnv: String = "DES HEADER"
         override val desAuthToken: String = "DES AUTH TOKEN"
         override val isRetryEnabled: Boolean = true
+        override val isBulkRetryEnabled: Boolean = false
       }
 
       val errorResponse = ResidencyStatusFailure(TestDesConnector.error_InternalServerError, "Internal server error.")
