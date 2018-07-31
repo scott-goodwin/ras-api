@@ -33,20 +33,20 @@ trait DataCleansingService {
       chunks <- RasRepository.chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
 
       fileInfoList <- {
-        Logger.warn(s"[data-cleansing-exercise] [chunk-size] Size of chunks to verify is: ${chunks.size}" )
+        Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Size of chunks to verify is: ${chunks.size}" )
         processFutures(chunks)(RasRepository.filerepo.isFileExists(_))
       }
 
       chunksDeleted <- {
         val parentFileIds = fileInfoList.filter(_.isDefined).map(rec => rec.get.id.asInstanceOf[BSONObjectID])
         val chunksToBeDeleted = chunks.diff(parentFileIds)
-        Logger.warn(s"Size of fileId's to be deleted is: ${chunksToBeDeleted}")
+        Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Size of fileId's to be deleted is: ${chunksToBeDeleted.length}")
 
         val res = processFutures(chunksToBeDeleted)(fileId => {
-          Logger.warn(s"fileId to be deleted is: ${fileId}")
+          Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] fileId to be deleted is: ${fileId}")
           RasRepository.chunksRepo.removeChunk(fileId).map{
-            case true => Logger.warn(s"Chunk deletion succeeded, fileId is: ${fileId}")
-            case false => Logger.warn(s"Chunk deletion failed, fileId is: ${fileId}")
+            case true => Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Chunk deletion succeeded, fileId is: ${fileId}")
+            case false => Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Chunk deletion failed, fileId is: ${fileId}")
           }
         })
         Future(chunksToBeDeleted)
