@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rasapi.repositories
 
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerTest
 import reactivemongo.bson.BSONLong
 import uk.gov.hmrc.play.test.UnitSpec

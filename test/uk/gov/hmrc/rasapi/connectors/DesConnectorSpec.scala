@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import org.mockito.Matchers._
 import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.{NotFoundException, _}

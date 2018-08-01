@@ -21,7 +21,7 @@ import akka.stream.ActorMaterializer
 import org.mockito.Matchers.any
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.mockito.Matchers.{eq => Meq}
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status

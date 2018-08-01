@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.helpers
 
 import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerTest
 import uk.gov.hmrc.play.test.UnitSpec
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rasapi.controllers
 
 import org.joda.time.DateTime
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.{JsPath, Json, Writes}
 import play.api.test.Helpers._
