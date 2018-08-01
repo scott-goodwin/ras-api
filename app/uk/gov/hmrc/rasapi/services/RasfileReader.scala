@@ -30,7 +30,6 @@ import scala.concurrent.Future
 import scala.io.Source
 import scala.util.Try
 
-import java.nio.charset.CodingErrorAction
 import scala.io.Codec
 
 trait RasFileReader {
