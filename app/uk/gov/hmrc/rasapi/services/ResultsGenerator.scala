@@ -17,18 +17,16 @@
 package uk.gov.hmrc.rasapi.services
 
 import org.joda.time.DateTime
-import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus, ResidencyStatusFailure}
+import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ResultsGenerator {
   val comma = ","

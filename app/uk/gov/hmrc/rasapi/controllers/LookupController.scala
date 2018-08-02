@@ -29,14 +29,13 @@ import play.api.data.validation.ValidationError
 import play.api.libs.json.{JsError, JsPath, JsSuccess}
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
-import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.rasapi.services.AuditService
 import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.utils.ErrorConverter
