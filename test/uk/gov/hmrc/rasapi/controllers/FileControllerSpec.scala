@@ -205,14 +205,6 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
         val fileName = "testFile.csv"
         val result = await(fileController.remove(fileName,"5b4628e02f00002501139c8c").apply(FakeRequest(Helpers.DELETE, s"/ras-api/file/remove/:${fileName}")))
         result.header.status shouldBe Status.OK
-
-        verify(mockAuditService).audit(
-          auditType = Meq("FileDeletion"),
-          path = any(),
-          auditData = Meq(Map("userIdentifier" -> "A123456",
-            "fileId" -> "5b4628e02f00002501139c8c",
-            "chunkDeletionSuccess" -> "false"))
-        )(any())
       }
     }
 
