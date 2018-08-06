@@ -111,7 +111,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
                 }
               }.recover{
                 case ex: Throwable => {
-                  println(Console.YELLOW + s"Caught exception: ${ex.getMessage} ${ex.printStackTrace}" + Console.WHITE)
+                  Logger.error(s"Caught exception: ${ex.getMessage} ${ex.printStackTrace}")
                 }
               }
               case Failure(ex) => {
