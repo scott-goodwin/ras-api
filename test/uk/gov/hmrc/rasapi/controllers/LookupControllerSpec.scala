@@ -69,6 +69,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
   val STATUS_DECEASED: String = "DECEASED"
   val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   val STATUS_INTERNAL_SERVER_ERROR: String = "INTERNAL_SERVER_ERROR"
+  val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
 
   implicit val individualDetailssWrites: Writes[IndividualDetails] = (
     (JsPath \ "nino").write[String] and
@@ -87,6 +88,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val allowDefaultRUK: Boolean = false
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
   }
 
   object TestLookupControllerFeb18 extends LookupController {
@@ -99,6 +101,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val allowDefaultRUK: Boolean = true
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
   }
 
   object TestLookupControllerFeb19 extends LookupController {
@@ -111,6 +114,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
     override val allowDefaultRUK: Boolean = false
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
   }
 
   before{
@@ -611,6 +615,31 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with OneAppPerSuit
           .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
 
         status(result) shouldBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
+
+    "return status 503" when {
+      "DES returns a service unavailable response" in {
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(),any())).thenReturn(successfulRetrieval)
+
+        val expectedJsonResult = Json.parse(
+          s"""
+             |{
+             |  "code": "SERVER_ERROR",
+             |  "message": "Service unavailable"
+             |}
+          """.stripMargin)
+
+        val residencyStatusFailure = ResidencyStatusFailure("SERVICE_UNAVAILABLE", "")
+
+        when(mockDesConnector.getResidencyStatus(any(), any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
+
+        status(result) shouldBe SERVICE_UNAVAILABLE
         contentAsJson(result) shouldBe expectedJsonResult
       }
     }

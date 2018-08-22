@@ -55,6 +55,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val error_Deceased: String = AppContext.deceasedStatus
     override val error_MatchingFailed: String = AppContext.matchingFailedStatus
     override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+    override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
     override val retryLimit: Int = 3
     override val retryDelay: Int = 500
     override val desUrlHeaderEnv: String = "DES HEADER"
@@ -120,6 +121,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_Deceased: String = AppContext.deceasedStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+        override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -160,6 +162,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_Deceased: String = AppContext.deceasedStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+        override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -196,6 +199,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_Deceased: String = AppContext.deceasedStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+        override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -253,6 +257,20 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(500, Some(Json.toJson(errorResponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+
+      verify(mockHttpPost, times(3)).POST(any(), any(), any())(any(), any(), any(), any())
+
+      result.isLeft shouldBe false
+      result.right.get shouldBe errorResponse
+    }
+
+    "handle Service Unavailable (503) response from des" in {
+      implicit val formatF = ResidencyStatusFormats.failureFormats
+      val errorResponse = ResidencyStatusFailure("SERVICE_UNAVAILABLE", "Service unavailable")
+      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+        thenReturn(Future.failed(Upstream5xxResponse("SERVICE_UNAVAILABLE", 503, 503)))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
 

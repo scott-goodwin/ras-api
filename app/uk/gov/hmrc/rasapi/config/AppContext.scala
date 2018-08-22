@@ -40,6 +40,7 @@ object AppContext extends ServicesConfig {
   lazy val retryDelay: Int = current.configuration.getInt("retry-delay").getOrElse(500)
   lazy val deceasedStatus: String = current.configuration.getString("status.deceased").getOrElse("DECEASED")
   lazy val matchingFailedStatus: String = current.configuration.getString("status.matching-failed.api").getOrElse("STATUS_UNAVAILABLE")
+  lazy val serviceUnavailableStatus: String = current.configuration.getString("status.service-unavailable").getOrElse("SERVICE_UNAVAILABLE")
   lazy val doNotReProcessStatus: String = current.configuration.getString("status.do-not-re-process").getOrElse("DO_NOT_RE_PROCESS")
   lazy val fileProcessingMatchingFailedStatus: String = current.configuration.getString("status.matching-failed.csv").getOrElse("cannot_provide_status")
   lazy val fileProcessingInternalServerErrorStatus: String = current.configuration.getString("status.internal-server-error.csv").getOrElse("problem-getting-status")

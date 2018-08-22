@@ -49,6 +49,7 @@ trait DesConnector extends ServicesConfig {
   val error_Deceased: String
   val error_MatchingFailed: String
   val error_DoNotReProcess: String
+  val error_ServiceUnavailable: String
   val desUrlHeaderEnv: String
   val desAuthToken: String
   val isRetryEnabled: Boolean
@@ -117,9 +118,14 @@ trait DesConnector extends ServicesConfig {
       case requestTimeOutEx: RequestTimeoutException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
         Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
-      case serviceUnavailable: ServiceUnavailableException =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Service unavailable. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case _5xx: Upstream5xxResponse =>
+        if (_5xx.upstreamResponseCode == 503) {
+          Logger.error(s"[DesConnector] [getResidencyStatus] Service unavailable. userId ($userId).")
+          Right(ResidencyStatusFailure(error_ServiceUnavailable, "Service unavailable"))
+        } else {
+          Logger.error(s"[DesConnector] [getResidencyStatus] ${_5xx.upstreamResponseCode} exception caught. userId ($userId).")
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        }
       case th: Throwable =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Caught error occurred when calling the HoD. userId ($userId).Exception message: ${th.getMessage}.")
         Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
@@ -176,6 +182,7 @@ object DesConnector extends DesConnector {
   override val error_Deceased: String = AppContext.deceasedStatus
   override val error_MatchingFailed: String = AppContext.matchingFailedStatus
   override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
+  override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
   override val allowNoNextYearStatus: Boolean = AppContext.allowNoNextYearStatus
   override val retryLimit: Int = AppContext.requestRetryLimit
   override val desUrlHeaderEnv: String = AppContext.desUrlHeaderEnv

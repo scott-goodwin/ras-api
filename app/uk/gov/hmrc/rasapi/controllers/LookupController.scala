@@ -54,6 +54,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
   val STATUS_DECEASED: String
   val STATUS_MATCHING_FAILED: String
+  val STATUS_SERVICE_UNAVAILABLE: String
 
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
@@ -97,6 +98,14 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                       Logger.debug(s"[LookupController][getResidencyStatus] Individual not matched for userId ($id).")
                       Metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound))
+                    case STATUS_SERVICE_UNAVAILABLE =>
+                      auditResponse(failureReason = Some("SERVICE_UNAVAILABLE"),
+                        nino = Some(individualDetails.nino),
+                        residencyStatus = None,
+                        userId = id)
+                      Logger.debug(s"[LookupController][getResidencyStatus] Service unavailable for userId ($id).")
+                      Metrics.registry.counter(SERVICE_UNAVAILABLE.toString)
+                      ServiceUnavailable(toJson(ErrorServiceUnavailable))
                     case _ =>
                       auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
                         nino = Some(individualDetails.nino),
@@ -217,6 +226,7 @@ object LookupController extends LookupController {
   override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
   override val STATUS_DECEASED: String = AppContext.deceasedStatus
   override val STATUS_MATCHING_FAILED: String = AppContext.matchingFailedStatus
+  override val STATUS_SERVICE_UNAVAILABLE: String = AppContext.serviceUnavailableStatus
   override val validateVersion: String => Boolean = _ == "1.0"
   // $COVERAGE-ON$
 }
