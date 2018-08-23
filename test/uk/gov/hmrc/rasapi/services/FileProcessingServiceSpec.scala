@@ -138,7 +138,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017-2018 residency status,2018-2019 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017 to 2018 residency status,2018 to 2019 residency status" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,otherUKResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident,otherUKResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident,otherUKResident" +
@@ -216,7 +216,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2018-2019 residency status,2019-2020 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2018 to 2019 residency status,2019 to 2020 residency status" +
           "LE241131B,Jim,Jimson,1990-02-21,scotResident,scotResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,scotResident,scotResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,scotResident,scotResident" +
@@ -293,7 +293,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2018-2019 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2018 to 2019 residency status" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident" +
@@ -369,7 +369,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017-2018 residency status,2018-2019 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017 to 2018 residency status,2018 to 2019 residency status" +
           s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
           s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
           s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
@@ -445,7 +445,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017-2018 residency status,2018-2019 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017 to 2018 residency status,2018 to 2019 residency status" +
           s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
           s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
           s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_FILE_PROCESSING_MATCHING_FAILED" +
@@ -675,7 +675,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockFileUploadConnector.getFile(any(), any(), any())(any())).thenReturn(Future.successful(Some(new FileInputStream(testFilePath.toFile))))
         when(mockFileUploadConnector.deleteUploadedFile(any(), any(), any())(any())).thenReturn(Future.successful(true))
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017-2018 residency status,2018-2019 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017 to 2018 residency status,2018 to 2019 residency status" +
           "LE241131B,Jim,Jimson,1990-02-21,otherUKResident,scotResident" +
           "LE241131B,GARY,BRAVO,1990-02-21,otherUKResident,scotResident" +
           "LE241131B,SIMON,DAWSON,1990-02-21,otherUKResident,scotResident" +
