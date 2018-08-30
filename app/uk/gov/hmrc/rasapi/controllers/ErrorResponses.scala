@@ -61,4 +61,7 @@ case object IndividualNotFound extends ErrorResponse(
 case object ErrorInternalServerError extends
   ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error")
 
+case object ErrorServiceUnavailable extends
+  ErrorResponse(httpStatusCode = 503, errorCode = "SERVER_ERROR", message = "Service unavailable")
+
 case object ErrorNotFound extends ErrorResponse(404, "NOT_FOUND", "Resource Not Found")

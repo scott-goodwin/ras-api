@@ -41,6 +41,7 @@ trait ResultsGenerator {
   val DECEASED: String
   val MATCHING_FAILED: String
   val INTERNAL_SERVER_ERROR: String
+  val SERVICE_UNAVAILABLE: String
   val FILE_PROCESSING_MATCHING_FAILED: String
   val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String
 
@@ -60,12 +61,13 @@ trait ResultsGenerator {
             inputRow + comma + resStatus.toString
           }
           case Right(residencyStatusFailure) => {
-            auditResponse(failureReason = Some(residencyStatusFailure.code.replace(FILE_PROCESSING_MATCHING_FAILED, "MATCHING_FAILED")), nino = memberDetails.nino,
+            auditResponse(failureReason = Some(residencyStatusFailure.code.replace(MATCHING_FAILED, "MATCHING_FAILED")), nino = memberDetails.nino,
               residencyStatus = None, userId = userId, fileId = fileId)
 
             inputRow + comma + residencyStatusFailure.code.replace(DECEASED, FILE_PROCESSING_MATCHING_FAILED)
                                                           .replace(MATCHING_FAILED, FILE_PROCESSING_MATCHING_FAILED)
                                                           .replace(INTERNAL_SERVER_ERROR, FILE_PROCESSING_INTERNAL_SERVER_ERROR)
+                                                          .replace(SERVICE_UNAVAILABLE, FILE_PROCESSING_INTERNAL_SERVER_ERROR)
           }
         }
       }

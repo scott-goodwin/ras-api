@@ -45,6 +45,7 @@ object FileProcessingService extends FileProcessingService {
   override val DECEASED: String = AppContext.deceasedStatus
   override val MATCHING_FAILED: String = AppContext.matchingFailedStatus
   override val INTERNAL_SERVER_ERROR: String = AppContext.internalServerErrorStatus
+  override val SERVICE_UNAVAILABLE: String = AppContext.serviceUnavailableStatus
   override val FILE_PROCESSING_MATCHING_FAILED: String = AppContext.fileProcessingMatchingFailedStatus
   override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = AppContext.fileProcessingInternalServerErrorStatus
 }
