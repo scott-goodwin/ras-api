@@ -528,7 +528,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
         when(mockDesConnector.otherUk).thenReturn("otherUKResident")
         when(mockDesConnector.scotRes).thenReturn("scotResident")
 
-        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017-2018 residency status,2018-2019 residency status" +
+        val expectedResultsFile = "National Insurance number,First name,Last name,Date of birth,2017 to 2018 residency status,2018 to 2019 residency status" +
           s"LE241131B,Jim,Jimson,1990-02-21,$STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR" +
           s"LE241131B,GARY,BRAVO,1990-02-21,$STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR" +
           s"LE241131B,SIMON,DAWSON,1990-02-21,$STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR" +
