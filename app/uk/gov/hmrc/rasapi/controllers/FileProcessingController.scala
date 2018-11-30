@@ -44,12 +44,11 @@ trait FileProcessingController extends BaseController {
   def statusCallback(userId:String): Action[AnyContent] = Action.async {
     implicit request =>
       withValidJson.fold(Future.successful(BadRequest(""))){ callbackData =>
-
         callbackData.status match {
           case STATUS_AVAILABLE =>
             Logger.warn(s"[FileProcessingController] [statusCallback] Callback request received with status available: file processing " +
               s"started for userId ($userId)." )
-            if(Try(Future(fileProcessingService.processFile(userId,callbackData))).isFailure) {
+            if(Try(fileProcessingService.processFile(userId,callbackData)).isFailure) {
               sessionCacheService.updateFileSession(userId,callbackData,None,None)
             }
           case STATUS_ERROR => Logger.error(s"[FileProcessingController] [statusCallback] There is a problem with the " +

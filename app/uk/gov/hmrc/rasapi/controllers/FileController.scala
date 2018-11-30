@@ -93,9 +93,9 @@ trait FileController extends BaseController with AuthorisedFunctions{
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
-          deleteFile(fileName, fileId:String, id).map{ res=>
-            parseStringIdToBSONObjectId(fileId) match {
-              case Success(bsonId) => chunksRepo.removeChunk(bsonId).map{ isChunkRemoved =>
+          deleteFile(fileName, fileId:String, id).flatMap { res=>
+            (parseStringIdToBSONObjectId(fileId) match {
+              case Success(bsonId) => chunksRepo.removeChunk(bsonId).map { isChunkRemoved =>
                 if (isChunkRemoved) {
                   Logger.warn(s"[FileController][remove] Chunk deletion succeeded, fileId is: ${fileId}")
                   auditService.audit(auditType = "FileDeletion",
@@ -109,11 +109,11 @@ trait FileController extends BaseController with AuthorisedFunctions{
                   )
                   Logger.error(s"[FileController][remove] Chunk deletion failed, fileId is: ${fileId}")
                 }
-              }.recover{
+              }.recover {
                 case ex: Throwable => {
                   Logger.error(s"Caught exception: ${ex.getMessage} ${ex.printStackTrace}")
                 }
-              }
+              }.map(_ => ())
               case Failure(ex) => {
                 Logger.error(s"[FileController][remove] The following fileId ($fileId) could not be converted to a BSONObjectId.")
                 auditService.audit(auditType = "FileDeletion",
@@ -121,10 +121,13 @@ trait FileController extends BaseController with AuthorisedFunctions{
                   auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false",
                     "reason" -> "fileId could not be converted to BSONObjectId")
                 )
+                Future.successful(())
               }
+            }).map {
+              _ =>
+                apiMetrics.stop()
+                if(res) Ok("") else InternalServerError
             }
-            apiMetrics.stop()
-            if(res) Ok("") else InternalServerError
           }.recover {
             case ex: Throwable => Logger.error(s"[FileController][remove] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
               InternalServerError
