@@ -46,7 +46,7 @@ class ServiceLocatorConnectorSpec extends UnitSpec with MockitoSugar with ScalaF
     }
   }
 
-  "register" should {
+    "register" should {
     "register the JSON API Definition into the Service Locator" in new Setup {
 
       val registration = Registration(serviceName = "api-microservice", serviceUrl = "http://api-microservice.service", metadata = Some(Map("third-party-api" -> "true")))
