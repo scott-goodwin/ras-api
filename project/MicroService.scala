@@ -4,16 +4,17 @@ import sbt._
 import play.routes.compiler.StaticRoutesGenerator
 import scoverage.{ScoverageKeys, ScoverageSbtPlugin}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
-
+import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 trait MicroService {
 
   import uk.gov.hmrc._
-  import DefaultBuildSettings.{scalaSettings, defaultSettings, addTestReportOption}
-  import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt, SbtAutoBuildPlugin}
+  import DefaultBuildSettings.{defaultSettings, addTestReportOption}
+  import uk.gov.hmrc.SbtAutoBuildPlugin
   import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
   import uk.gov.hmrc.versioning.SbtGitVersioning
   import play.sbt.routes.RoutesKeys.routesGenerator
+  import uk.gov.hmrc.SbtArtifactory
 
 
   import TestPhases._
@@ -35,10 +36,10 @@ trait MicroService {
   }
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.sbt.PlayScala,SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins : _*)
+    .enablePlugins(Seq(play.sbt.PlayScala,SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins : _*)
+    .settings(majorVersion := 1)
     .settings(playSettings : _*)
-    .settings(scalaSettings: _*)
-   .settings(scoverageSettings: _*)
+    .settings(scoverageSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
     .settings(
