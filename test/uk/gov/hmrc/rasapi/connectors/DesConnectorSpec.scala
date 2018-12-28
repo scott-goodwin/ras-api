@@ -23,7 +23,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.{NotFoundException, _}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models._
@@ -92,6 +92,30 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId))
       result.isLeft shouldBe true
       result.left.get shouldBe ResidencyStatus("otherUKResident", Some("scotResident"))
+    }
+
+    "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Welsh resident" in {
+
+      val successresponse = ResidencyStatusSuccess(nino = "AA246255", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+        currentYearResidencyStatus = "welsh", nextYearResidencyStatus = Some("Welsh"))
+      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+        thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JACK", "OSCAR", new DateTime("1962-07-07")), userId))
+      result.isLeft shouldBe true
+      result.left.get shouldBe ResidencyStatus("welsh", Some("welshResident"))
+    }
+
+    "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Scottish resident moving in Wales" in {
+
+      val successresponse = ResidencyStatusSuccess(nino = "SG123480", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+        currentYearResidencyStatus = "welsh", nextYearResidencyStatus = Some("Scottish"))
+      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+        thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("SG123480", "HELEN", "SMITH", new DateTime("1975-02-18")), userId))
+      result.isLeft shouldBe true
+      result.left.get shouldBe ResidencyStatus("welsh", Some("scotResident"))
     }
 
     "handle successful response when 200 is returned from des and only CY is present and feature toggle is turned on" in {

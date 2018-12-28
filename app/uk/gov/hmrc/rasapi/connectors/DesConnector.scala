@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Logger
-import play.api.libs.json.{JsSuccess, JsValue, Json, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
@@ -42,8 +42,11 @@ trait DesConnector extends ServicesConfig {
 
   val uk = "Uk"
   val scot = "Scottish"
-  val otherUk = "otherUKResident"
   val scotRes = "scotResident"
+  val welsh = "Welsh"
+  val welshRes = "welshResident"
+  val otherUk = "otherUKResident"
+
 
   val error_InternalServerError: String
   val error_Deceased: String
@@ -154,9 +157,8 @@ trait DesConnector extends ServicesConfig {
 
               Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
             } else {
-              val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes)
-              val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes))
-
+              val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes).replace(welsh, welshRes)
+              val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes).replace(welsh, welshRes))
               Left(ResidencyStatus(currentStatus, nextYearStatus))
             }
           }
