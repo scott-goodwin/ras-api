@@ -22,7 +22,7 @@ import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -45,12 +45,12 @@ trait ResultsGenerator {
   val FILE_PROCESSING_MATCHING_FAILED: String
   val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String
 
-  def fetchResult(inputRow:String, userId: String, fileId: String)(implicit hc: HeaderCarrier, request: Request[AnyContent]): String = {
+  def fetchResult(inputRow:String, userId: String, fileId: String, apiVersion: ApiVersion)(implicit hc: HeaderCarrier, request: Request[AnyContent]): String = {
 
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) => {
-        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId, isBulkRequest = true), 20 second)
+        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId, apiVersion, isBulkRequest = true), 20 second)
 
         result match {
           case Left(residencyStatus) => {

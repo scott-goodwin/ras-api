@@ -26,7 +26,7 @@ import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData, V2_0}
 import uk.gov.hmrc.rasapi.repository.{RasFileRepository, RasRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -94,7 +94,8 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings", userId)
       dataIterator.foreach(row =>
         if (!row.isEmpty) {
-          writeResultToFile(writer._2,fetchResult(removeDoubleQuotes(row),userId,callbackData.fileId), userId)
+          // apiVersion is hardcoded because this endpoint is solely used by the frontend which supports it.
+          writeResultToFile(writer._2,fetchResult(removeDoubleQuotes(row),userId,callbackData.fileId, apiVersion = V2_0), userId)
         }
       )
       closeWriter(writer._2)

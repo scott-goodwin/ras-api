@@ -89,33 +89,61 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId, V2_0))
       result.isLeft shouldBe true
       result.left.get shouldBe ResidencyStatus("otherUKResident", Some("scotResident"))
     }
 
-    "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Welsh resident" in {
+    "When the requested API version is V1.0" should {
 
-      val successresponse = ResidencyStatusSuccess(nino = "AA246255", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
-        currentYearResidencyStatus = "welsh", nextYearResidencyStatus = Some("Welsh"))
-      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+      "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Welsh resident" in {
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JACK", "OSCAR", new DateTime("1962-07-07")), userId))
-      result.isLeft shouldBe true
-      result.left.get shouldBe ResidencyStatus("welsh", Some("welshResident"))
+        val successResponse = ResidencyStatusSuccess(nino = "AA246255", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+          currentYearResidencyStatus = "Welsh", nextYearResidencyStatus = Some("Welsh"))
+        when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+          thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
+
+        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JACK", "OSCAR", new DateTime("1962-07-07")), userId, V1_0))
+        result shouldBe Left(ResidencyStatus("otherUKResident", Some("otherUKResident")))
+      }
+
+      "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Scottish resident moving in Wales" in {
+
+        val successResponse = ResidencyStatusSuccess(nino = "SG123480", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+          currentYearResidencyStatus = "Welsh", nextYearResidencyStatus = Some("Scottish"))
+        when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+          thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
+
+        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("SG123480", "HELEN", "SMITH", new DateTime("1975-02-18")), userId, V1_0))
+        result shouldBe Left(ResidencyStatus("otherUKResident", Some("scotResident")))
+      }
+
     }
 
-    "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Scottish resident moving in Wales" in {
+    "When the requested API version is V2.0" should {
 
-      val successresponse = ResidencyStatusSuccess(nino = "SG123480", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
-        currentYearResidencyStatus = "welsh", nextYearResidencyStatus = Some("Scottish"))
-      when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+      "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Welsh resident" in {
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("SG123480", "HELEN", "SMITH", new DateTime("1975-02-18")), userId))
-      result.isLeft shouldBe true
-      result.left.get shouldBe ResidencyStatus("welsh", Some("scotResident"))
+        val successResponse = ResidencyStatusSuccess(nino = "AA246255", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+          currentYearResidencyStatus = "Welsh", nextYearResidencyStatus = Some("Welsh"))
+        when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+          thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
+
+        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JACK", "OSCAR", new DateTime("1962-07-07")), userId, V2_0))
+        result shouldBe Left(ResidencyStatus("welshResident", Some("welshResident")))
+      }
+
+      "handle successful response when 200 is returned from des where CY and CYPlusOne is present for a Scottish resident moving in Wales" in {
+
+        val successResponse = ResidencyStatusSuccess(nino = "SG123480", deathDate = Some(""), deathDateStatus = Some(""), deseasedIndicator = Some(false),
+          currentYearResidencyStatus = "Welsh", nextYearResidencyStatus = Some("Scottish"))
+        when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+          thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
+
+        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("SG123480", "HELEN", "SMITH", new DateTime("1975-02-18")), userId, V2_0))
+        result shouldBe Left(ResidencyStatus("welshResident", Some("scotResident")))
+      }
+
     }
 
     "handle successful response when 200 is returned from des and only CY is present and feature toggle is turned on" in {
@@ -125,7 +153,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId, V2_0))
       result.isLeft shouldBe true
       result.left.get shouldBe ResidencyStatus("otherUKResident", None)
     }
@@ -163,7 +191,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
           Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH",
-                    new DateTime("1990-02-21")), userId, isBulkRequest = true))
+        new DateTime("1990-02-21")), userId, V2_0, isBulkRequest = true))
 
       result.isRight shouldBe false
       result.left.get shouldBe ResidencyStatus("otherUKResident", Some("scotResident"))
@@ -203,7 +231,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
 
       val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH",
-        new DateTime("1990-02-21")), userId, isBulkRequest = true))
+        new DateTime("1990-02-21")), userId, V2_0, isBulkRequest = true))
 
       result.isLeft shouldBe false
       result.right.get shouldBe errorResponse
@@ -239,7 +267,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "SMITH", new DateTime("1990-02-21")), userId, V2_0))
 
       verify(mockHttpPost, times(1)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -253,7 +281,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(404, Some(Json.toJson(errorResponse)))))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
 
       verify(mockHttpPost, times(1)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -268,7 +296,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(successResponse)))))
       val expectedResult = ResidencyStatusFailure("DECEASED", "Cannot provide a residency status for this pension scheme member.")
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
 
       verify(mockHttpPost, times(1)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -282,7 +310,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(500, Some(Json.toJson(errorResponse)))))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
 
       verify(mockHttpPost, times(3)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -296,7 +324,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.failed(Upstream5xxResponse("SERVICE_UNAVAILABLE", 503, 503)))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
 
       verify(mockHttpPost, times(3)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -311,7 +339,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
       when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(400, Some(Json.toJson(errorResponse)))))
 
-      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+      val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
 
       verify(mockHttpPost, times(1)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -325,15 +353,15 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         implicit val formatF = ResidencyStatusFormats.failureFormats
         val errorResponse = ResidencyStatusFailure("INTERNAL_SERVER_ERROR", "Internal server error.")
         val successresponse = ResidencyStatusSuccess(nino = "AB123456C", deathDate = Some(""),
-                                                     deathDateStatus = Some(""), deseasedIndicator = Some(false),
-                                                     currentYearResidencyStatus = "Uk", nextYearResidencyStatus = None)
+          deathDateStatus = Some(""), deseasedIndicator = Some(false),
+          currentYearResidencyStatus = "Uk", nextYearResidencyStatus = None)
 
         when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
           thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))),
-                     Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
+            Future.successful(HttpResponse(200, Some(Json.toJson(successresponse)))))
 
         val result = await(TestDesConnector.getResidencyStatus(
-                            IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+          IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
 
         verify(mockHttpPost, times(2)).POST(any(), any(), any())(any(), any(), any(), any())
 
@@ -348,7 +376,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         when(mockHttpPost.POST[IndividualDetails, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
           thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
 
-        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId))
+        val result = await(TestDesConnector.getResidencyStatus(IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21")), userId, V2_0))
         result.isLeft shouldBe false
         result.right.get shouldBe errorResponse
       }
