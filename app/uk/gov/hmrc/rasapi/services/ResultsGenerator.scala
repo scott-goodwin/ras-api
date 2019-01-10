@@ -22,7 +22,7 @@ import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
-import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus}
+import uk.gov.hmrc.rasapi.models.{IndividualDetails, RawMemberDetails, ResidencyStatus, V2_0}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -50,7 +50,8 @@ trait ResultsGenerator {
     createMatchingData(inputRow) match {
       case Right(errors) => s"$inputRow,${errors.mkString(comma)}"
       case Left(memberDetails) => {
-        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId, isBulkRequest = true), 20 second)
+        //todo propagate the version param up
+        val result = Await.result(desConnector.getResidencyStatus(memberDetails, userId, V2_0, isBulkRequest = true), 20 second)
 
         result match {
           case Left(residencyStatus) => {

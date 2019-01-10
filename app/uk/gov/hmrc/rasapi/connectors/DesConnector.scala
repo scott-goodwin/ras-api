@@ -69,8 +69,8 @@ trait DesConnector extends ServicesConfig {
     canRetryRequest(isBulkRequest) && !nonRetryableErrors.contains(code)
   }
 
-  def getResidencyStatus(member: IndividualDetails, userId: String, isBulkRequest: Boolean = false):
-    Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+  def getResidencyStatus(member: IndividualDetails, userId: String, apiVersion: ApiVersion, isBulkRequest: Boolean = false):
+  Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
     implicit val rasHeaders = HeaderCarrier()
 
@@ -81,13 +81,13 @@ trait DesConnector extends ServicesConfig {
       "Content-Type" -> "application/json",
       "authorization" -> s"Bearer ${desAuthToken}")
 
-    def getResultAndProcess(memberDetails: IndividualDetails, retryCount:Int = 1): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+    def getResultAndProcess(memberDetails: IndividualDetails, retryCount: Int = 1): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
       if (retryCount > 1) {
         Logger.warn(s"[ResultsGenerator] Did not receive a result from des, retry count: $retryCount for userId ($userId).")
       }
 
-      sendResidencyStatusRequest(uri, member, userId, desHeaders)(rasHeaders) flatMap {
+      sendResidencyStatusRequest(uri, member, userId, desHeaders, apiVersion)(rasHeaders) flatMap {
         case Left(result) => Future.successful(Left(result))
         case Right(result) if retryCount < retryLimit && isCodeRetryable(result.code, isBulkRequest) =>
           Thread.sleep(retryDelay) //Delay before sending to HoD to try to avoid transactions per second(tps) clash
@@ -101,13 +101,13 @@ trait DesConnector extends ServicesConfig {
   }
 
   private def sendResidencyStatusRequest(uri: String, member: IndividualDetails, userId: String,
-                                         desHeaders: Seq[(String, String)])(implicit rasHeaders: HeaderCarrier): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
+                                         desHeaders: Seq[(String, String)], apiVersion: ApiVersion)(implicit rasHeaders: HeaderCarrier): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
     val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
-    result.map(response => resolveResponse(response, userId, member.nino)).recover {
+    result.map(response => resolveResponse(response, userId, member.nino, apiVersion)).recover {
       case badRequestEx: BadRequestException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
           s"valid. userId ($userId).")
@@ -138,7 +138,17 @@ trait DesConnector extends ServicesConfig {
     }
   }
 
-  private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
+  private def convertResidencyStatus(residencyStatus: String, apiVersion: ApiVersion): String = {
+    val ukAndScotRes = residencyStatus.replace(uk, otherUk).replace(scot, scotRes)
+    apiVersion match {
+      case V1_0 =>
+        ukAndScotRes.replace(welsh, otherUk)
+      case V2_0 =>
+        ukAndScotRes.replace(welsh, welshRes)
+    }
+  }
+
+  private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO, apiVersion: ApiVersion)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
 
     Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
       case Success(payload) =>
@@ -157,8 +167,8 @@ trait DesConnector extends ServicesConfig {
 
               Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
             } else {
-              val currentStatus = payload.currentYearResidencyStatus.replace(uk, otherUk).replace(scot, scotRes).replace(welsh, welshRes)
-              val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(_.replace(uk, otherUk).replace(scot, scotRes).replace(welsh, welshRes))
+              val currentStatus = convertResidencyStatus(payload.currentYearResidencyStatus, apiVersion)
+              val nextYearStatus: Option[String] = payload.nextYearResidencyStatus.map(convertResidencyStatus(_, apiVersion))
               Left(ResidencyStatus(currentStatus, nextYearStatus))
             }
           }
