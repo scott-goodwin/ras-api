@@ -26,7 +26,7 @@ import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData, V2_0}
+import uk.gov.hmrc.rasapi.models.{ApiVersion, CallbackData, ResultsFileMetaData, V2_0}
 import uk.gov.hmrc.rasapi.repository.{RasFileRepository, RasRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -61,7 +61,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   val fileSave = "File-Save"
   val STATUS_ERROR = "ERROR"
 
-  def processFile(userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
+  def processFile(userId: String, callbackData: CallbackData, apiVersion: ApiVersion)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileMetrics = Metrics.register(fileProcess).time
     val fileReadMetrics = Metrics.register(fileRead).time
 
@@ -70,14 +70,14 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       inputFileData =>
         if(inputFileData.isSuccess)
         {
-          manipulateFile(inputFileData, userId, callbackData)
+          manipulateFile(inputFileData, userId, callbackData, apiVersion)
         }
     }
 
     fileMetrics.stop
   }
 
-  def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
+  def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData, apiVersion: ApiVersion)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileResultsMetrics = Metrics.register(fileResults).time
     val writer = createFileWriter(callbackData.fileId, userId)
 
@@ -94,8 +94,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
       writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings", userId)
       dataIterator.foreach(row =>
         if (!row.isEmpty) {
-          // apiVersion is hardcoded because this endpoint is solely used by the frontend which supports it.
-          writeResultToFile(writer._2,fetchResult(removeDoubleQuotes(row),userId,callbackData.fileId, apiVersion = V2_0), userId)
+          writeResultToFile(writer._2,fetchResult(removeDoubleQuotes(row),userId,callbackData.fileId, apiVersion = apiVersion), userId)
         }
       )
       closeWriter(writer._2)
