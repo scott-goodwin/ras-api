@@ -17,29 +17,28 @@
 package uk.gov.hmrc.rasapi.controllers
 
 import org.joda.time.DateTime
-import play.api.mvc.{Action, AnyContent, Request, Result}
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.api.controllers.HeaderValidator
-import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.rasapi.connectors.DesConnector
-import uk.gov.hmrc.rasapi.models._
-import play.api.libs.json.Json._
 import play.api.Logger
 import play.api.data.validation.ValidationError
-import play.api.libs.json.{JsError, JsPath, JsSuccess}
+import play.api.libs.json.Json._
+import play.api.libs.json.{JsError, JsPath, JsSuccess, Json}
+import play.api.mvc.{Action, AnyContent, Request, Result}
+import uk.gov.hmrc.api.controllers.{ErrorAcceptHeaderInvalid, HeaderValidator}
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
-import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.rasapi.services.AuditService
-import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
+import uk.gov.hmrc.auth.core.retrieve.Retrievals._
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import uk.gov.hmrc.play.config.RunMode
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-
-import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
+import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
+import uk.gov.hmrc.rasapi.models._
+import uk.gov.hmrc.rasapi.services.AuditService
 import uk.gov.hmrc.rasapi.utils.ErrorConverter
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
@@ -56,6 +55,22 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
   val STATUS_MATCHING_FAILED: String
   val STATUS_SERVICE_UNAVAILABLE: String
 
+  val apiV2_0Enabled : Boolean
+
+  override val validateVersion: String => Boolean = (version: String) => version == "1.0" || (apiV2_0Enabled && version == "2.0")
+
+
+  implicit class VersionUtil(request: Request[_]) {
+    def getVersion: ApiVersion = {
+      request.headers.get(ACCEPT).flatMap(accept => matchHeader(accept).map(_.group("version"))
+        .collect {
+          case "1.0" => V1_0
+          case "2.0" => V2_0
+        }).getOrElse(throw new BadRequestException(Json.toJson(ErrorAcceptHeaderInvalid).toString))
+      // the exception in the else should never be thrown since it wouldn't pass validation otherwise
+    }
+  }
+
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       val apiMetrics = Metrics.responseTimer.time
@@ -65,8 +80,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
           withValidJson(id,
             (individualDetails) => {
-
-              desConnector.getResidencyStatus(individualDetails, id).map {
+              desConnector.getResidencyStatus(individualDetails, id, request.getVersion).map {
                 case Left(residencyStatusResponse) =>
                   val residencyStatus = if (residencyYearResolver.isBetweenJanAndApril())
                                           updateResidencyResponse(residencyStatusResponse)
@@ -227,6 +241,6 @@ object LookupController extends LookupController {
   override val STATUS_DECEASED: String = AppContext.deceasedStatus
   override val STATUS_MATCHING_FAILED: String = AppContext.matchingFailedStatus
   override val STATUS_SERVICE_UNAVAILABLE: String = AppContext.serviceUnavailableStatus
-  override val validateVersion: String => Boolean = _ == "1.0"
+  override val apiV2_0Enabled : Boolean = AppContext.apiV2_0Enabled
   // $COVERAGE-ON$
 }

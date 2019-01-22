@@ -20,11 +20,11 @@ import play.api.Logger
 import play.api.libs.json.JsSuccess
 import play.api.mvc.{Action, AnyContent, Request}
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.rasapi.models.CallbackData
+import uk.gov.hmrc.rasapi.models.{CallbackData, V1_0, V2_0}
 import uk.gov.hmrc.rasapi.services.{FileProcessingService, SessionCacheService}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.{Success, Try}
 
 object FileProcessingController extends FileProcessingController {
@@ -41,24 +41,30 @@ trait FileProcessingController extends BaseController {
   val fileProcessingService: FileProcessingService
   val sessionCacheService: SessionCacheService
 
-  def statusCallback(userId:String): Action[AnyContent] = Action.async {
+  def statusCallback(userId: String, version: String): Action[AnyContent] = Action.async {
     implicit request =>
-      withValidJson.fold(Future.successful(BadRequest(""))){ callbackData =>
-        callbackData.status match {
-          case STATUS_AVAILABLE =>
-            Logger.warn(s"[FileProcessingController] [statusCallback] Callback request received with status available: file processing " +
-              s"started for userId ($userId)." )
-            if(Try(fileProcessingService.processFile(userId,callbackData)).isFailure) {
-              sessionCacheService.updateFileSession(userId,callbackData,None,None)
-            }
-          case STATUS_ERROR => Logger.error(s"[FileProcessingController] [statusCallback] There is a problem with the " +
-            s"file for userId ($userId) ERROR (${callbackData.fileId}), the status is: ${callbackData.status} and the reason is: ${callbackData.reason.get}")
-            sessionCacheService.updateFileSession(userId,callbackData,None,None)
-          case _ => Logger.warn(s"There is a problem with the file (${callbackData.fileId}) for userId ($userId), the status is:" +
-            s" ${callbackData.status}")
-        }
-
-        Future(Ok(""))
+      val optVersion = version match {
+        case "1.0" => Some(V1_0)
+        case "2.0" => Some(V2_0)
+        case _ => None
+      }
+      (optVersion, withValidJson) match {
+        case (Some(apiVersion), Some(callbackData)) =>
+          callbackData.status match {
+            case STATUS_AVAILABLE =>
+              Logger.warn(s"[FileProcessingController] [statusCallback] Callback request received with status available: file processing " +
+                s"started for userId ($userId).")
+              if (Try(fileProcessingService.processFile(userId, callbackData, apiVersion)).isFailure) {
+                sessionCacheService.updateFileSession(userId, callbackData, None, None)
+              }
+            case STATUS_ERROR => Logger.error(s"[FileProcessingController] [statusCallback] There is a problem with the " +
+              s"file for userId ($userId) ERROR (${callbackData.fileId}), the status is: ${callbackData.status} and the reason is: ${callbackData.reason.get}")
+              sessionCacheService.updateFileSession(userId, callbackData, None, None)
+            case _ => Logger.warn(s"There is a problem with the file (${callbackData.fileId}) for userId ($userId), the status is:" +
+              s" ${callbackData.status}")
+          }
+          Future(Ok(""))
+        case _ => Future.successful(BadRequest(""))
       }
   }
 
