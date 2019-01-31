@@ -18,19 +18,19 @@ package config
 
 import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.OneAppPerSuite
+import org.scalatest.mockito.MockitoSugar
 import play.api.Mode.Mode
 import play.api.{Application, Configuration, Play}
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.ServiceLocatorRegistration
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 
-class RegisterInServiceLocatorSpec extends UnitSpec with MockitoSugar with OneAppPerSuite {
+class RegisterInServiceLocatorSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite {
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder().build()
 

@@ -27,7 +27,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{RequestHeader, Result}
 import play.api.mvc.Results.{BadRequest, NotFound, Status}
-import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto}
+import uk.gov.hmrc.crypto.ApplicationCrypto
 import uk.gov.hmrc.rasapi.controllers.{BadRequestResponse, ErrorInternalServerError, ErrorNotFound, Unauthorised}
 import uk.gov.hmrc.http.cache.client.{SessionCache, ShortLivedCache, ShortLivedHttpCaching}
 
@@ -36,7 +36,6 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 import uk.gov.hmrc.rasapi.services.DataCleansingService
-import uk.gov.hmrc.crypto.ApplicationCrypto
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 
 trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
@@ -48,7 +47,7 @@ trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
-    new ApplicationCrypto(Play.current.configuration.underlying).verifyConfiguration()
+
     registrationEnabled match {
       case true => {Logger.info("Starting Registration"); slConnector.register}
       case false => Logger.warn("Registration in Service Locator is disabled")
@@ -141,9 +140,8 @@ object RasShortLivedHttpCaching extends ShortLivedHttpCaching with AppName with 
 }
 
 object RasShortLivedCache extends ShortLivedCache {
+  override implicit lazy val crypto = new ApplicationCrypto(Play.current.configuration.underlying).JsonCrypto
   override lazy val shortLiveCache = RasShortLivedHttpCaching
-//  override implicit val crypto: CompositeSymmetricCrypto = CompositeSymmetricCrypto()
-  override implicit val crypto: CompositeSymmetricCrypto = ???
 }
 
 object RasSessionCache extends SessionCache with AppName with ServicesConfig {
