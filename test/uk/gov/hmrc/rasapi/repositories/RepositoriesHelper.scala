@@ -21,6 +21,7 @@ import java.nio.file.{Files, Path}
 
 import play.api.Logger
 import play.api.libs.iteratee.{Enumerator, Iteratee}
+import reactivemongo.api.DefaultDB
 import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -82,6 +83,8 @@ object RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
   class RasFileRepositoryTest(implicit ec: ExecutionContext)
     extends RasFileRepository(mongoConnector) with MongoSpecSupport {
+
+    override implicit val mongo: () => DefaultDB = mongoConnectorForTest.db
 
     def getFile(storedFile: ResultsFile) = {
       val inputStream = gridFSG.enumerate(storedFile) run getAll map { bytes =>

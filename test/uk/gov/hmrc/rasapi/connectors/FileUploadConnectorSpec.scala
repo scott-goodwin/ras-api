@@ -26,6 +26,8 @@ import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
+import play.api.{Configuration, Play}
+import play.api.Mode.Mode
 import play.api.libs.ws.{DefaultWSResponseHeaders, StreamedResponse}
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse, RequestTimeoutException}
@@ -119,4 +121,7 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
       result shouldBe false
     }
   }
+
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

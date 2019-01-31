@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import play.api.{Configuration, Play}
 import uk.gov.hmrc.rasapi.config.MicroserviceAuditConnector
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.DataEvent
@@ -28,6 +29,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 trait AuditService extends AppName {
   val connector: AuditConnector
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 
   def audit(auditType: String, path: String, auditData: Map[String, String])(implicit hc:HeaderCarrier): Future[AuditResult] = {
     val event = DataEvent(

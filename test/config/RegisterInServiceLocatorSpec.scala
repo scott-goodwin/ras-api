@@ -20,10 +20,10 @@ import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
-import play.api.Application
+import play.api.Mode.Mode
+import play.api.{Application, Configuration, Play}
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.play.test.UnitSpec
-
 import uk.gov.hmrc.rasapi.config.ServiceLocatorRegistration
 import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 
@@ -47,6 +47,9 @@ class RegisterInServiceLocatorSpec extends UnitSpec with MockitoSugar with OneAp
       when(mockConnector.register(hc)).thenReturn(Future.successful(true))
       onStart(app)
       verify(mockConnector).register(hc)
+
+      override protected def mode: Mode = Play.current.mode
+      override protected def runModeConfiguration: Configuration = Play.current.configuration
     }
 
 
@@ -54,6 +57,9 @@ class RegisterInServiceLocatorSpec extends UnitSpec with MockitoSugar with OneAp
       override val registrationEnabled: Boolean = false
       onStart(app)
       verify(mockConnector, never()).register(any())
+
+      override protected def mode: Mode = Play.current.mode
+      override protected def runModeConfiguration: Configuration = Play.current.configuration
     }
   }
 }

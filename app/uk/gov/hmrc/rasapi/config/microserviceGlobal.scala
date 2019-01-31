@@ -16,17 +16,18 @@
 
 package uk.gov.hmrc.rasapi.config
 
+//import akka.event.LoggingFilter
 import com.typesafe.config.Config
 import play.api._
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import net.ceedubs.ficus.Ficus._
+import play.api.Mode.Mode
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{RequestHeader, Result}
 import play.api.mvc.Results.{BadRequest, NotFound, Status}
-import uk.gov.hmrc.crypto.ApplicationCrypto
-import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
+import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto}
 import uk.gov.hmrc.rasapi.controllers.{BadRequestResponse, ErrorInternalServerError, ErrorNotFound, Unauthorised}
 import uk.gov.hmrc.http.cache.client.{SessionCache, ShortLivedCache, ShortLivedHttpCaching}
 
@@ -35,6 +36,8 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 import uk.gov.hmrc.rasapi.services.DataCleansingService
+import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 
 trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
 
@@ -45,6 +48,7 @@ trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
+    new ApplicationCrypto(Play.current.configuration.underlying).verifyConfiguration()
     registrationEnabled match {
       case true => {Logger.info("Starting Registration"); slConnector.register}
       case false => Logger.warn("Registration in Service Locator is disabled")
@@ -67,6 +71,8 @@ object ControllerConfiguration extends ControllerConfig {
 object MicroserviceAuditFilter extends AuditFilter with AppName with MicroserviceFilterSupport {
   override val auditConnector = MicroserviceAuditConnector
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 }
 
 object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSupport {
@@ -89,6 +95,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Mi
   override implicit val hc: HeaderCarrier = HeaderCarrier()
 
   override lazy val registrationEnabled = AppContext.registrationEnabled
+
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   override def onBadRequest(request: RequestHeader, error: String) = {
 
@@ -124,11 +134,16 @@ object RasShortLivedHttpCaching extends ShortLivedHttpCaching with AppName with 
   override lazy val defaultSource = appName
   override lazy val baseUri = baseUrl("cachable.short-lived-cache")
   override lazy val domain = getConfString("cachable.short-lived-cache.domain", throw new Exception(s"Could not find config 'cachable.short-lived-cache.domain'"))
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
 
 object RasShortLivedCache extends ShortLivedCache {
-  override implicit lazy val crypto = ApplicationCrypto.JsonCrypto
   override lazy val shortLiveCache = RasShortLivedHttpCaching
+//  override implicit val crypto: CompositeSymmetricCrypto = CompositeSymmetricCrypto()
+  override implicit val crypto: CompositeSymmetricCrypto = ???
 }
 
 object RasSessionCache extends SessionCache with AppName with ServicesConfig {
@@ -136,4 +151,8 @@ object RasSessionCache extends SessionCache with AppName with ServicesConfig {
   override lazy val defaultSource = appName
   override lazy val baseUri = baseUrl("cachable.session-cache")
   override lazy val domain = getConfString("cachable.session-cache.domain", throw new Exception(s"Could not find config 'cachable.session-cache.domain'"))
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

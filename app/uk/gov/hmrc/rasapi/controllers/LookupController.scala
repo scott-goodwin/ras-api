@@ -17,7 +17,8 @@
 package uk.gov.hmrc.rasapi.controllers
 
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.Mode.Mode
+import play.api.{Configuration, Logger, Play}
 import play.api.data.validation.ValidationError
 import play.api.libs.json.Json._
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Json}
@@ -59,6 +60,8 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
   override val validateVersion: String => Boolean = (version: String) => version == "1.0" || (apiV2_0Enabled && version == "2.0")
 
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   implicit class VersionUtil(request: Request[_]) {
     def getVersion: ApiVersion = {

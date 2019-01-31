@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
-import play.api.Logger
+import play.api.Mode.Mode
+import play.api.{Configuration, Logger, Play}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -62,6 +63,9 @@ trait DesConnector extends ServicesConfig {
   val retryDelay: Int
 
   lazy val nonRetryableErrors = List(error_MatchingFailed, error_Deceased, error_DoNotReProcess)
+
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   def canRetryRequest(isBulkRequest: Boolean) = isRetryEnabled || (isBulkRetryEnabled && isBulkRequest)
 
@@ -203,4 +207,7 @@ object DesConnector extends DesConnector {
   override val isRetryEnabled: Boolean = AppContext.retryEnabled
   override val isBulkRetryEnabled: Boolean = AppContext.bulkRetryEnabled
   // $COVERAGE-ON$
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
