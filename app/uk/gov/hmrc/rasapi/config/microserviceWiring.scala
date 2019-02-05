@@ -16,6 +16,10 @@
 
 package uk.gov.hmrc.rasapi.config
 
+import akka.actor.ActorSystem
+import com.typesafe.config.Config
+import play.api.{Configuration, Play}
+import play.api.Mode.Mode
 import play.api.libs.ws.StreamedResponse
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.http._
@@ -35,6 +39,12 @@ trait WSHttp extends
   HttpPatch with WSPatch with AppName {
   override val hooks: Seq[HttpHook] = NoneRequired
 
+  override protected def actorSystem: ActorSystem = Play.current.actorSystem
+
+  override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
+
   def buildRequestWithStream(uri: String)(implicit hc: HeaderCarrier): Future[StreamedResponse] = buildRequest(uri).stream()
 }
 
@@ -42,6 +52,10 @@ object WSHttp extends WSHttp
 
 object MicroserviceAuditConnector extends AuditConnector with RunMode {
   override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
+
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
 
 trait RasAuthConnector extends PlayAuthConnector with ServicesConfig with WSHttp {
@@ -49,5 +63,9 @@ trait RasAuthConnector extends PlayAuthConnector with ServicesConfig with WSHttp
   lazy val http = WSHttp
 }
 
-object RasAuthConnector extends RasAuthConnector
+object RasAuthConnector extends RasAuthConnector {
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
+}
 

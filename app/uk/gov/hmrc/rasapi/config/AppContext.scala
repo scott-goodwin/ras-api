@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.rasapi.config
 
+import play.api.{Configuration, Play}
+import play.api.Mode.Mode
 import play.api.Play._
 import uk.gov.hmrc.play.config.ServicesConfig
 
@@ -47,4 +49,8 @@ object AppContext extends ServicesConfig {
   lazy val internalServerErrorStatus: String = current.configuration.getString("status.internal-server-error.api").getOrElse("INTERNAL_SERVER_ERROR")
   lazy val removeChunksDataExerciseEnabled: Boolean = current.configuration.getBoolean("remove-chunks-data-exercise.enabled").getOrElse(false)
   lazy val apiV2_0Enabled: Boolean = current.configuration.getBoolean("api-v2_0.enabled").getOrElse(false)
+
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

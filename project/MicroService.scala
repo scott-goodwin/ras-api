@@ -12,7 +12,9 @@ trait MicroService {
   import DefaultBuildSettings.{defaultSettings, addTestReportOption}
   import uk.gov.hmrc.SbtAutoBuildPlugin
   import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
+  import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
   import uk.gov.hmrc.versioning.SbtGitVersioning
+  import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
   import play.sbt.routes.RoutesKeys.routesGenerator
   import uk.gov.hmrc.SbtArtifactory
 
@@ -42,6 +44,7 @@ trait MicroService {
     .settings(scoverageSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
+    .settings(majorVersion := 1)
     .settings(
       scalaVersion := "2.11.11",
       libraryDependencies ++= appDependencies,

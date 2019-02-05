@@ -21,7 +21,8 @@ import java.io.InputStream
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
-import play.api.Logger
+import play.api.Mode.Mode
+import play.api.{Configuration, Logger, Play}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.rasapi.config.WSHttp
@@ -34,6 +35,10 @@ trait FileUploadConnector extends ServicesConfig {
 
   val http: HttpPost
   val wsHttp: WSHttp
+
+
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   lazy val serviceUrl = baseUrl("file-upload")
   lazy val fileUploadUrlSuffix = getString("file-upload-url-suffix")
