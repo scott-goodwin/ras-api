@@ -39,7 +39,7 @@ trait WSHttp extends
   HttpPatch with WSPatch with AppName {
   override val hooks: Seq[HttpHook] = NoneRequired
 
-  override protected def actorSystem: ActorSystem = akka.actor.ActorSystem()
+  override protected def actorSystem: ActorSystem = Play.current.actorSystem
 
   override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
 

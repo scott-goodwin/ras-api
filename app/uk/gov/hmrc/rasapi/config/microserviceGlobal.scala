@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.rasapi.config
 
-//import akka.event.LoggingFilter
 import com.typesafe.config.Config
 import play.api._
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
