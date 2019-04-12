@@ -15,7 +15,10 @@
       "enum" :
       [
         "BAD_REQUEST",
-        "STATUS_UNAVAILABLE"
+        "STATUS_UNAVAILABLE",
+        "RTI_NOT_FOUND",
+        "INTERNAL_SERVER_ERROR",
+        "SERVICE_UNAVAILABLE"
       ]
     }
   }

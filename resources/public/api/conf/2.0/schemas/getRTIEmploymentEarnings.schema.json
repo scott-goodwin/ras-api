@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type" : "object",
+  "properties":
+  {
+    "previousYearRTIEmployedEarnings"  :
+    {
+      "description": "Returns the RTI employed earnings from the previous year.",
+      "type" : "number",
+      "example": "4000.00"
+    },
+    "previousYearRTIEmployedEarningsPartner"  :
+    {
+      "description": "Returns the RTI employed earnings from the previous year for partner.",
+      "type" : "number",
+      "example": "5000.00"
+    }
+  }
+}

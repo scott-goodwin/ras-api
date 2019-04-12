@@ -1,7 +1,7 @@
 #%RAML 1.0
 ---
 
-title: Residency status for relief at source
+title: Real-Time Information (RTI) details from Tax Credits Broker API
 version: 2.0
 protocols: [ HTTPS ]
 baseUri: http://api.service.hmrc.gov.uk
@@ -23,46 +23,72 @@ uses:
 
 mediaType: [ application/json, application/hal+json ]
 
-/individuals/relief-at-source:
-  /residency-status:
-    post:
-      description: !include documentation/description.md
-      displayName: Check if an individual is a Scottish resident
-      is: [headers.acceptHeader, headers.contentHeader]
-      (annotations.scope): "read:ras"
-      securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
-      (annotations.sandboxData): !include testdata/get-residency-status.md
-      body:
-        application/json:
-            example: !include examples/residency_status_request.ex.json
-            type: !include schemas/residency_status.schema.json
-      responses:
-        200:
-          body:
-            application/json:
-              type: !include schemas/getResidencyStatus.schema.json
-              example: |
-                {
-                  "currentYearResidencyStatus" : "otherUKResident",
-                  "nextYearForecastResidencyStatus" : "scotResident"
-                }
-        400:
-          body:
-            application/json:
-              type: !include schemas/ErrorCodes.schema.json
-              description: Bad Request
-              example: |
-                {
-                  "code" : "BAD_REQUEST",
-                  "message" : "Bad Request"
-                }
-        403:
-          body:
-            application/json:
-              description: The pension scheme member's details do not match with HMRC's records.
-              type: !include schemas/ErrorCodes.schema.json
-              example: |
-                {
-                  "code": "STATUS_UNAVAILABLE",
-                  "message": "Cannot provide a residency status for this pension scheme member."
-                }
+types:
+  NationalInsuranceNumberType:
+    pattern: "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]$"
+
+/tcs:
+  /{nino}:
+    uriParameters:
+      nationalInsuranceNumber:
+        type: NationalInsuranceNumberType
+        description: The individual's National Insurance Number
+        example: "AA123456A"
+    /employed-earnings-rti:
+      get:
+        description: Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.
+        displayName: Retrieve individual's RTI details
+        is: [headers.acceptHeader, headers.contentHeader]
+        (annotations.scope): "read:ras"
+        securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
+        (annotations.sandboxData): !include testdata/get-residency-status.md
+        responses:
+          200:
+            body:
+              application/json:
+                type: !include schemas/getRTIEmploymentEarnings.schema.json
+                example: |
+                  {
+                    "previousYearRTIEmployedEarnings" : 4000.00,
+                    "previousYearRTIEmployedEarningsPartner": 5000.00
+                  }
+          400:
+            body:
+              application/json:
+                type: !include schemas/ErrorCodes.schema.json
+                description: National Insurance Number in the URL is in the wrong format
+                example: |
+                  {
+                    "code" : "BAD_REQUEST",
+                    "message" : "National Insurance Number in the URL is in the wrong format."
+                  }
+          404:
+            body:
+              application/json:
+                description: The RTI information cannot be found for this individual.
+                type: !include schemas/ErrorCodes.schema.json
+                example: |
+                  {
+                    "code": "RTI_NOT_FOUND",
+                    "message": "Cannot provide employment earnings for this individual."
+                  }
+          500:
+            body:
+              application/json:
+                description: Internal Server Error.
+                type: !include schemas/ErrorCodes.schema.json
+                example: |
+                  {
+                    "code": "INTERNAL_SERVER_ERROR",
+                    "message": "Internal Server Error."
+                  }
+          503:
+            body:
+              application/json:
+                description: Service Unavailable.
+                type: !include schemas/ErrorCodes.schema.json
+                example: |
+                  {
+                    "code": "SERVICE_UNAVAILABLE",
+                    "message": "Service Unavailable."
+                  }
