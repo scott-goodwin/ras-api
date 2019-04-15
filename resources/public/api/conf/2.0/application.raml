@@ -31,7 +31,7 @@ traits:
   authorizationHeader:
     headers:
       Authorization:
-        description: An OAuth 2.0 Bearer Token with the read:rti scope.
+        description: An OAuth 2.0 Bearer Token.
         type: string
         required: true
         example: Bearer bb7fed3fe10dd235a2ccda3d50fb
@@ -48,7 +48,6 @@ traits:
         description: Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.
         displayName: Retrieve individual's RTI details
         is: [authorizationHeader, headers.contentHeader]
-        securedBy: [ sec.oauth_2_0: { scopes: [ "read:rti"] } ]
         (annotations.sandboxData): !include testdata/get-residency-status.md
         responses:
           200:
