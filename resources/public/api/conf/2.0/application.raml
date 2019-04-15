@@ -27,8 +27,17 @@ types:
   NationalInsuranceNumberType:
     pattern: "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]$"
 
+traits:
+  authorizationHeader:
+    headers:
+      Authorization:
+        description: An OAuth 2.0 Bearer Token with the read:rti scope.
+        type: string
+        required: true
+        example: Bearer bb7fed3fe10dd235a2ccda3d50fb
+
 /tcs:
-  /{nino}:
+  /{nationalInsuranceNumber}:
     uriParameters:
       nationalInsuranceNumber:
         type: NationalInsuranceNumberType
@@ -38,9 +47,8 @@ types:
       get:
         description: Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.
         displayName: Retrieve individual's RTI details
-        is: [headers.acceptHeader, headers.contentHeader]
-        (annotations.scope): "read:ras"
-        securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
+        is: [authorizationHeader, headers.contentHeader]
+        securedBy: [ sec.oauth_2_0: { scopes: [ "read:rti"] } ]
         (annotations.sandboxData): !include testdata/get-residency-status.md
         responses:
           200:
