@@ -69,6 +69,16 @@ traits:
                     "code" : "BAD_REQUEST",
                     "message" : "National Insurance Number in the URL is in the wrong format."
                   }
+          401:
+            body:
+              application/json:
+                  type: !include schemas/ErrorCodes.schema.json
+                  description: Bearer Token invalid or Empty.
+                  example: |
+                    {
+                    "code" : "UNAUTHORIZED",
+                    "message" : "Bearer Token invalid or Empty."
+                     }
           404:
             body:
               application/json:
