@@ -170,97 +170,107 @@ pre code {
 .required {
   color: #f00;
 }
-    </style></head><body data-spy="scroll" data-target="#sidebar"><div class="container"><div class="row"><div class="col-md-9" role="main"><div class="page-header"><h1>Real-Time Information (RTI) details from Tax Credits Broker API API documentation <small>version 2.0</small></h1><p>http://api.service.hmrc.gov.uk</p><h3 id="overview"><a href="#overview">Overview</a></h3><p>When data exists, display a users employed earnings for previous year back to them when using the Tax Credits Service through Real Time Information.</p><h3 id="versioning"><a href="#versioning">Versioning</a></h3><p>When an API changes in a way that is backwards-incompatible, we increase the version number of the API. See our <a href="/api-documentation/docs/reference-guide#versioning">reference guide</a> for more on versioning.</p><h3 id="errors"><a href="#errors">Errors</a></h3><p>We use standard <a href="/api-documentation/docs/reference-guide#http-status-codes">HTTP status codes</a> to show whether an API request succeeded or not. They are usually in the range:</p><ul><li>200 to 299 if it succeeded, including code 202 if it was accepted by an API that needs to wait for further action</li><li>400 to 499 if it failed because of a client error by your application</li><li>500 to 599 if it failed because of an error on our server</li></ul><p>Errors specific to each API are shown in the Endpoints section, under Response. See our <a href="/api-documentation/docs/reference-guide#errors">reference guide</a> for more on errors.</p><h3 id="testing_the_api"><a href="#testing_the_api">Testing the API</a></h3><p>You can use the sandbox environment to <a href="https://developer.service.hmrc.gov.uk/api-documentation/docs/testing">test this API</a>.</p><p>It does not currently support <a href="https://developer.service.hmrc.gov.uk/api-documentation/docs/testing/stateful-behaviour">stateful behaviour</a>, but you can use the payloads described in Resources to test specific scenarios.</p><p>You must set up a test user which is an organisation for this API using the <a href="https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/api-platform-test-user/1.0#_create-a-test-user-which-is-an-organisation_post_accordion">Create Test User API</a>.</p></div><div class="panel panel-default"><div class="panel-heading"><h3 id="tcs" class="panel-title">/tcs</h3></div><div class="panel-body"><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_tcs__nationalinsurancenumber__employed_earnings_rti"><span class="parent">/tcs/{nationalInsuranceNumber}</span>/employed-earnings-rti</a> <span class="methods"><a href="#tcs__nationalinsurancenumber__employed_earnings_rti_get"><span class="badge badge_get">get</span></a></span></h4></div><div id="panel_tcs__nationalinsurancenumber__employed_earnings_rti" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#tcs__nationalinsurancenumber__employed_earnings_rti_get'" class="list-group-item"><span class="badge badge_get">get</span><div class="method_description"><p>Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="tcs__nationalinsurancenumber__employed_earnings_rti_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get</span> <span class="parent">/tcs/{nationalInsuranceNumber}</span>/employed-earnings-rti</h4></div><div class="modal-body"><div class="alert alert-info"><p>Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#tcs__nationalinsurancenumber__employed_earnings_rti_get_request" data-toggle="tab">Request</a></li><li><a href="#tcs__nationalinsurancenumber__employed_earnings_rti_get_response" data-toggle="tab">Response</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tcs__nationalinsurancenumber__employed_earnings_rti_get_request"><h3>URI Parameters</h3><ul><li><strong>nationalInsuranceNumber</strong>: <em><span class="required">required</span>(string - pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]$)</em><p>The individual&#39;s National Insurance Number</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>AA123456A</code></pre></div></li></ul><h3>Annotations</h3><ul><li><strong>annotations.sandboxData</strong><pre><table>
-    <col width='\"25%\"'>
-    <col width='\"35%\"'>
-    <col width='\"40%\"'>
-    <thead>
-        <tr>
-            <th>Scenario</th>
-            <th>Example Response</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-                <p>Request with a valid payload where previousYearRTIEmployedEarnings is the only field contained in the
-                    response</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>200 (Ok)</code></p>
-                <p class='\"code--block\"'> { \"previousYearRTIEmployedEarnings\" : test data } </p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <p>Request with a valid payload where previousYearRTIEmployedEarningsPartner is the only field contained
-                    in the response</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>200 (Ok)</code></p>
-                <p class='\"code--block\"'> { \"previousYearRTIEmployedEarningsPartner\" : test data } </p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <p>Request with a valid payload where previousYearRTIEmployedEarningsPartner is the only field contained
-                    in the response</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>200 (Ok)</code></p>
-                <p class='\"code--block\"'> { \"previousYearRTIEmployedEarnings\" : test data,
-                    \"previousYearRTIEmployedEarningsPartner\" : test data } </p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <p>Request with a valid payload containing an invalid National Insurance Number</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>400 (BadRequest)</code></p>
-                <p class='\"code--block\"'> { \"code\": \"BAD_REQUEST\", \"message\": \"National Insurance Number in the
-                    URL is in the wrong format.\" } </p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <p>Request with a valid payload where the individual doesn't have RTI data</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>404 (NotFound)</code></p>
-                <p class='\"code--block\"'> { \"code\": \"RTI_NOT_FOUND\", \"message\": \"Cannot provide employment
-                    earnings for this individual.\" } </p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <p>Request with a valid payload but there's an internal server error</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>500 (InternalServerError)</code></p>
-                <p class='\"code--block\"'> { \"code\": \"INTERNAL_SERVER_ERROR\", \"message\": \"Internal Server
-                    Error.\" } </p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <p>Request with a valid payload but the service is unavailable</p>
-                <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
-            </td>
-            <td>
-                <p>HTTP status: <code class='\"code--slim\"'>503 (ServiceUnavailable)</code></p>
-                <p class='\"code--block\"'> { \"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"Service Unavailable.\" }
-                </p>
-            </td>
-        </tr>
-    </tbody>
-</table></pre></li></ul><h3>Headers</h3><ul><li><strong>Authorization</strong>: <em><span class="required">required</span>(string)</em><p>An OAuth 2.0 Bearer Token.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>Bearer bb7fed3fe10dd235a2ccda3d50fb</code></pre></div></li><li><strong>Content-Type</strong>: <em><span class="required">required</span>(string)</em><p>Specifies the format of the request body, which must be JSON.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>application/json</code></pre></div></li></ul></div><div class="tab-pane" id="tcs__nationalinsurancenumber__employed_earnings_rti_get_response"><h2>HTTP status code <a href="http://httpstatus.es/200" target="_blank">200</a></h2><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>:</p><pre><code>{
+    </style></head><body data-spy="scroll" data-target="#sidebar"><div class="container"><div class="row"><div class="col-md-9" role="main"><div class="page-header"><h1>Real-Time Information (RTI) details from Tax Credits Broker API API documentation <small>version 2.0</small></h1><p>http://api.service.hmrc.gov.uk</p><h3 id="overview"><a href="#overview">Overview</a></h3><p>When data exists, display a users employed earnings for previous year back to them when using the Tax Credits Service through Real Time Information.</p><h3 id="versioning"><a href="#versioning">Versioning</a></h3><p>When an API changes in a way that is backwards-incompatible, we increase the version number of the API. See our <a href="/api-documentation/docs/reference-guide#versioning">reference guide</a> for more on versioning.</p><h3 id="errors"><a href="#errors">Errors</a></h3><p>We use standard <a href="/api-documentation/docs/reference-guide#http-status-codes">HTTP status codes</a> to show whether an API request succeeded or not. They are usually in the range:</p><ul><li>200 to 299 if it succeeded, including code 202 if it was accepted by an API that needs to wait for further action</li><li>400 to 499 if it failed because of a client error by your application</li><li>500 to 599 if it failed because of an error on our server</li></ul><p>Errors specific to each API are shown in the Endpoints section, under Response. See our <a href="/api-documentation/docs/reference-guide#errors">reference guide</a> for more on errors.</p><h3 id="testing_the_api"><a href="#testing_the_api">Testing the API</a></h3><p>You can use the sandbox environment to <a href="https://developer.service.hmrc.gov.uk/api-documentation/docs/testing">test this API</a>.</p><p>It does not currently support <a href="https://developer.service.hmrc.gov.uk/api-documentation/docs/testing/stateful-behaviour">stateful behaviour</a>, but you can use the payloads described in Resources to test specific scenarios.</p><p>You must set up a test user which is an organisation for this API using the <a href="https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/api-platform-test-user/1.0#_create-a-test-user-which-is-an-organisation_post_accordion">Create Test User API</a>.</p></div><div class="panel panel-default"><div class="panel-heading"><h3 id="tcs" class="panel-title">/tcs</h3></div><div class="panel-body"><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_tcs__nationalinsurancenumber__employed_earnings_rti"><span class="parent">/tcs/{nationalInsuranceNumber}</span>/employed-earnings-rti</a> <span class="methods"><a href="#tcs__nationalinsurancenumber__employed_earnings_rti_get"><span class="badge badge_get">get</span></a></span></h4></div><div id="panel_tcs__nationalinsurancenumber__employed_earnings_rti" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#tcs__nationalinsurancenumber__employed_earnings_rti_get'" class="list-group-item"><span class="badge badge_get">get</span><div class="method_description"><p>Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="tcs__nationalinsurancenumber__employed_earnings_rti_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get</span> <span class="parent">/tcs/{nationalInsuranceNumber}</span>/employed-earnings-rti</h4></div><div class="modal-body"><div class="alert alert-info"><p>Retrieve Tax Credits Real-Time Information details from HOD for a given NINO.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#tcs__nationalinsurancenumber__employed_earnings_rti_get_request" data-toggle="tab">Request</a></li><li><a href="#tcs__nationalinsurancenumber__employed_earnings_rti_get_response" data-toggle="tab">Response</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tcs__nationalinsurancenumber__employed_earnings_rti_get_request"><h3>URI Parameters</h3><ul><li><strong>nationalInsuranceNumber</strong>: <em><span class="required">required</span>(string - pattern: ^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]$)</em><p>The individual&#39;s National Insurance Number</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>AA123456A</code></pre></div></li></ul><h3>Annotations</h3><ul><li><strong>annotations.sandboxData</strong><div><div>"<table>
+  <col width='\"25%\"'>
+  <col width='\"35%\"'>
+  <col width='\"40%\"'>
+  <thead>
+  <tr>
+    <th>Scenario</th>
+    <th>Example Response</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>
+      <p>Request with a valid payload where previousYearRTIEmployedEarnings is the only field contained in the
+        response</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>200 (Ok)</code></p>
+      <p class='\"code--block\"'> { \"previousYearRTIEmployedEarnings\" : test data } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload where previousYearRTIEmployedEarningsPartner is the only field contained
+        in the response</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>200 (Ok)</code></p>
+      <p class='\"code--block\"'> { \"previousYearRTIEmployedEarningsPartner\" : test data } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload where previousYearRTIEmployedEarningsPartner is the only field contained
+        in the response</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>200 (Ok)</code></p>
+      <p class='\"code--block\"'> { \"previousYearRTIEmployedEarnings\" : test data,
+        \"previousYearRTIEmployedEarningsPartner\" : test data } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload containing an invalid National Insurance Number</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>400 (BadRequest)</code></p>
+      <p class='\"code--block\"'> { \"code\": \"BAD_REQUEST\", \"message\": \"National Insurance Number in the
+        URL is in the wrong format.\" } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload and Bearer Token invalid or Empty</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>401 (Unauthoriszed)</code></p>
+      <p class='\"code--block\"'> { \"code\": \"ANAUTHORIZED\", \"message\": \"Bearer Token invalid or Empty\" } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload where the individual doesn't have RTI data</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>404 (NotFound)</code></p>
+      <p class='\"code--block\"'> { \"code\": \"RTI_NOT_FOUND\", \"message\": \"Cannot provide employment
+        earnings for this individual.\" } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload but there's an internal server error</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>500 (InternalServerError)</code></p>
+      <p class='\"code--block\"'> { \"code\": \"INTERNAL_SERVER_ERROR\", \"message\": \"Internal Server
+        Error.\" } </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <p>Request with a valid payload but the service is unavailable</p>
+      <p class='\"code--block\"'> <strong>nino:</strong> Create test data in NTC-STUBS </p>
+    </td>
+    <td>
+      <p>HTTP status: <code class='\"code--slim\"'>503 (ServiceUnavailable)</code></p>
+      <p class='\"code--block\"'> { \"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"Service Unavailable.\" }
+      </p>
+    </td>
+  </tr>\t
+  </tbody>
+</table>"</div></div></li></ul><h3>Headers</h3><ul><li><strong>Authorization</strong>: <em><span class="required">required</span>(string)</em><p>An OAuth 2.0 Bearer Token.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>Bearer bb7fed3fe10dd235a2ccda3d50fb</code></pre></div></li><li><strong>Content-Type</strong>: <em><span class="required">required</span>(string)</em><p>Specifies the format of the request body, which must be JSON.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>application/json</code></pre></div></li></ul></div><div class="tab-pane" id="tcs__nationalinsurancenumber__employed_earnings_rti_get_response"><h2>HTTP status code <a href="http://httpstatus.es/200" target="_blank">200</a></h2><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>:</p><pre><code>{
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type" : "object",
   "properties":
