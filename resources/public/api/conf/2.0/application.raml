@@ -27,7 +27,7 @@ mediaType: [ application/json, application/hal+json ]
   /residency-status:
     post:
       description: !include documentation/description.md
-      displayName: Check if an individual is a Scottish resident
+      displayName: Check if an individual is a Scotland, Wales or rest of the UK resident
       is: [headers.acceptHeader, headers.contentHeader]
       (annotations.scope): "read:ras"
       securedBy: [ sec.oauth_2_0: { scopes: [ "read:ras" ] } ]
