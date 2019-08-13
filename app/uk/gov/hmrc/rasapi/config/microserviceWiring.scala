@@ -27,6 +27,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.{AppName, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.http.ws._
 import uk.gov.hmrc.http.hooks.HttpHook
+import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 
 import scala.concurrent.Future
@@ -36,14 +37,16 @@ trait WSHttp extends
   HttpPut with WSPut with
   HttpPost with WSPost with
   HttpDelete with WSDelete with
-  HttpPatch with WSPatch with AppName {
-  override val hooks: Seq[HttpHook] = NoneRequired
+  HttpPatch with WSPatch with AppName with HttpAuditing {
+  override val hooks: Seq[HttpHook] = Seq(AuditingHook)
 
   override protected def actorSystem: ActorSystem = Play.current.actorSystem
 
   override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
 
   override protected def appNameConfiguration: Configuration = Play.current.configuration
+
+  override def auditConnector: AuditConnector = MicroserviceAuditConnector
 
   def buildRequestWithStream(uri: String)(implicit hc: HeaderCarrier): Future[StreamedResponse] = buildRequest(uri).stream()
 }
@@ -58,14 +61,13 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
   override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
 
-trait RasAuthConnector extends PlayAuthConnector with ServicesConfig with WSHttp {
+trait RasAuthConnector extends PlayAuthConnector with ServicesConfig {
   lazy val serviceUrl = baseUrl("auth")
   lazy val http = WSHttp
 }
 
 object RasAuthConnector extends RasAuthConnector {
   override protected def mode: Mode = Play.current.mode
-
   override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
 
