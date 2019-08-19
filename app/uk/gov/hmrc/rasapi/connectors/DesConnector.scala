@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.connectors
 
 import play.api.Mode.Mode
 import play.api.{Configuration, Logger, Play}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
@@ -107,7 +107,10 @@ trait DesConnector extends ServicesConfig {
   private def sendResidencyStatusRequest(uri: String, member: IndividualDetails, userId: String,
                                          desHeaders: Seq[(String, String)], apiVersion: ApiVersion)(implicit rasHeaders: HeaderCarrier): Future[Either[ResidencyStatus, ResidencyStatusFailure]] = {
 
-    val result = httpPost.POST[JsValue, HttpResponse](uri, Json.toJson[IndividualDetails](member), desHeaders)
+    val payload = Json.toJson(Json.toJson[IndividualDetails](member)
+                    .as[JsObject] + ("pensionSchemeOrganisationID" -> Json.toJson(userId)))
+
+    val result = httpPost.POST[JsValue, HttpResponse](uri, payload, desHeaders)
     (implicitly[Writes[IndividualDetails]], implicitly[HttpReads[HttpResponse]], rasHeaders,
       MdcLoggingExecutionContext.fromLoggingDetails(rasHeaders))
 
