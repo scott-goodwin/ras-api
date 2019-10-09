@@ -55,6 +55,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val error_InternalServerError: String = AppContext.internalServerErrorStatus
     override val error_Deceased: String = AppContext.deceasedStatus
     override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+    override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
     override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
     override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
     override val retryLimit: Int = 3
@@ -226,6 +227,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val allowNoNextYearStatus: Boolean = true
         override val error_InternalServerError: String = AppContext.internalServerErrorStatus
         override val error_Deceased: String = AppContext.deceasedStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
@@ -271,6 +273,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_InternalServerError: String = AppContext.internalServerErrorStatus
         override val error_Deceased: String = AppContext.deceasedStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
         override val retryLimit: Int = 3
@@ -310,6 +313,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val allowNoNextYearStatus: Boolean = false
         override val error_InternalServerError: String = AppContext.internalServerErrorStatus
         override val error_Deceased: String = AppContext.deceasedStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus

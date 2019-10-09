@@ -73,6 +73,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
   val STATUS_DECEASED: String = "DECEASED"
   val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
   val STATUS_INTERNAL_SERVER_ERROR: String = "INTERNAL_SERVER_ERROR"
+  val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
   val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
 
   implicit val individualDetailssWrites: Writes[IndividualDetails] = (
@@ -94,6 +95,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
     override val allowDefaultRUK: Boolean = false
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
     override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
     override val apiV2_0Enabled: Boolean = true
   }
@@ -110,6 +112,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
     override val allowDefaultRUK: Boolean = true
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
     override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
     override val apiV2_0Enabled: Boolean = true
   }
@@ -127,6 +130,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
     override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
+    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
     override val apiV2_0Enabled: Boolean = true
   }
 
@@ -142,6 +146,7 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
     override val allowDefaultRUK: Boolean = false
     override val STATUS_DECEASED: String = "DECEASED"
     override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
     override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
     override val apiV2_0Enabled: Boolean = false
   }
@@ -711,6 +716,24 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
 
         status(result) shouldBe FORBIDDEN
         contentAsJson(result) shouldBe expectedJsonResult
+      }
+    }
+
+    "return status 429" when {
+
+      "when residency status is not returned from the response handler service" in {
+
+        when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
+
+        val residencyStatusFailure = ResidencyStatusFailure("TOO_MANY_REQUESTS", "")
+
+        when(mockDesConnector.getResidencyStatus(any(), any(), any(), any())).thenReturn(Future.successful(Right(residencyStatusFailure)))
+
+        val result = TestLookupController.getResidencyStatus().apply(FakeRequest(Helpers.GET, "/")
+          .withHeaders(acceptHeader)
+          .withJsonBody(Json.toJson(individualDetails)(individualDetailssWrites)))
+
+        status(result) shouldBe TOO_MANY_REQUESTS
       }
     }
 
