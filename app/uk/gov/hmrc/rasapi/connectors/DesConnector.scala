@@ -123,9 +123,13 @@ trait DesConnector extends ServicesConfig {
       case notFoundEx: NotFoundException =>
         Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
       case _4xx: Upstream4xxResponse =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
-          s"from the HoD. userId ($userId).")
-        Right(ResidencyStatusFailure(error_TooManyRequests, "Too Many Requests."))
+        if(_4xx.upstreamResponseCode==429) {
+          Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
+            s"from the HoD. userId ($userId).")
+          Right(ResidencyStatusFailure(error_TooManyRequests, "Too Many Requests."))
+        }else{
+          Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+        }
       case requestTimeOutEx: RequestTimeoutException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
         Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
