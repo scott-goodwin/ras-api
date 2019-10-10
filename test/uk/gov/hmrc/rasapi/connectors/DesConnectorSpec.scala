@@ -55,9 +55,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val error_InternalServerError: String = AppContext.internalServerErrorStatus
     override val error_Deceased: String = AppContext.deceasedStatus
     override val error_MatchingFailed: String = AppContext.matchingFailedStatus
-    override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
     override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
     override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+    override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
     override val retryLimit: Int = 3
     override val retryDelay: Int = 500
     override val desUrlHeaderEnv: String = "DES HEADER"
@@ -84,13 +84,13 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
   def createJsonPayload(individualDetails: IndividualDetails): JsValue = Json.parse(
     s"""
-      |{
-      |  "nino": "${individualDetails.nino}",
-      |  "firstName": "${individualDetails.firstName}",
-      |  "lastName": "${individualDetails.lastName}",
-      |  "dob": "${individualDetails.dateOfBirth.toString("yyyy-MM-dd")}",
-      |  "pensionSchemeOrganisationID": "${userId}"
-      |}
+       |{
+       |  "nino": "${individualDetails.nino}",
+       |  "firstName": "${individualDetails.firstName}",
+       |  "lastName": "${individualDetails.lastName}",
+       |  "dob": "${individualDetails.dateOfBirth.toString("yyyy-MM-dd")}",
+       |  "pensionSchemeOrganisationID": "${userId}"
+       |}
     """.stripMargin
   )
 
@@ -227,10 +227,10 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val allowNoNextYearStatus: Boolean = true
         override val error_InternalServerError: String = AppContext.internalServerErrorStatus
         override val error_Deceased: String = AppContext.deceasedStatus
-        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -273,9 +273,9 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_InternalServerError: String = AppContext.internalServerErrorStatus
         override val error_Deceased: String = AppContext.deceasedStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
-        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -313,10 +313,10 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val allowNoNextYearStatus: Boolean = false
         override val error_InternalServerError: String = AppContext.internalServerErrorStatus
         override val error_Deceased: String = AppContext.deceasedStatus
-        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -469,7 +469,25 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         verify(mockHttpPost, times(2)).POST[JsValue, HttpResponse](any(), Meq[JsValue](expectedPayload), any())(any(), any(), any(), any())
       }
 
+      "429 (Too Many Requests) has been returned 3 times" in {
+
+        implicit val formatF = ResidencyStatusFormats.failureFormats
+
+        val errorResponse = ResidencyStatusFailure("TOO_MANY_REQUESTS", "Too many requests received")
+
+        val individualDetails = IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21"))
+
+        val expectedPayload = createJsonPayload(individualDetails)
+
+        when(mockHttpPost.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+          thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
+
+        val result = await(TestDesConnector.getResidencyStatus(individualDetails, userId, V2_0))
+        result.isLeft shouldBe false
+        result.right.get shouldBe errorResponse
+
+        verify(mockHttpPost, times(3)).POST[JsValue, HttpResponse](any(), Meq[JsValue](expectedPayload), any())(any(), any(), any(), any())
+      }
     }
   }
 }
-
