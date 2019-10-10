@@ -469,25 +469,6 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         verify(mockHttpPost, times(2)).POST[JsValue, HttpResponse](any(), Meq[JsValue](expectedPayload), any())(any(), any(), any(), any())
       }
 
-      "429 (Too Many Requests) has been returned 3 times" in {
-
-        implicit val formatF = ResidencyStatusFormats.failureFormats
-
-        val errorResponse = ResidencyStatusFailure("TOO_MANY_REQUESTS", "Too many requests received")
-
-        val individualDetails = IndividualDetails("AB123456C", "JOHN", "Lewis", new DateTime("1990-02-21"))
-
-        val expectedPayload = createJsonPayload(individualDetails)
-
-        when(mockHttpPost.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-          thenReturn(Future.successful(HttpResponse(429, Some(Json.toJson(errorResponse)))))
-
-        val result = await(TestDesConnector.getResidencyStatus(individualDetails, userId, V2_0))
-        result.isLeft shouldBe false
-        result.right.get shouldBe errorResponse
-
-        verify(mockHttpPost, times(3)).POST[JsValue, HttpResponse](any(), Meq[JsValue](expectedPayload), any())(any(), any(), any(), any())
-      }
     }
   }
 }
