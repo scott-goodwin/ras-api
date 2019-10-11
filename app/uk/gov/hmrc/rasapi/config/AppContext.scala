@@ -41,6 +41,7 @@ object AppContext extends ServicesConfig {
   lazy val requestRetryLimit: Int = current.configuration.getInt("request-retry-limit").getOrElse(3)
   lazy val retryDelay: Int = current.configuration.getInt("retry-delay").getOrElse(500)
   lazy val deceasedStatus: String = current.configuration.getString("status.deceased").getOrElse("DECEASED")
+  lazy val tooManyRequestsStatus: String = current.configuration.getString("status.too-many-requests").getOrElse("TOO_MANY_REQUESTS")
   lazy val matchingFailedStatus: String = current.configuration.getString("status.matching-failed.api").getOrElse("STATUS_UNAVAILABLE")
   lazy val serviceUnavailableStatus: String = current.configuration.getString("status.service-unavailable").getOrElse("SERVICE_UNAVAILABLE")
   lazy val doNotReProcessStatus: String = current.configuration.getString("status.do-not-re-process").getOrElse("DO_NOT_RE_PROCESS")

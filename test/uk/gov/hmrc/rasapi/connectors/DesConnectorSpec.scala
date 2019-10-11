@@ -57,6 +57,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     override val error_MatchingFailed: String = AppContext.matchingFailedStatus
     override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
     override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+    override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
     override val retryLimit: Int = 3
     override val retryDelay: Int = 500
     override val desUrlHeaderEnv: String = "DES HEADER"
@@ -83,13 +84,13 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
 
   def createJsonPayload(individualDetails: IndividualDetails): JsValue = Json.parse(
     s"""
-      |{
-      |  "nino": "${individualDetails.nino}",
-      |  "firstName": "${individualDetails.firstName}",
-      |  "lastName": "${individualDetails.lastName}",
-      |  "dob": "${individualDetails.dateOfBirth.toString("yyyy-MM-dd")}",
-      |  "pensionSchemeOrganisationID": "${userId}"
-      |}
+       |{
+       |  "nino": "${individualDetails.nino}",
+       |  "firstName": "${individualDetails.firstName}",
+       |  "lastName": "${individualDetails.lastName}",
+       |  "dob": "${individualDetails.dateOfBirth.toString("yyyy-MM-dd")}",
+       |  "pensionSchemeOrganisationID": "${userId}"
+       |}
     """.stripMargin
   )
 
@@ -229,6 +230,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -273,6 +275,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -313,6 +316,7 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
         override val error_MatchingFailed: String = AppContext.matchingFailedStatus
         override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
         override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
+        override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
         override val retryLimit: Int = 3
         override val retryDelay: Int = 500
         override val desUrlHeaderEnv: String = "DES HEADER"
@@ -487,4 +491,3 @@ class DesConnectorSpec extends UnitSpec with OneAppPerSuite with BeforeAndAfter 
     }
   }
 }
-

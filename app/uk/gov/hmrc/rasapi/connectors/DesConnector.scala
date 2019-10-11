@@ -52,6 +52,7 @@ trait DesConnector extends ServicesConfig {
   val error_InternalServerError: String
   val error_Deceased: String
   val error_MatchingFailed: String
+  val error_TooManyRequests: String
   val error_DoNotReProcess: String
   val error_ServiceUnavailable: String
   val desUrlHeaderEnv: String
@@ -121,10 +122,10 @@ trait DesConnector extends ServicesConfig {
         Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
       case notFoundEx: NotFoundException =>
         Right(ResidencyStatusFailure(error_MatchingFailed, "Cannot provide a residency status for this pension scheme member."))
-      case tooManyEx: TooManyRequestException =>
-        Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
-          s"from the HoD. userId ($userId).")
-        Right(ResidencyStatusFailure(error_InternalServerError, "Internal server error."))
+      case Upstream4xxResponse(_, 429, _, _) =>
+          Logger.error(s"[DesConnector] [getResidencyStatus] Request could not be sent 429 (Too Many Requests) was sent " +
+            s"from the HoD. userId ($userId).")
+          Right(ResidencyStatusFailure(error_TooManyRequests, "Too Many Requests."))
       case requestTimeOutEx: RequestTimeoutException =>
         Logger.error(s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
         Right(ResidencyStatusFailure(error_DoNotReProcess, "Internal server error."))
@@ -209,6 +210,7 @@ object DesConnector extends DesConnector {
   override val retryDelay: Int = AppContext.retryDelay
   override val isRetryEnabled: Boolean = AppContext.retryEnabled
   override val isBulkRetryEnabled: Boolean = AppContext.bulkRetryEnabled
+  override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
   // $COVERAGE-ON$
   override protected def mode: Mode = Play.current.mode
 
