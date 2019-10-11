@@ -123,7 +123,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         userId = id)
                       Logger.error(s"[LookupController][getResidencyStatus] Too Many Requests for userId ($id).")
                       Metrics.registry.counter(TOO_MANY_REQUESTS.toString)
-                      TooManyRequests(toJson(IndividualNotFound))
+                      TooManyRequests(toJson(TooManyRequestsResponse))
                     case STATUS_SERVICE_UNAVAILABLE =>
                       auditResponse(failureReason = Some("SERVICE_UNAVAILABLE"),
                         nino = Some(individualDetails.nino),

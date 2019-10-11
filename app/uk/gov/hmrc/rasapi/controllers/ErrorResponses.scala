@@ -58,6 +58,11 @@ case object IndividualNotFound extends ErrorResponse(
   AppContext.matchingFailedStatus,
   "Cannot provide a residency status for this pension scheme member.")
 
+case object TooManyRequestsResponse extends ErrorResponse(
+  429,
+  AppContext.tooManyRequestsStatus,
+  "Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
+
 case object ErrorInternalServerError extends
   ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error")
 
