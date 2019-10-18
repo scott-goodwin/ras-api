@@ -35,22 +35,15 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 import uk.gov.hmrc.rasapi.services.DataCleansingService
-import uk.gov.hmrc.rasapi.connectors.ServiceLocatorConnector
 
-trait ServiceLocatorRegistration extends GlobalSettings with RunMode {
+trait DataCleansing extends GlobalSettings with RunMode {
 
-  val registrationEnabled: Boolean
-  val slConnector: ServiceLocatorConnector
   implicit val hc: HeaderCarrier
 
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
 
-    registrationEnabled match {
-      case true => {Logger.info("Starting Registration"); slConnector.register}
-      case false => Logger.warn("Registration in Service Locator is disabled")
-    }
     AppContext.removeChunksDataExerciseEnabled match {
       case true => {
         Logger.info("[data-cleansing-exercise] [on-start] Starting data exercise for removing of chunks")
@@ -77,7 +70,7 @@ object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSu
   override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport with ServiceLocatorRegistration  {
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport with DataCleansing  {
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -88,11 +81,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Mi
 
   override val authFilter = None
 
-  override val slConnector: ServiceLocatorConnector = ServiceLocatorConnector
-
   override implicit val hc: HeaderCarrier = HeaderCarrier()
-
-  override lazy val registrationEnabled = AppContext.registrationEnabled
 
   override protected def mode: Mode = Play.current.mode
 

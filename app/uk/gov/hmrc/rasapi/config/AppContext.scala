@@ -24,8 +24,6 @@ import uk.gov.hmrc.play.config.ServicesConfig
 object AppContext extends ServicesConfig {
   lazy val appName = current.configuration.getString("appName").getOrElse(throw new RuntimeException("appName is not configured"))
   lazy val appUrl = current.configuration.getString("appUrl").getOrElse(throw new RuntimeException("appUrl is not configured"))
-  lazy val serviceLocatorUrl: String = baseUrl("service-locator")
-  lazy val registrationEnabled: Boolean = current.configuration.getBoolean("microservice.services.service-locator.enabled").getOrElse(false)
   lazy val apiContext = current.configuration.getString(s"api.context").getOrElse(throw new RuntimeException(s"Missing Key api.context"))
   lazy val baseUrl = current.configuration.getString("baseUrl").getOrElse(throw new RuntimeException("Missing Key baseUrl"))
   lazy val apiStatus = current.configuration.getString("api.status").getOrElse(throw new RuntimeException(s"Missing Key api.status"))
