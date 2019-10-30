@@ -26,7 +26,7 @@ import play.api.mvc.{Action, AnyContent, Request, Result}
 import uk.gov.hmrc.api.controllers.{ErrorAcceptHeaderInvalid, HeaderValidator}
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.play.config.RunMode
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -194,7 +194,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
             Try(onSuccess(payload)) match {
               case Success(result) => result
-              case Failure(ex: Exception) =>
+              case Failure(ex: Throwable) =>
                 Logger.error(s"[LookupController] An error occurred in Json payload validation for userId ($userId) ${ex.getMessage}")
                 Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
             }

@@ -54,7 +54,7 @@ trait WSHttp extends
 object WSHttp extends WSHttp
 
 object MicroserviceAuditConnector extends AuditConnector with RunMode {
-  override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
+  override lazy val auditingConfig = LoadAuditingConfig("auditing")
 
   override protected def mode: Mode = Play.current.mode
 
@@ -62,8 +62,8 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
 }
 
 trait RasAuthConnector extends PlayAuthConnector with ServicesConfig {
-  lazy val serviceUrl = baseUrl("auth")
-  lazy val http = WSHttp
+  lazy val serviceUrl: String = baseUrl("auth")
+  lazy val http: WSHttp = WSHttp
 }
 
 object RasAuthConnector extends RasAuthConnector {

@@ -26,7 +26,7 @@ import play.api.mvc.{Action, AnyContent, Request, Result}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.authorisedEnrolments
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
 import uk.gov.hmrc.rasapi.metrics.Metrics
