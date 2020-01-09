@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
-import org.mockito.Matchers.{any, eq => Meq}
+import org.mockito.ArgumentMatchers.{any, eq => Meq}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.OK
 import play.api.libs.json.Json
@@ -30,22 +30,29 @@ import uk.gov.hmrc.rasapi.services.{FileProcessingService, SessionCacheService}
 
 import scala.util.Random
 
-class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with BeforeAndAfter {
+class FileProcessingControllerSpec
+    extends UnitSpec
+    with MockitoSugar
+    with GuiceOneAppPerSuite
+    with BeforeAndAfter {
 
   val envelopeId = "0b215ey97-11d4-4006-91db-c067e74fc653"
   val fileId = "file-id-1"
   val fileStatus = "AVAILABLE"
   val reason: Option[String] = None
   val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
-  val resultsFile = ResultsFileMetaData(fileId, Some("fileName.csv"), Some(1234L), 123, 1234L)
+  val resultsFile =
+    ResultsFileMetaData(fileId, Some("fileName.csv"), Some(1234L), 123, 1234L)
   val userId: String = Random.nextInt(5).toString
 
   val mockFileProcessingService = mock[FileProcessingService]
   val mockSessionCacheService = mock[SessionCacheService]
 
   val SUT = new FileProcessingController {
-    override val fileProcessingService: FileProcessingService = mockFileProcessingService
-    override val sessionCacheService: SessionCacheService = mockSessionCacheService
+    override val fileProcessingService: FileProcessingService =
+      mockFileProcessingService
+    override val sessionCacheService: SessionCacheService =
+      mockSessionCacheService
   }
 
   before {
@@ -59,9 +66,14 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with Guice
     "return Ok and interact with FileProcessingService and SessionCacheService" when {
       "an 'AVAILABLE' status is given" in {
 
-        val result = await(SUT.statusCallback(userId, version = "2.0").apply(fakeRequest.withJsonBody(Json.toJson(callbackData))))
+        val result = await(
+          SUT
+            .statusCallback(userId, version = "2.0")
+            .apply(fakeRequest.withJsonBody(Json.toJson(callbackData))))
 
-        verify(mockFileProcessingService).processFile(Meq(userId), Meq(callbackData), Meq(V2_0))(any(), any())
+        verify(mockFileProcessingService).processFile(Meq(userId),
+                                                      Meq(callbackData),
+                                                      Meq(V2_0))(any(), any())
 
         status(result) shouldBe OK
       }
@@ -75,10 +87,15 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with Guice
         val reason: Option[String] = Some("VirusDetected")
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback(userId, version = "2.0").apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
+        val result = SUT
+          .statusCallback(userId, version = "2.0")
+          .apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
-        verify(mockSessionCacheService).updateFileSession(Meq(userId), Meq(callbackData), Meq(None), Meq(None))(any())
+        verify(mockSessionCacheService).updateFileSession(Meq(userId),
+                                                          Meq(callbackData),
+                                                          Meq(None),
+                                                          Meq(None))(any())
 
         status(result) shouldBe OK
       }
@@ -90,7 +107,9 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with Guice
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback(userId, version = "2.0").apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
+        val result = SUT
+          .statusCallback(userId, version = "2.0")
+          .apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
         verifyZeroInteractions(mockSessionCacheService)
@@ -105,7 +124,9 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with Guice
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback(userId, version = "2.0").apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
+        val result = SUT
+          .statusCallback(userId, version = "2.0")
+          .apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
         verifyZeroInteractions(mockSessionCacheService)
@@ -120,7 +141,9 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with Guice
         val reason: Option[String] = None
         val callbackData = CallbackData(envelopeId, fileId, fileStatus, reason)
 
-        val result = SUT.statusCallback(userId, version = "2.0").apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
+        val result = SUT
+          .statusCallback(userId, version = "2.0")
+          .apply(fakeRequest.withJsonBody(Json.toJson(callbackData)))
 
         verifyZeroInteractions(mockFileProcessingService)
         verifyZeroInteractions(mockSessionCacheService)

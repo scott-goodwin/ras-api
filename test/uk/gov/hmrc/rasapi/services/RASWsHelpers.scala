@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,24 +24,25 @@ import play.api.test.Helpers._
 
 import scala.io.Source
 
-trait RASWsHelpers extends Controller{
- val ws = MockWS {
+trait RASWsHelpers extends Controller {
+  val ws = MockWS {
     case (POST, "/") => upload
   }
 
   def upload = Action(parse.multipartFormData) { request =>
-    request.body.file("rasFileKey").map { file =>
+    request.body
+      .file("rasFileKey")
+      .map { file =>
+        // only get the last part of the filename
+        // otherwise someone can send a path like ../../home/foo/bar.txt to write to other files on the system
+        val filename = Paths.get(file.filename).getFileName
 
-      // only get the last part of the filename
-      // otherwise someone can send a path like ../../home/foo/bar.txt to write to other files on the system
-      val filename = Paths.get(file.filename).getFileName
+        val lines = Source.fromFile(filename.toFile).getLines.toArray
 
-      val lines = Source.fromFile(filename.toFile).getLines.toArray
-
-      Ok("File uploaded")
-    }.getOrElse {
-      Ok("ERROR")
-    }
+        Ok("File uploaded")
+      }
+      .getOrElse {
+        Ok("ERROR")
+      }
   }
 }
-

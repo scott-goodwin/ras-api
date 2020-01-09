@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +25,18 @@ import uk.gov.hmrc.rasapi.models.Chunks
 
 import scala.concurrent.ExecutionContext
 
-class RasChunksRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[Chunks, BSONObjectID]("resultsFiles.chunks", mongo, Chunks.format){
-  def getAllChunks() ={
+class RasChunksRepository(mongo: () => DB with DBMetaCommands)(
+    implicit ec: ExecutionContext)
+    extends ReactiveRepository[Chunks, BSONObjectID]("resultsFiles.chunks",
+                                                     mongo,
+                                                     Chunks.format) {
+  def getAllChunks() = {
     val query = BSONDocument("files_id" -> BSONDocument("$ne" -> "1"))
     Logger.debug("********Remove chunks :Started*********")
 
     // only fetch the id and files-id field for the result documents
-    val projection = BSONDocument("_id"-> 1,"files_id" -> 2)
-    collection.find(query,projection).cursor[Chunks]().collect[Seq]().recover {
+    val projection = BSONDocument("_id" -> 1, "files_id" -> 2)
+    collection.find(query, projection).cursor[Chunks]().collect[Seq]().recover {
       case ex: Throwable =>
         Logger.error(s"error fetching chunks  ${ex.getMessage}.")
         Seq.empty
@@ -41,11 +44,12 @@ class RasChunksRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Exec
 
   }
 
-  def removeChunk(filesId:BSONObjectID) = {
+  def removeChunk(filesId: BSONObjectID) = {
     val query = BSONDocument("files_id" -> filesId)
-    collection.remove(query).map(res=> res.writeErrors.isEmpty).recover{
-      case ex:Throwable =>
-        Logger.error(s"error removing chunk ${filesId} with the exception ${ex.getMessage}.")
+    collection.remove(query).map(res => res.writeErrors.isEmpty).recover {
+      case ex: Throwable =>
+        Logger.error(
+          s"error removing chunk ${filesId} with the exception ${ex.getMessage}.")
         false
     }
   }
