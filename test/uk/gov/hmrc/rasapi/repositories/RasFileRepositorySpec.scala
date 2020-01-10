@@ -100,6 +100,5 @@ class RasFileRepositorySpec
           .removeFile(resultFile.filename.get, resultFile.id.toString, userId))
 
     }
-
   }
 }

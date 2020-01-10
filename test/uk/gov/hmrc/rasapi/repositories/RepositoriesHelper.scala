@@ -79,6 +79,7 @@ object RepositoriesHelper extends MongoSpecSupport with UnitSpec {
     val filePath = await(TestFileWriter.generateFile(tempFile.iterator))
     await(rasFileRepository.saveFile(userID, envelopeID, filePath, fileId))
   }
+
   case class FileData(data: Enumerator[Array[Byte]] = null)
 
   def getAll: Iteratee[Array[Byte], Array[Byte]] =

@@ -20,11 +20,12 @@ import org.joda.time.DateTime
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Request}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.models._
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -36,6 +37,7 @@ trait ResultsGenerator {
   val auditService: AuditService
 
   def getCurrentDate: DateTime
+
   val allowDefaultRUK: Boolean
 
   val DECEASED: String
@@ -115,7 +117,7 @@ trait ResultsGenerator {
     }
   }
 
-  private def parseString(inputRow: String) = {
+  private def parseString(inputRow: String): RawMemberDetails = {
     val cols = inputRow.split(comma)
     val res = cols ++ (for (x <- 0 until 4 - cols.length) yield "")
     RawMemberDetails(res(0), res(1), res(2), res(3))
@@ -123,7 +125,6 @@ trait ResultsGenerator {
 
   private def updateResidencyResponse(
       residencyStatus: ResidencyStatus): ResidencyStatus = {
-
     if (getCurrentDate.isBefore(new DateTime(2018, 4, 6, 0, 0, 0, 0)) && allowDefaultRUK)
       residencyStatus.copy(currentYearResidencyStatus = desConnector.otherUk)
     else
@@ -132,12 +133,13 @@ trait ResultsGenerator {
 
   /**
     * Audits the response, if failure reason is None then residencyStatus is Some (sucess) and vice versa (failure).
-    * @param failureReason Optional message, present if the journey failed, else not
-    * @param nino Optional user identifier, present if the customer-matching-cache call was a success, else not
+    *
+    * @param failureReason   Optional message, present if the journey failed, else not
+    * @param nino            Optional user identifier, present if the customer-matching-cache call was a success, else not
     * @param residencyStatus Optional status object returned from the HoD, present if the journey succeeded, else not
-    * @param userId Identifies the user which made the request
-    * @param request Object containing request made by the user
-    * @param hc Headers
+    * @param userId          Identifies the user which made the request
+    * @param request         Object containing request made by the user
+    * @param hc              Headers
     */
   private def auditResponse(failureReason: Option[String],
                             nino: String,
@@ -145,7 +147,7 @@ trait ResultsGenerator {
                             userId: String,
                             fileId: String)(
       implicit request: Request[AnyContent],
-      hc: HeaderCarrier) = {
+      hc: HeaderCarrier): Future[AuditResult] = {
 
     auditService.audit(
       auditType = "ReliefAtSourceResidency",
@@ -166,7 +168,5 @@ trait ResultsGenerator {
           .getOrElse("")
       ).filterNot(_._2 == "")
     )
-
   }
-
 }

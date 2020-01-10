@@ -19,6 +19,7 @@ package uk.gov.hmrc.rasapi.services
 import java.nio.file.Paths
 
 import mockws.MockWS
+import play.api.libs.Files
 import play.api.mvc._
 import play.api.test.Helpers._
 
@@ -29,20 +30,21 @@ trait RASWsHelpers extends Controller {
     case (POST, "/") => upload
   }
 
-  def upload = Action(parse.multipartFormData) { request =>
-    request.body
-      .file("rasFileKey")
-      .map { file =>
-        // only get the last part of the filename
-        // otherwise someone can send a path like ../../home/foo/bar.txt to write to other files on the system
-        val filename = Paths.get(file.filename).getFileName
+  def upload: Action[MultipartFormData[Files.TemporaryFile]] =
+    Action(parse.multipartFormData) { request =>
+      request.body
+        .file("rasFileKey")
+        .map { file =>
+          // only get the last part of the filename
+          // otherwise someone can send a path like ../../home/foo/bar.txt to write to other files on the system
+          val filename = Paths.get(file.filename).getFileName
 
-        val lines = Source.fromFile(filename.toFile).getLines.toArray
+          val lines = Source.fromFile(filename.toFile).getLines.toArray
 
-        Ok("File uploaded")
-      }
-      .getOrElse {
-        Ok("ERROR")
-      }
-  }
+          Ok("File uploaded")
+        }
+        .getOrElse {
+          Ok("ERROR")
+        }
+    }
 }

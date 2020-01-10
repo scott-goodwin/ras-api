@@ -161,7 +161,5 @@ package object models {
           .parse(date, DateTimeFormat.forPattern(format)))
       }
     }
-
   }
-
 }

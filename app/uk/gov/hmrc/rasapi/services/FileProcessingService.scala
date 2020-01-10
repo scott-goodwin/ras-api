@@ -203,7 +203,6 @@ trait FileProcessingService
                 None,
                 None)
             }
-            //delete result  a future ind
           }
           fileSaveMetrics.stop
           fileUploadConnector.deleteUploadedFile(callbackData.envelopeId,

@@ -83,6 +83,7 @@ class SessionCacheServiceSpec
         SUT.updateFileSession("1234", callbackData, Some(resultsFile), None))
       res.data.get("1234").get shouldBe json
     }
+
     "throw RuntimeException when something goes wrong when fetching FileSession" in {
       when(
         mockSessionCache.fetchAndGetEntry[FileSession](any(), any(), any())(
@@ -96,6 +97,7 @@ class SessionCacheServiceSpec
       }
       exception.getMessage.contains("Error in saving sessionCache") shouldBe true
     }
+
     "throw RuntimeException when something goes wrong when storing FileSession" in {
       when(
         mockSessionCache.fetchAndGetEntry[FileSession](any(), any(), any())(

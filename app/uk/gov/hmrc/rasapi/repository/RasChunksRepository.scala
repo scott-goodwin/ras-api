@@ -23,14 +23,14 @@ import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.models.Chunks
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class RasChunksRepository(mongo: () => DB with DBMetaCommands)(
     implicit ec: ExecutionContext)
     extends ReactiveRepository[Chunks, BSONObjectID]("resultsFiles.chunks",
                                                      mongo,
                                                      Chunks.format) {
-  def getAllChunks() = {
+  def getAllChunks(): Future[Seq[Chunks]] = {
     val query = BSONDocument("files_id" -> BSONDocument("$ne" -> "1"))
     Logger.debug("********Remove chunks :Started*********")
 
@@ -44,7 +44,7 @@ class RasChunksRepository(mongo: () => DB with DBMetaCommands)(
 
   }
 
-  def removeChunk(filesId: BSONObjectID) = {
+  def removeChunk(filesId: BSONObjectID): Future[Boolean] = {
     val query = BSONDocument("files_id" -> filesId)
     collection.remove(query).map(res => res.writeErrors.isEmpty).recover {
       case ex: Throwable =>

@@ -40,9 +40,6 @@ trait RasFileReader {
       implicit hc: HeaderCarrier): Future[Iterator[String]] = {
 
     implicit val codec = Codec.ISO8859
-    //implicit val codec = Codec.UTF8
-    //codec.onMalformedInput(CodingErrorAction.REPLACE)
-    //codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
 
     fileUploadConnector.getFile(envelopeId, fileId, userId).map {
 

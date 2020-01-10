@@ -51,6 +51,7 @@ class RasChunksRepositorySpec
       val res = await(rasBulkOperationsRepository.getAllChunks())
       res.size shouldBe 1
     }
+
     "remove a Chunk for an ObjectId" in {
       val fileMetaData = await(
         RepositoriesHelper.saveTempFile("user222", "envelope222", "file222"))

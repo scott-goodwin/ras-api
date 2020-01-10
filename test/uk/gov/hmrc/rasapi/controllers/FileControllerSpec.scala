@@ -111,11 +111,6 @@ class FileControllerSpec
         headers("Content-Length") shouldBe "124"
         headers("Content-Type") shouldBe "application/csv"
         headers("Content-Disposition") shouldBe "attachment; filename=\"testFile.csv\""
-
-        /*            val stream = result.body.dataStream.runWith(StreamConverters.asInputStream())(materializer)
-       val fileOutput =  Source.fromInputStream(stream).getLines
-        Logger.debug("fileout is " + fileOutput)*/
-
       }
     }
 

@@ -39,7 +39,6 @@ package object controllers {
                  "errors" -> e.errors)
     }
 
-  // Auth Constants
   val PSA_ENROLMENT = "HMRC-PSA-ORG"
   val PP_ENROLMENT = "HMRC-PP-ORG"
 

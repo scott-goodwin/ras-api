@@ -143,14 +143,14 @@ trait DesConnector extends ServicesConfig {
       .map(response =>
         resolveResponse(response, userId, member.nino, apiVersion))
       .recover {
-        case badRequestEx: BadRequestException =>
+        case _: BadRequestException =>
           Logger.error(
             s"[DesConnector] [getResidencyStatus] Bad Request returned from des. The details sent were not " +
               s"valid. userId ($userId).")
           Right(
             ResidencyStatusFailure(error_DoNotReProcess,
                                    "Internal server error."))
-        case notFoundEx: NotFoundException =>
+        case _: NotFoundException =>
           Right(ResidencyStatusFailure(
             error_MatchingFailed,
             "Cannot provide a residency status for this pension scheme member."))
@@ -160,7 +160,7 @@ trait DesConnector extends ServicesConfig {
               s"from the HoD. userId ($userId).")
           Right(
             ResidencyStatusFailure(error_TooManyRequests, "Too Many Requests."))
-        case requestTimeOutEx: RequestTimeoutException =>
+        case _: RequestTimeoutException =>
           Logger.error(
             s"[DesConnector] [getResidencyStatus] Request has timed out. userId ($userId).")
           Right(

@@ -94,13 +94,13 @@ class DesConnectorSpec
   def createJsonPayload(individualDetails: IndividualDetails): JsValue =
     Json.parse(
       s"""
-       |{
-       |  "nino": "${individualDetails.nino}",
-       |  "firstName": "${individualDetails.firstName}",
-       |  "lastName": "${individualDetails.lastName}",
-       |  "dob": "${individualDetails.dateOfBirth.toString("yyyy-MM-dd")}",
-       |  "pensionSchemeOrganisationID": "${userId}"
-       |}
+         |{
+         |  "nino": "${individualDetails.nino}",
+         |  "firstName": "${individualDetails.firstName}",
+         |  "lastName": "${individualDetails.lastName}",
+         |  "dob": "${individualDetails.dateOfBirth.toString("yyyy-MM-dd")}",
+         |  "pensionSchemeOrganisationID": "${userId}"
+         |}
     """.stripMargin
     )
 

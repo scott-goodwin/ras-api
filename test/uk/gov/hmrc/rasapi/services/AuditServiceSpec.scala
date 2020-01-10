@@ -52,8 +52,6 @@ trait AuditServiceSpec
     val auditDataMap: Map[String, String] = Map("testKey" -> "testValue")
 
     "build an audit event with the correct mandatory details" in {
-
-      val result = SUT.audit(fakeAuditType, fakeEndpoint, auditDataMap)
       val captor: ArgumentCaptor[DataEvent] =
         ArgumentCaptor.forClass(classOf[DataEvent])
 
@@ -66,8 +64,6 @@ trait AuditServiceSpec
     }
 
     "build an audit event with the correct tags" in {
-
-      val result = SUT.audit(fakeAuditType, fakeEndpoint, auditDataMap)
       val captor: ArgumentCaptor[DataEvent] =
         ArgumentCaptor.forClass(classOf[DataEvent])
 
@@ -81,8 +77,6 @@ trait AuditServiceSpec
     }
 
     "build an audit event with the correct detail" in {
-
-      val result = SUT.audit(fakeAuditType, fakeEndpoint, auditDataMap)
       val captor: ArgumentCaptor[DataEvent] =
         ArgumentCaptor.forClass(classOf[DataEvent])
 
@@ -96,8 +90,6 @@ trait AuditServiceSpec
     }
 
     "send an event via the audit connector" in {
-
-      val result = SUT.audit(fakeAuditType, fakeEndpoint, auditDataMap)
       verify(mockAuditConnector).sendEvent(any())(any(), any())
     }
   }

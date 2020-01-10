@@ -38,16 +38,11 @@ class DataCleansingServiceSpec
   after {
     await(RepositoriesHelper.rasFileRepository.removeAll())
     await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
-
   }
 
   "DataCleansingService" should {
 
     " not remove chunks that are not orphoned" in {
-      val testData1 = await(
-        RepositoriesHelper.saveTempFile("user14", "envelope14", "fileId14"))
-      val testData2 = await(
-        RepositoriesHelper.saveTempFile("user15", "envelope15", "fileId15"))
 
       val result = await(DataCleansingService.removeOrphanedChunks())
 

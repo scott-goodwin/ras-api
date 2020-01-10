@@ -50,7 +50,6 @@ trait ErrorConverter {
         throw new MatchError("Could not match the JSON Validation error")
     }
   }
-
 }
 
 object ErrorConverter extends ErrorConverter

@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.services
 
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
+import uk.gov.hmrc.http.cache.client.{CacheMap, ShortLivedHttpCaching}
 import uk.gov.hmrc.rasapi.config.RasShortLivedHttpCaching
 import uk.gov.hmrc.rasapi.models.{
   CallbackData,
@@ -28,6 +28,7 @@ import uk.gov.hmrc.rasapi.models.{
 }
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait SessionCacheService {
 
@@ -36,11 +37,11 @@ trait SessionCacheService {
   private val formId = "fileSession"
   private val fileMetadata = "fileMetadata"
 
-  def updateFileSession(
-      userId: String,
-      userFile: CallbackData,
-      resultsFile: Option[ResultsFileMetaData],
-      fileMetadata: Option[FileMetadata])(implicit hc: HeaderCarrier) = {
+  def updateFileSession(userId: String,
+                        userFile: CallbackData,
+                        resultsFile: Option[ResultsFileMetaData],
+                        fileMetadata: Option[FileMetadata])(
+      implicit hc: HeaderCarrier): Future[CacheMap] = {
 
     sessionCache
       .fetchAndGetEntry[FileSession](source, userId, formId)
@@ -61,10 +62,6 @@ trait SessionCacheService {
                 s"${if (resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}")
               throw new RuntimeException(
                 "Error in saving sessionCache" + ex.getMessage)
-            /*
-                Logger.warn("retrying to save cache")
-                updateRasSession(envelopeId,userFile,resultsFile)
-           */
           }
       }
       .recover {
@@ -75,7 +72,6 @@ trait SessionCacheService {
           throw new RuntimeException(
             s"Error in saving sessionCache ${ex.getMessage}")
       }
-
   }
 }
 

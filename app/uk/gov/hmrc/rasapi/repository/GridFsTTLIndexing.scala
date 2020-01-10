@@ -58,7 +58,6 @@ trait GridFsTTLIndexing {
     val indexes = collection.indexesManager.list()
     indexes.flatMap { idxs =>
       {
-
         val idxToUpdate = idxs.find(
           index =>
             index.eventualName == LastUpdatedIndex
