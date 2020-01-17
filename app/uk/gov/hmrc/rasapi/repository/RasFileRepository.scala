@@ -22,6 +22,8 @@ import java.nio.file.Path
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import play.modules.reactivemongo.MongoDbConnection
+import reactivemongo.api.gridfs.DefaultFileToSave.FileName
+import reactivemongo.api.gridfs.DefaultFileToSave.FileName.SomeFileName
 import reactivemongo.api.gridfs.Implicits._
 import reactivemongo.api.gridfs._
 import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
@@ -65,12 +67,12 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(
                filePath: Path,
                fileId: String): Future[ResultsFile] = {
     Logger.info("[RasFileRepository] Starting to save file")
-    val fileToSave = DefaultFileToSave(
-      s"${fileId}",
-      Some(contentType),
-      metadata = BSONDocument("envelopeId" -> envelopeId,
-                              "fileId" -> fileId,
-                              "userId" -> userId))
+    val fileToSave =
+      DefaultFileToSave(s"${fileId}",
+                        Some(contentType),
+                        metadata = BSONDocument("envelopeId" -> envelopeId,
+                                                "fileId" -> fileId,
+                                                "userId" -> userId))
 
     gridFSG
       .writeFromInputStream(fileToSave, new FileInputStream(filePath.toFile))

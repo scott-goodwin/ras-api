@@ -17,6 +17,7 @@
 package uk.gov.hmrc.rasapi.repository
 
 import play.api.Logger
+import reactivemongo.api.Cursor.FailOnError
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -36,11 +37,15 @@ class RasChunksRepository(mongo: () => DB with DBMetaCommands)(
 
     // only fetch the id and files-id field for the result documents
     val projection = BSONDocument("_id" -> 1, "files_id" -> 2)
-    collection.find(query, projection).cursor[Chunks]().collect[Seq]().recover {
-      case ex: Throwable =>
-        Logger.error(s"error fetching chunks  ${ex.getMessage}.")
-        Seq.empty
-    }
+    collection
+      .find(query, projection)
+      .cursor[Chunks]()
+      .collect[Seq]() //Int.MaxValue, FailOnError())
+      .recover {
+        case ex: Throwable =>
+          Logger.error(s"error fetching chunks  ${ex.getMessage}.")
+          Seq.empty
+      }
 
   }
 

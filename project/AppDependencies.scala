@@ -10,9 +10,9 @@ object AppDependencies {
     "uk.gov.hmrc" %% "http-caching-client" % "9.0.0-play-25",
     "uk.gov.hmrc" %% "json-encryption" % "4.4.0-play-25",
     "uk.gov.hmrc" %% "microservice-bootstrap" % "10.9.0",
-    "uk.gov.hmrc" %% "mongo-caching" % "5.4.0", //TODO 5.4.0 -> 6.7.0-play-25 // MAJOR
-    "uk.gov.hmrc" %% "play-hmrc-api" % "3.6.0-play-25",
-    "uk.gov.hmrc" %% "play-reactivemongo" % "6.7.0",
+    "uk.gov.hmrc" %% "mongo-caching" % "5.4.0", //TODO 5.4.0 -> 6.8.0-play-25 // MAJOR
+    "uk.gov.hmrc" %% "play-hmrc-api" % "4.1.0-play-25",
+    "uk.gov.hmrc" %% "play-reactivemongo" % "6.8.0",
 
     "com.typesafe.akka" % "akka-actor_2.11" % "2.5.18",
     "com.typesafe.akka" % "akka-testkit_2.11" % "2.5.18",
