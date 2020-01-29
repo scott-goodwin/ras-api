@@ -5,12 +5,12 @@ import play.core.PlayVersion
 object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc" %% "auth-client" % "2.32.1-play-25", //TODO 2.19.0-play-25 -> 2.32.1-play-25 err // Matchers
+    "uk.gov.hmrc" %% "auth-client" % "2.19.0-play-25", //TODO 2.19.0-play-25 -> 2.32.1-play-25 err // Matchers
     "uk.gov.hmrc" %% "domain" % "5.6.0-play-25",
     "uk.gov.hmrc" %% "http-caching-client" % "9.0.0-play-25",
     "uk.gov.hmrc" %% "json-encryption" % "4.4.0-play-25",
     "uk.gov.hmrc" %% "microservice-bootstrap" % "10.9.0",
-    "uk.gov.hmrc" %% "mongo-caching" % "5.4.0", //TODO 5.4.0 -> 6.8.0-play-25 // MAJOR
+    "uk.gov.hmrc" %% "mongo-caching" % "6.8.0-play-25", //TODO 5.4.0 -> 6.8.0-play-25 // MAJOR
     "uk.gov.hmrc" %% "play-hmrc-api" % "4.1.0-play-25",
     "uk.gov.hmrc" %% "play-reactivemongo" % "6.8.0",
 

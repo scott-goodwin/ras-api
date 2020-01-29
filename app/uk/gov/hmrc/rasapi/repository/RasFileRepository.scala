@@ -72,7 +72,7 @@ class RasFileRepository(mongo: () => DB with DBMetaCommands)(
                         Some(contentType),
                         metadata = BSONDocument("envelopeId" -> envelopeId,
                                                 "fileId" -> fileId,
-                                                "userId" -> userId))
+                                                "userId" -> userId))(Some("${fileId}"))
 
     gridFSG
       .writeFromInputStream(fileToSave, new FileInputStream(filePath.toFile))

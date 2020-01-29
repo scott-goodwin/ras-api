@@ -40,7 +40,7 @@ class RasChunksRepository(mongo: () => DB with DBMetaCommands)(
     collection
       .find(query, projection)
       .cursor[Chunks]()
-      .collect[Seq]() //Int.MaxValue, FailOnError())
+      .collect[Seq](Int.MaxValue, FailOnError())
       .recover {
         case ex: Throwable =>
           Logger.error(s"error fetching chunks  ${ex.getMessage}.")
