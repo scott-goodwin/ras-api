@@ -22,30 +22,23 @@ import uk.gov.hmrc.auth.core.Enrolments
 package object controllers {
 
   implicit val errorValidationWrite = new Writes[ErrorValidation] {
-    def writes(e: ErrorValidation): JsValue =
-      Json.obj("code" -> e.errorCode, "message" -> e.message, "path" -> e.path)
+    def writes(e: ErrorValidation): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message, "path" -> e.path)
   }
 
   implicit val errorResponseWrites = new Writes[ErrorResponse] {
-    def writes(e: ErrorResponse): JsValue =
-      Json.obj("code" -> e.errorCode, "message" -> e.message)
+    def writes(e: ErrorResponse): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message)
   }
 
-  implicit val errorResponseWithErrorsWrites =
-    new Writes[ErrorResponseWithErrors] {
-      def writes(e: ErrorResponseWithErrors): JsValue =
-        Json.obj("code" -> e.errorCode,
-                 "message" -> e.message,
-                 "errors" -> e.errors)
-    }
+  implicit val errorResponseWithErrorsWrites = new Writes[ErrorResponseWithErrors] {
+    def writes(e: ErrorResponseWithErrors): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message, "errors" -> e.errors)
+  }
 
+  // Auth Constants
   val PSA_ENROLMENT = "HMRC-PSA-ORG"
   val PP_ENROLMENT = "HMRC-PP-ORG"
 
-  def getEnrolmentIdentifier(enrols: Enrolments) = {
-    enrols.enrolments
-      .filter(res => (res.key == PSA_ENROLMENT || res.key == PP_ENROLMENT))
-      .map(res => res.identifiers.head.value)
-      .head
+  def getEnrolmentIdentifier(enrols:Enrolments) = {
+    enrols.enrolments.filter(res => (res.key == PSA_ENROLMENT || res.key == PP_ENROLMENT)).map(
+      res => res.identifiers.head.value).head
   }
 }

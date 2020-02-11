@@ -19,11 +19,11 @@ package uk.gov.hmrc.rasapi.metrics
 import com.codahale.metrics.{MetricRegistry, Timer}
 import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
-trait Metrics { val responseTimer: Timer }
+trait Metrics {val responseTimer : Timer}
 
 object Metrics extends Metrics with MicroserviceMetrics {
   val registry: MetricRegistry = metrics.defaultRegistry
   override val responseTimer = registry.timer("ras-api-success")
-  def register(name: String) = registry.timer(name)
+  def register(name:String) = registry.timer(name)
 
 }

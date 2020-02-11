@@ -30,8 +30,6 @@ trait ResidencyYearResolver {
     */
   def isBetweenJanAndApril(): Boolean = {
     val currentDate = currentDateTime
-    currentDate.isAfter(
-      new DateTime(currentDate.getYear - 1, 12, 31, 0, 0, 0, 0)) && currentDate
-      .isBefore(new DateTime(currentDate.getYear, 4, 6, 0, 0, 0, 0))
+    currentDate.isAfter(new DateTime(currentDate.getYear - 1, 12, 31, 0, 0, 0, 0)) && currentDate.isBefore(new DateTime(currentDate.getYear, 4, 6, 0, 0, 0, 0))
   }
 }
