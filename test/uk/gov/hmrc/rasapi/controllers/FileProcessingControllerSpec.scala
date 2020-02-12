@@ -28,6 +28,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.models.{CallbackData, ResultsFileMetaData, V2_0}
 import uk.gov.hmrc.rasapi.services.{FileProcessingService, SessionCacheService}
 
+import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with BeforeAndAfter {
@@ -43,10 +44,7 @@ class FileProcessingControllerSpec extends UnitSpec with MockitoSugar with Guice
   val mockFileProcessingService = mock[FileProcessingService]
   val mockSessionCacheService = mock[SessionCacheService]
 
-  val SUT = new FileProcessingController {
-    override val fileProcessingService: FileProcessingService = mockFileProcessingService
-    override val sessionCacheService: SessionCacheService = mockSessionCacheService
-  }
+  val SUT = new FileProcessingController(mockSessionCacheService, mockFileProcessingService, ExecutionContext.global)
 
   before {
     reset(mockFileProcessingService)

@@ -18,6 +18,7 @@ package uk.gov.hmrc.rasapi.services
 
 import java.nio.file.Path
 
+import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.mvc.{AnyContent, Request}
@@ -26,34 +27,33 @@ import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.models.{ApiVersion, CallbackData, ResultsFileMetaData, V2_0}
-import uk.gov.hmrc.rasapi.repository.{RasFileRepository, RasRepository}
+import uk.gov.hmrc.rasapi.models.{ApiVersion, CallbackData, ResultsFileMetaData}
+import uk.gov.hmrc.rasapi.repository.RasFilesRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
-object FileProcessingService extends FileProcessingService {
+class FileProcessingService @Inject()(
+                                     val fileUploadConnector: FileUploadConnector,
+                                     val desConnector: DesConnector,
+                                     val residencyYearResolver: ResidencyYearResolver,
+                                     val auditService: AuditService,
+                                     val sessionCacheService: SessionCacheService,
+                                     val fileRepo: RasFilesRepository,
+                                     val appContext: AppContext,
+                                     val metrics: Metrics,
+                                     implicit val ec: ExecutionContext
+                                     ) extends RasFileReader with RasFileWriter with ResultsGenerator {
 
-  override val fileUploadConnector: FileUploadConnector = FileUploadConnector
-  override val desConnector: DesConnector = DesConnector
-  override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
-  override val auditService: AuditService = AuditService
-  override val sessionCacheService: SessionCacheService = SessionCacheService
-  override val fileRepo: RasFileRepository = RasRepository.filerepo
-  override def getCurrentDate: DateTime = DateTime.now()
-  override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
-  override val DECEASED: String = AppContext.deceasedStatus
-  override val MATCHING_FAILED: String = AppContext.matchingFailedStatus
-  override val INTERNAL_SERVER_ERROR: String = AppContext.internalServerErrorStatus
-  override val SERVICE_UNAVAILABLE: String = AppContext.serviceUnavailableStatus
-  override val FILE_PROCESSING_MATCHING_FAILED: String = AppContext.fileProcessingMatchingFailedStatus
-  override val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = AppContext.fileProcessingInternalServerErrorStatus
-}
+  def getCurrentDate: DateTime = DateTime.now()
 
-trait FileProcessingService extends RasFileReader with RasFileWriter with ResultsGenerator {
-
-  val sessionCacheService: SessionCacheService
-  val fileRepo: RasFileRepository
+  val allowDefaultRUK: Boolean = appContext.allowDefaultRUK
+  val DECEASED: String = appContext.deceasedStatus
+  val MATCHING_FAILED: String = appContext.matchingFailedStatus
+  val INTERNAL_SERVER_ERROR: String = appContext.internalServerErrorStatus
+  val SERVICE_UNAVAILABLE: String = appContext.serviceUnavailableStatus
+  val FILE_PROCESSING_MATCHING_FAILED: String = appContext.fileProcessingMatchingFailedStatus
+  val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = appContext.fileProcessingInternalServerErrorStatus
 
   val fileProcess = "File-Processing"
   val fileRead = "File-Upload-Read"
@@ -62,8 +62,8 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   val STATUS_ERROR = "ERROR"
 
   def processFile(userId: String, callbackData: CallbackData, apiVersion: ApiVersion)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
-    val fileMetrics = Metrics.register(fileProcess).time
-    val fileReadMetrics = Metrics.register(fileRead).time
+    val fileMetrics = metrics.register(fileProcess).time
+    val fileReadMetrics = metrics.register(fileRead).time
 
     readFile(callbackData.envelopeId, callbackData.fileId, userId).onComplete {
       fileReadMetrics.stop
@@ -78,7 +78,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
   }
 
   def manipulateFile(inputFileData: Try[Iterator[String]], userId: String, callbackData: CallbackData, apiVersion: ApiVersion)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
-    val fileResultsMetrics = Metrics.register(fileResults).time
+    val fileResultsMetrics = metrics.register(fileResults).time
     val writer = createFileWriter(callbackData.fileId, userId)
 
     def removeDoubleQuotes(row: String): String = {
@@ -122,7 +122,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
 
     Logger.warn("[FileProcessingService] Starting to save file...")
 
-    val fileSaveMetrics = Metrics.register(fileSave).time
+    val fileSaveMetrics = metrics.register(fileSave).time
     try {
       fileRepo.saveFile(userId, callbackData.envelopeId, filePath, callbackData.fileId).onComplete {
         result =>
@@ -155,7 +155,7 @@ trait FileProcessingService extends RasFileReader with RasFileWriter with Result
     }
   }
 
-  def getTaxYearHeadings = {
+  def getTaxYearHeadings: String = {
     val currentDate = getCurrentDate
     val currentYear = currentDate.getYear
     if (currentDate.isAfter(new DateTime(currentYear - 1, 12, 31, 0, 0, 0, 0)) && currentDate.isBefore(new DateTime(currentYear, 4, 6, 0, 0, 0, 0)))

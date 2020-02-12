@@ -18,16 +18,17 @@ package uk.gov.hmrc.rasapi.repositories
 
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.OneAppPerTest
+import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
 import reactivemongo.bson.BSONLong
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.repository.GridFsTTLIndexing
-import RepositoriesHelper.rasFileRepository
+import uk.gov.hmrc.rasapi.repository.{GridFsTTLIndexing, RasFilesRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class GridFsTTLIndexingSpec extends UnitSpec with MockitoSugar with OneAppPerTest
+class GridFsTTLIndexingSpec extends UnitSpec with MockitoSugar with OneAppPerSuite
   with BeforeAndAfter {
+
+  lazy val rasFileRepository: RasFilesRepository = app.injector.instanceOf[RasFilesRepository]
 
   before{
     rasFileRepository.removeAll()

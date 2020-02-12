@@ -16,25 +16,29 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import javax.inject.Inject
 import play.api.Logger
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.rasapi.repository.RasRepository
+import uk.gov.hmrc.rasapi.config.AppContext
+import uk.gov.hmrc.rasapi.repository.{RasChunksRepository, RasFilesRepository}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-object DataCleansingService extends DataCleansingService
+class DataCleansingService @Inject()(
+                                      appContext: AppContext,
+                                      chunksRepo: RasChunksRepository,
+                                      fileRepo: RasFilesRepository,
+                                      implicit val ec: ExecutionContext
+                                    ) {
 
-trait DataCleansingService {
-
-  def removeOrphanedChunks():Future[Seq[BSONObjectID]] = {
-
+  def removeOrphanedChunks(): Future[Seq[BSONObjectID]] = if(appContext.removeChunksDataExerciseEnabled){
+    Logger.info("[data-cleansing-exercise] [on-start] Starting data exercise for removing of chunks")
     for {
-      chunks <- RasRepository.chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
+      chunks <- chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
 
       fileInfoList <- {
         Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Size of chunks to verify is: ${chunks.size}" )
-        processFutures(chunks)(RasRepository.filerepo.isFileExists(_))
+        processFutures(chunks)(fileRepo.isFileExists(_))
       }
 
       chunksDeleted <- {
@@ -44,7 +48,7 @@ trait DataCleansingService {
 
         val res = processFutures(chunksToBeDeleted)(fileId => {
           Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] fileId to be deleted is: ${fileId}")
-          RasRepository.chunksRepo.removeChunk(fileId).map{
+          chunksRepo.removeChunk(fileId).map{
             case true => Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Chunk deletion succeeded, fileId is: ${fileId}")
             case false => Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Chunk deletion failed, fileId is: ${fileId}")
           }
@@ -52,6 +56,9 @@ trait DataCleansingService {
         Future(chunksToBeDeleted)
       }
     } yield chunksDeleted
+  } else {
+    Logger.warn("[data-cleansing-exercise] [on-start] No data exercise carried")
+    Future.successful(Seq.empty)
   }
 
   //Further refactor can be done on this
@@ -63,4 +70,6 @@ trait DataCleansingService {
           next <- fn(next)
         } yield previousResults :+ next
     }
+
+  removeOrphanedChunks()
 }

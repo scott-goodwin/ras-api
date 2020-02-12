@@ -16,22 +16,23 @@
 
 package uk.gov.hmrc.rasapi.services
 
-import play.api.{Configuration, Play}
-import uk.gov.hmrc.rasapi.config.MicroserviceAuditConnector
+import javax.inject.Inject
+import play.api.Configuration
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.DataEvent
-import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.config.AppName
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.http.HeaderCarrier
+import scala.concurrent.{ExecutionContext, Future}
 
-trait AuditService extends AppName {
-  val connector: AuditConnector
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
+class AuditService @Inject()(
+                              val connector: AuditConnector,
+                              val appNameConfiguration: Configuration,
+                              implicit val ec: ExecutionContext
+                            ) extends AppName {
 
-  def audit(auditType: String, path: String, auditData: Map[String, String])(implicit hc:HeaderCarrier): Future[AuditResult] = {
+  def audit(auditType: String, path: String, auditData: Map[String, String])(implicit hc: HeaderCarrier): Future[AuditResult] = {
     val event = DataEvent(
       auditSource = appName,
       auditType = auditType,
@@ -42,10 +43,4 @@ trait AuditService extends AppName {
     connector.sendEvent(event)
   }
 
-}
-
-object AuditService extends AuditService {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val connector: AuditConnector = MicroserviceAuditConnector
-  // $COVERAGE-ON$
 }

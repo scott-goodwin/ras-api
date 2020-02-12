@@ -16,30 +16,25 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.json.JsSuccess
 import play.api.mvc.{Action, AnyContent, Request}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.rasapi.models.{CallbackData, V1_0, V2_0}
 import uk.gov.hmrc.rasapi.services.{FileProcessingService, SessionCacheService}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
 
-object FileProcessingController extends FileProcessingController {
-
-  override val fileProcessingService: FileProcessingService = FileProcessingService
-  override val sessionCacheService: SessionCacheService = SessionCacheService
-}
-
-trait FileProcessingController extends BaseController {
+class FileProcessingController @Inject()(
+                                          val sessionCacheService: SessionCacheService,
+                                          val fileProcessingService: FileProcessingService,
+                                          implicit val ec: ExecutionContext
+                                        ) extends BaseController {
 
   val STATUS_AVAILABLE: String = "AVAILABLE"
   val STATUS_ERROR: String = "ERROR"
-
-  val fileProcessingService: FileProcessingService
-  val sessionCacheService: SessionCacheService
 
   def statusCallback(userId: String, version: String): Action[AnyContent] = Action.async {
     implicit request =>

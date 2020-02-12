@@ -21,27 +21,24 @@ import java.io.InputStream
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
+import javax.inject.Inject
 import play.api.Mode.Mode
 import play.api.{Configuration, Logger, Play}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models.FileMetadata
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-trait FileUploadConnector extends ServicesConfig {
+class FileUploadConnector @Inject()(
+                                     val wsHttp: WSHttp,
+                                     val appContext: AppContext,
+                                     implicit val ec: ExecutionContext
+                                   ) {
 
-  val http: HttpPost
-  val wsHttp: WSHttp
-
-
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-
-  lazy val serviceUrl = baseUrl("file-upload")
-  lazy val fileUploadUrlSuffix = getString("file-upload-url-suffix")
+  lazy val serviceUrl = appContext.baseUrl("file-upload")
+  lazy val fileUploadUrlSuffix = appContext.getString("file-upload-url-suffix")
 
 
   def getFile(envelopeId: String, fileId: String, userId: String)(implicit hc: HeaderCarrier): Future[Option[InputStream]] = {
@@ -95,13 +92,3 @@ trait FileUploadConnector extends ServicesConfig {
     }
   }
 }
-
-object FileUploadConnector extends FileUploadConnector {
-
-  override val http: HttpPost = WSHttp
-  override val wsHttp: WSHttp = WSHttp
-}
-
-
-
-

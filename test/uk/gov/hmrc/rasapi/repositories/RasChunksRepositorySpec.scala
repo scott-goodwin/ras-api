@@ -18,37 +18,41 @@ package uk.gov.hmrc.rasapi.repositories
 
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.OneAppPerTest
+import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
+import play.api.Application
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper.rasBulkOperationsRepository
+import uk.gov.hmrc.rasapi.repository.{RasChunksRepository, RasFilesRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RasChunksRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest
+class RasChunksRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerSuite
   with BeforeAndAfter  {
 
-  val userId: String = "A1234567"
+    val userId: String = "A1234567"
 
-  before{
-    RepositoriesHelper.createTestDataForDataCleansing()
-   RepositoriesHelper.rasBulkOperationsRepository.removeAll()
-  }
- after{
-   RepositoriesHelper.rasFileRepository.removeAll()
- }
+    val rasFilesRepository: RasFilesRepository = app.injector.instanceOf[RasFilesRepository]
+    val rasBulkOperationsRepository: RasChunksRepository = app.injector.instanceOf[RasChunksRepository]
+
+    before {
+      RepositoriesHelper.createTestDataForDataCleansing(rasFilesRepository)
+      await(rasBulkOperationsRepository.removeAll())
+    }
+    after{
+     rasFilesRepository.removeAll()
+    }
 
   "RasChunksRepository" should {
 
     "get All Chunks" in {
-      val fileMetaData = await(RepositoriesHelper.saveTempFile("user222","envelope222","file222"))
+      await(RepositoriesHelper.saveTempFile("user222","envelope222","file222")(rasFilesRepository))
 
-      rasBulkOperationsRepository.getAllChunks()
-      val res =  await(rasBulkOperationsRepository.getAllChunks())
+      val res = await(rasBulkOperationsRepository.getAllChunks())
       res.size shouldBe 1
     }
     "remove a Chunk for an ObjectId" in {
-      val fileMetaData = await(RepositoriesHelper.saveTempFile("user222","envelope222","file222"))
+      val fileMetaData = await(RepositoriesHelper.saveTempFile("user222","envelope222","file222")(rasFilesRepository))
 
      val result = await(rasBulkOperationsRepository.removeChunk(
         fileMetaData.id.asInstanceOf[BSONObjectID]))

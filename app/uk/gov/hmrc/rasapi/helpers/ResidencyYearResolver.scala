@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.rasapi.helpers
 
+import javax.inject.Inject
 import org.joda.time.DateTime
 
-object ResidencyYearResolver extends ResidencyYearResolver
-
-trait ResidencyYearResolver {
+class ResidencyYearResolver @Inject()() {
 
   def currentDateTime: DateTime = DateTime.now()
 

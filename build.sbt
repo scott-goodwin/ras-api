@@ -41,7 +41,7 @@ majorVersion := 1
 scalaVersion                      := "2.11.11"
 retrieveManaged                   := true
 evictionWarningOptions in update  := EvictionWarningOptions.default.withWarnScalaVersionEviction(false)
-routesGenerator                   := StaticRoutesGenerator
+routesGenerator                   := InjectedRoutesGenerator
 
 SbtDistributablesPlugin.publishingSettings
 DefaultBuildSettings.defaultSettings()
@@ -61,8 +61,7 @@ val akkaVersion = "2.4.10"
 //compile dependencies
 libraryDependencies ++= Seq(
   ws,
-  "uk.gov.hmrc" %% "microservice-bootstrap" % "10.6.0",
-  "uk.gov.hmrc" %% "auth-client" % "2.19.0-play-25",
+  "uk.gov.hmrc" %% "bootstrap-play-25" % "5.1.0",
   "uk.gov.hmrc" %% "domain" % "5.3.0",
   "uk.gov.hmrc" %% "mongo-caching" % "5.4.0",
   "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,

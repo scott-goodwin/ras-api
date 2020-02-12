@@ -18,6 +18,7 @@ package uk.gov.hmrc.rasapi.controllers
 
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
+import javax.inject.Inject
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.libs.json.Json.toJson
@@ -27,39 +28,33 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.Retrievals.authorisedEnrolments
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.rasapi.config.RasAuthConnector
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.rasapi.metrics.Metrics
-import uk.gov.hmrc.rasapi.repository.{RasChunksRepository, RasFileRepository, RasRepository}
+import uk.gov.hmrc.rasapi.repository.{FileData, RasChunksRepository, RasFilesRepository}
 import uk.gov.hmrc.rasapi.services.AuditService
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-
-object FileController extends FileController {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val authConnector: AuthConnector = RasAuthConnector
-  override val auditService: AuditService = AuditService
-  override lazy val chunksRepo = RasRepository.chunksRepo
-  override lazy val fileRepo = RasRepository.filerepo
-  // $COVERAGE-ON$
-}
-
-trait FileController extends BaseController with AuthorisedFunctions{
+class FileController @Inject()(
+                                fileRepo: RasFilesRepository,
+                                chunksRepo: RasChunksRepository,
+                                metrics: Metrics,
+                                val auditService: AuditService,
+                                val authConnector: AuthConnector,
+                                implicit val ec: ExecutionContext
+                              ) extends BaseController with AuthorisedFunctions {
 
   val fileRemove = "File-Remove"
   val fileServe = "File-Read"
-  private val _contentType =   "application/csv"
-  val chunksRepo: RasChunksRepository
-  val fileRepo: RasFileRepository
-  val auditService: AuditService
+  private val _contentType = "application/csv"
+
+
   def parseStringIdToBSONObjectId(id: String): Try[BSONObjectID] = BSONObjectID.parse(id)
 
   def serveFile(fileName:String):  Action[AnyContent] = Action.async {
     implicit request =>
-      val apiMetrics = Metrics.register(fileServe).time
+      val apiMetrics = metrics.register(fileServe).time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
@@ -79,7 +74,8 @@ trait FileController extends BaseController with AuthorisedFunctions{
             }
 
           }.recover {
-            case ex: Throwable => Logger.error(s"[FileController] [serverFile] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
+            case ex: Throwable =>
+              Logger.error(s"[FileController] [serverFile] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
               InternalServerError
           }
       } recoverWith{
@@ -89,7 +85,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
 
   def remove(fileName:String, fileId:String):  Action[AnyContent] = Action.async {
     implicit request =>
-      val apiMetrics = Metrics.register(fileRemove).time
+      val apiMetrics = metrics.register(fileRemove).time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
@@ -140,12 +136,12 @@ trait FileController extends BaseController with AuthorisedFunctions{
   private def handleAuthFailure(implicit request: Request[_]): PartialFunction[Throwable, Future[Result]] =
     PartialFunction[Throwable, Future[Result]] {
       case ex:InsufficientEnrolments => Logger.warn("[FileController] [handleAuthFailure] Insufficient privileges")
-        Metrics.registry.counter(UNAUTHORIZED.toString)
+        metrics.registry.counter(UNAUTHORIZED.toString)
 
         Future.successful(Unauthorized(toJson(Unauthorised)))
 
-      case ex:NoActiveSession => Logger.warn("[FileController] [handleAuthFailure] Inactive session")
-        Metrics.registry.counter(UNAUTHORIZED.toString)
+      case ex: NoActiveSession => Logger.warn("[FileController] [handleAuthFailure] Inactive session")
+        metrics.registry.counter(UNAUTHORIZED.toString)
         Future.successful(Unauthorized(toJson(InvalidCredentials)))
       case e => Logger.warn(s"[FileController] [handleAuthFailure] Internal Error ${e.getCause}" )
 
@@ -154,7 +150,7 @@ trait FileController extends BaseController with AuthorisedFunctions{
 
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
 
-  def getFile(name:String, userId: String) = fileRepo.fetchFile(name, userId)
+  def getFile(name:String, userId: String): Future[Option[FileData]] = fileRepo.fetchFile(name, userId)
 
   def deleteFile(name:String, fileId:String, userId: String):Future[Boolean] = fileRepo.removeFile(name,fileId,userId)
   // $COVERAGE-ON$

@@ -22,19 +22,20 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerTest
+import play.api.Configuration
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.concurrent.ExecutionContext
 
 trait AuditServiceSpec extends UnitSpec with MockitoSugar with OneAppPerTest with BeforeAndAfter {
 
   implicit val hc:HeaderCarrier = HeaderCarrier()
   val mockAuditConnector = mock[AuditConnector]
 
-  val SUT = new AuditService {
-    override val connector: AuditConnector = mockAuditConnector
-  }
+  val SUT = new AuditService(mockAuditConnector, app.injector.instanceOf[Configuration], ExecutionContext.global)
 
   before {
     reset(mockAuditConnector)

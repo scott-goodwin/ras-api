@@ -19,17 +19,22 @@ package uk.gov.hmrc.rasapi.repositories
 import java.io.{BufferedWriter, ByteArrayInputStream, FileWriter}
 import java.nio.file.{Files, Path}
 
-import play.api.Logger
+import play.api.{Application, Logger}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.test.FakeApplication
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DefaultDB
+import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models.ResultsFile
-import uk.gov.hmrc.rasapi.repository.{RasChunksRepository, RasFileRepository}
+import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper.rasFileRepository
+import uk.gov.hmrc.rasapi.repository.{RasChunksRepository, RasFilesRepository}
 import uk.gov.hmrc.rasapi.services.RasFileWriter
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.Source
 import scala.util.Random
@@ -56,56 +61,61 @@ object TestFileWriter extends RasFileWriter
 
 object RepositoriesHelper extends MongoSpecSupport with UnitSpec {
 
+
   val hostPort = System.getProperty("mongoHostPort", "127.0.0.1:27017")
   override val  databaseName = "ras-api"
   val mongoConnector = MongoConnector(s"mongodb://$hostPort/$databaseName").db
 
-  val rasFileRepository = new RasFileRepositoryTest
+  def rasFileRepository(implicit rasFilesRepository: RasFilesRepository): RasFileRepositoryTest = new RasFileRepositoryTest(rasFilesRepository)
 
   val resultsArr = Array("456C,John,Smith,1990-02-21,nino-INVALID_FORMAT",
     "AB123456C,John,Smith,1990-02-21,NOT_MATCHED",
     "AB123456C,John,Smith,1990-02-21,otherUKResident,scotResident")
 
-  val tempFile = Array("TestMe START",1234345,"sdfjdkljfdklgj", "Test Me END")
+  val tempFile: Array[Any] = Array("TestMe START",1234345,"sdfjdkljfdklgj", "Test Me END")
 
 
-  lazy val createFile = {
+  lazy val createFile: Path = {
     await(TestFileWriter.generateFile(resultsArr.iterator))
   }
 
-  def saveTempFile(userID:String, envelopeID:String,fileId:String) = {
+  def saveTempFile(userID:String, envelopeID:String,fileId:String)(implicit rasFileRepository: RasFilesRepository): ResultsFile = {
     val filePath = await(TestFileWriter.generateFile(tempFile.iterator))
-    await(rasFileRepository.saveFile(userID,envelopeID,filePath, fileId))
+    await(rasFileRepository.saveFile(userID, envelopeID, filePath, fileId))
   }
+
   case class FileData( data: Enumerator[Array[Byte]] = null)
 
   def getAll: Iteratee[Array[Byte], Array[Byte]] = Iteratee.consume[Array[Byte]]()
 
-  class RasFileRepositoryTest(implicit ec: ExecutionContext)
-    extends RasFileRepository(mongoConnector) with MongoSpecSupport {
+  class RasFileRepositoryTest(rfr: RasFilesRepository)(implicit ec: ExecutionContext)
+    extends RasFilesRepository(
+      rfr.mongoComponent,
+      rfr.appContext,
+      ExecutionContext.global) with MongoSpecSupport {
 
     override implicit val mongo: () => DefaultDB = mongoConnectorForTest.db
 
-    def getFile(storedFile: ResultsFile) = {
+    def getFile(storedFile: ResultsFile): Iterator[String] = {
       val inputStream = gridFSG.enumerate(storedFile) run getAll map { bytes =>
         new ByteArrayInputStream(bytes)
       }
       Source.fromInputStream(inputStream).getLines
     }
 
-    def remove(fileName:String) = {gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName))}
+    def remove(fileName:String): Future[WriteResult] = {gridFSG.files.remove[BSONDocument](BSONDocument("filename"-> fileName))}
   }
 
-  val rasBulkOperationsRepository = new RasChunksRepository(mongoConnector)
+  def rasBulkOperationsRepository(implicit app: Application): RasChunksRepository = app.injector.instanceOf[RasChunksRepository]
 
-  def createTestDataForDataCleansing(): List[ResultsFile] = {
+  def createTestDataForDataCleansing(rasFilesRepository: RasFilesRepository): List[ResultsFile] = {
     val fileNames = List("file1212","file1313")
 
     for{
-      file1 <- await(RepositoriesHelper.saveTempFile("user1212","envelope1212",fileNames.head))
-      file2 <- await(RepositoriesHelper.saveTempFile("user1313","envelope1313",fileNames.last))
-      remFile1 <- await(RepositoriesHelper.rasFileRepository.remove((fileNames.head)))
-      remFile2 <- await(RepositoriesHelper.rasFileRepository.remove((fileNames.last)))
+      file1 <- await(RepositoriesHelper.saveTempFile("user1212","envelope1212",fileNames.head)(rasFilesRepository))
+      file2 <- await(RepositoriesHelper.saveTempFile("user1313","envelope1313",fileNames.last)(rasFilesRepository))
+      remFile1 <- await(RepositoriesHelper.rasFileRepository(rasFilesRepository).remove((fileNames.head)))
+      remFile2 <- await(RepositoriesHelper.rasFileRepository(rasFilesRepository).remove((fileNames.last)))
     } yield List(file1,file2)
   }
 

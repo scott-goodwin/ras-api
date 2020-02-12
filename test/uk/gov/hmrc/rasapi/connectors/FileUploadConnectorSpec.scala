@@ -33,22 +33,20 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse, RequestTimeoutException}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.config.WSHttp
+import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models.FileMetadata
 import uk.gov.hmrc.rasapi.services.RASWsHelpers
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerSuite with MockitoSugar with ServicesConfig with WSHttp{
+class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerSuite with MockitoSugar {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val mockWsHttp = mock[WSHttp]
+  val mockWsHttp: WSHttp = mock[WSHttp]
+  val appContext: AppContext = app.injector.instanceOf[AppContext]
 
-  object TestConnector extends FileUploadConnector {
-    override val http: HttpPost = mock[HttpPost]
-    override val wsHttp: WSHttp = mockWsHttp
-  }
+  object TestConnector extends FileUploadConnector(mockWsHttp, appContext, ExecutionContext.global)
 
   val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
   val fileId: String = "file-id-1"
@@ -88,17 +86,17 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
 
   "getFileMetadata" should {
     "return the original filename when file metadata returns 200" in {
-      when(mockWsHttp.doGet(any())(any())).thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(fileMetadata)))))
+      when(mockWsHttp.doGet(any(), any())(any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(Json.toJson(fileMetadata)))))
       val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
       result.get shouldBe fileMetadata
     }
     "return None when file metadata does not return 200" in {
-      when(mockWsHttp.doGet(any())(any())).thenReturn(Future.successful(HttpResponse(404)))
+      when(mockWsHttp.doGet(any(), any())(any(), any())).thenReturn(Future.successful(HttpResponse(404)))
       val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
       result shouldBe None
     }
     "return None when file metadata return an exception" in {
-      when(mockWsHttp.doGet(any())(any())).thenReturn(Future.failed(new RequestTimeoutException("")))
+      when(mockWsHttp.doGet(any(), any())(any(), any())).thenReturn(Future.failed(new RequestTimeoutException("")))
       val result = await(TestConnector.getFileMetadata(envelopeId, fileId, userId))
       result shouldBe None
     }
@@ -106,22 +104,19 @@ class FileUploadConnectorSpec extends UnitSpec with RASWsHelpers with OneAppPerS
 
   "deleteUploadedFile" should {
     "submit delete request to file-upload service" in {
-      when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(200)))
+      when(mockWsHttp.doDelete(any(), any())(any(), any())).thenReturn(Future.successful(HttpResponse(200)))
       val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
       result shouldBe true
     }
     "failed delete request to file-upload service" in {
-      when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.successful(HttpResponse(400)))
+      when(mockWsHttp.doDelete(any(), any())(any(), any())).thenReturn(Future.successful(HttpResponse(400)))
       val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
       result shouldBe false
     }
     "return false when delete returns an exception" in {
-      when(mockWsHttp.doDelete(any())(any())).thenReturn(Future.failed(new RequestTimeoutException("")))
+      when(mockWsHttp.doDelete(any(), any())(any(), any())).thenReturn(Future.failed(new RequestTimeoutException("")))
       val result = await(TestConnector.deleteUploadedFile(envelopeId, fileId, userId))
       result shouldBe false
     }
   }
-
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
