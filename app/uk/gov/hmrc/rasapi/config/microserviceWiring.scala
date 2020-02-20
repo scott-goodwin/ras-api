@@ -34,8 +34,8 @@ class WSHttp @Inject()(auditConnector: AuditConnector, wsClient: WSClient, confi
   def buildRequestWithStream(uri: String)(implicit hc: HeaderCarrier): Future[StreamedResponse] = buildRequest(uri).stream()
 }
 
-class RasAuthConnector @Inject()(servicesConfig: ServicesConfig, val http: DefaultHttpClient)
+class RasAuthConnector @Inject()(appContext: AppContext, val http: DefaultHttpClient)
   extends PlayAuthConnector {
-  lazy val serviceUrl: String = servicesConfig.baseUrl("auth")
+  lazy val serviceUrl: String = appContext.baseUrl("auth")
 }
 
