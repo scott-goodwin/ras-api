@@ -25,16 +25,15 @@ import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.rasapi.connectors.FileUploadConnector
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 import scala.util.Try
-
 import scala.io.Codec
 
 trait RasFileReader {
   implicit val system = ActorSystem()
-  implicit val materializer:ActorMaterializer = ActorMaterializer()
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val ec: ExecutionContext
 
   val fileUploadConnector: FileUploadConnector
 
@@ -88,5 +87,6 @@ trait RasFileWriter {
     true
   }
 
-  def clearFile(path:Path, userId: String) :Unit =  if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist for userId ($userId).")
+  def clearFile(path:Path, userId: String) :Unit =
+    if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist for userId ($userId).")
 }

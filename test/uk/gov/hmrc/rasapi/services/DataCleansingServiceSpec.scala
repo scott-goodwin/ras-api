@@ -19,15 +19,23 @@ package uk.gov.hmrc.rasapi.services
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
-import play.api.Logger
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.{Application, Logger}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper
+import uk.gov.hmrc.rasapi.repository.RasFilesRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class DataCleansingServiceSpec extends UnitSpec with MockitoSugar with OneAppPerSuite
 with BeforeAndAfter  {
+
+  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+    .configure("remove-chunks-data-exercise.enabled" -> true)
+    .build()
+
+  implicit lazy val rasFilesRepository = app.injector.instanceOf[RasFilesRepository]
   before{
     await(RepositoriesHelper.rasFileRepository.removeAll())
     await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
@@ -35,16 +43,17 @@ with BeforeAndAfter  {
   after{
     await(RepositoriesHelper.rasFileRepository.removeAll())
     await(RepositoriesHelper.rasBulkOperationsRepository.removeAll())
-
   }
+
+  lazy val dataCleansingService: DataCleansingService = app.injector.instanceOf[DataCleansingService]
 
   "DataCleansingService" should{
 
-    " not remove chunks that are not orphoned" in  {
+    " not remove chunks that are not orphoned" in {
       val testData1 = await(RepositoriesHelper.saveTempFile("user14","envelope14","fileId14"))
       val testData2=  await(RepositoriesHelper.saveTempFile("user15","envelope15","fileId15"))
 
-      val result = await(DataCleansingService.removeOrphanedChunks())
+      val result = await(dataCleansingService.removeOrphanedChunks())
 
       result.size shouldEqual 0
       await(RepositoriesHelper.rasFileRepository.remove("fileId14"))
@@ -53,9 +62,9 @@ with BeforeAndAfter  {
 
     "remove orphaned chunks" in  {
       Logger.warn("1 ~~~~~~~~####### Testing Data Cleansing" )
-      val testFiles = RepositoriesHelper.createTestDataForDataCleansing().map(_.id.asInstanceOf[BSONObjectID])
+      val testFiles = RepositoriesHelper.createTestDataForDataCleansing(rasFilesRepository).map(_.id.asInstanceOf[BSONObjectID])
 
-      val result = await(DataCleansingService.removeOrphanedChunks())
+      val result = await(dataCleansingService.removeOrphanedChunks())
       Logger.warn("7 ~~~~~~~~####### results complete" )
 
       result shouldEqual  testFiles

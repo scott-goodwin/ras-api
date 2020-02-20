@@ -18,11 +18,10 @@ package uk.gov.hmrc.rasapi.controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.mockito.Matchers.any
+import org.mockito.Matchers.{any, eq => Meq}
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
-import org.mockito.Matchers.{eq => Meq}
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status
 import play.api.http.Status.UNAUTHORIZED
@@ -33,11 +32,12 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.config.RasAuthConnector
-import uk.gov.hmrc.rasapi.repository.{FileData, RasChunksRepository, RasFileRepository}
+import uk.gov.hmrc.rasapi.metrics.Metrics
+import uk.gov.hmrc.rasapi.repository.{FileData, RasChunksRepository, RasFilesRepository}
 import uk.gov.hmrc.rasapi.services.AuditService
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Try}
 
 class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite with BeforeAndAfter {
 
@@ -53,17 +53,21 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
   val mockAuthConnector = mock[RasAuthConnector]
   val mockAuditService = mock[AuditService]
   val mockRasChunksRepository = mock[RasChunksRepository]
-  val mockRasFileRepository = mock[RasFileRepository]
+  val mockRasFileRepository = mock[RasFilesRepository]
+  val mockMetrics = app.injector.instanceOf[Metrics]
 
   val fileData = FileData(length = 124L,Enumerator("TEST START ".getBytes))
 
-  val fileController = new FileController {
-    override val authConnector: AuthConnector = mockAuthConnector
+  val fileController = new FileController(
+    mockRasFileRepository,
+    mockRasChunksRepository,
+    mockMetrics,
+    mockAuditService,
+    mockAuthConnector,
+    ExecutionContext.global
+  ) {
     override def getFile(name: String, userId: String): Future[Option[FileData]] = Some(fileData)
     override def deleteFile(name: String,id:String, userId: String): Future[Boolean] = true
-    override val auditService: AuditService = mockAuditService
-    override val chunksRepo: RasChunksRepository = mockRasChunksRepository
-    override val fileRepo: RasFileRepository = mockRasFileRepository
   }
 
   implicit val actorSystem = ActorSystem()
@@ -95,16 +99,15 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
     }
 
     "give NOT_FOUND response" when {
-      val fileController = new FileController {
-        override val authConnector: AuthConnector = mockAuthConnector
-
+      val fileController = new FileController(
+        mockRasFileRepository,
+        mockRasChunksRepository,
+        mockMetrics,
+        mockAuditService,
+        mockAuthConnector,
+        ExecutionContext.global
+      ) {
         override def getFile(name: String, userId: String): Future[Option[FileData]] = None
-
-        override val auditService: AuditService = mockAuditService
-
-        override val chunksRepo: RasChunksRepository = mockRasChunksRepository
-
-        override val fileRepo: RasFileRepository = mockRasFileRepository
       }
 
       "the file is not available" in {
@@ -128,16 +131,15 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
     "remove a file" when {
       "already saved fileName is provided" in {
 
-        val fileController = new FileController {
-          override val authConnector: AuthConnector = mockAuthConnector
-
+        val fileController = new FileController (
+          mockRasFileRepository,
+          mockRasChunksRepository,
+          mockMetrics,
+          mockAuditService,
+          mockAuthConnector,
+          ExecutionContext.global
+        ){
           override def getFile(name: String, userId: String): Future[Option[FileData]] = Some(fileData)
-
-          override val auditService: AuditService = mockAuditService
-
-          override val chunksRepo: RasChunksRepository = mockRasChunksRepository
-
-          override val fileRepo: RasFileRepository = mockRasFileRepository
         }
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
@@ -155,16 +157,15 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
       }
 
       "chunks deletion fails as id cannot be converted to a BSONObjectId" in {
-        val fileController = new FileController {
-          override val authConnector: AuthConnector = mockAuthConnector
-
+        val fileController = new FileController (
+          mockRasFileRepository,
+          mockRasChunksRepository,
+          mockMetrics,
+          mockAuditService,
+          mockAuthConnector,
+          ExecutionContext.global
+        ){
           override def getFile(name: String, userId: String): Future[Option[FileData]] = Some(fileData)
-
-          override val auditService: AuditService = mockAuditService
-
-          override val chunksRepo: RasChunksRepository = mockRasChunksRepository
-
-          override val fileRepo: RasFileRepository = mockRasFileRepository
 
           override def parseStringIdToBSONObjectId(id: String): Try[BSONObjectID] = Failure(new Throwable("Failure"))
         }
@@ -187,16 +188,15 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
 
       "chunks deletion fails" in {
 
-        val fileController = new FileController {
-          override val authConnector: AuthConnector = mockAuthConnector
-
+        val fileController = new FileController (
+          mockRasFileRepository,
+          mockRasChunksRepository,
+          mockMetrics,
+          mockAuditService,
+          mockAuthConnector,
+          ExecutionContext.global
+        ){
           override def getFile(name: String, userId: String): Future[Option[FileData]] = Some(fileData)
-
-          override val auditService: AuditService = mockAuditService
-
-          override val chunksRepo: RasChunksRepository = mockRasChunksRepository
-
-          override val fileRepo: RasFileRepository = mockRasFileRepository
         }
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
@@ -209,15 +209,14 @@ class FileControllerSpec  extends UnitSpec with MockitoSugar with OneAppPerSuite
 
     "internalservererror" when {
       "when a file doesnt exist" in {
-        val fileController = new FileController {
-          override val authConnector: AuthConnector = mockAuthConnector
-
-          override val auditService: AuditService = mockAuditService
-
-          override val chunksRepo: RasChunksRepository = mockRasChunksRepository
-
-          override val fileRepo: RasFileRepository = mockRasFileRepository
-        }
+        val fileController = new FileController (
+          mockRasFileRepository,
+          mockRasChunksRepository,
+          mockMetrics,
+          mockAuditService,
+          mockAuthConnector,
+          ExecutionContext.global
+        )
 
         when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any())).thenReturn(successfulRetrieval)
         when(mockRasFileRepository.removeFile(any(), any(), any())).thenReturn(Future.successful(false))

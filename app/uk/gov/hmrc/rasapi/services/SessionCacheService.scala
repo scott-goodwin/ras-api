@@ -16,22 +16,31 @@
 
 package uk.gov.hmrc.rasapi.services
 
+import javax.inject.Inject
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.cache.client.ShortLivedHttpCaching
+import uk.gov.hmrc.http.cache.client.{CacheMap, ShortLivedHttpCaching}
 import uk.gov.hmrc.rasapi.config.RasShortLivedHttpCaching
 import uk.gov.hmrc.rasapi.models.{CallbackData, FileMetadata, FileSession, ResultsFileMetaData}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
-trait SessionCacheService {
+class SessionCacheService @Inject()(
+                                     val sessionCache: ShortLivedHttpCaching,
+                                     implicit val ec: ExecutionContext
+                                   ) {
 
-  val sessionCache: ShortLivedHttpCaching = RasShortLivedHttpCaching
+
   private val source = "ras"
   private val formId = "fileSession"
   private val fileMetadata = "fileMetadata"
 
-  def updateFileSession(userId : String, userFile:CallbackData, resultsFile:Option[ResultsFileMetaData], fileMetadata: Option[FileMetadata])(implicit hc: HeaderCarrier) = {
+  def updateFileSession(
+                         userId: String,
+                         userFile: CallbackData,
+                         resultsFile: Option[ResultsFileMetaData],
+                         fileMetadata: Option[FileMetadata]
+                       )(implicit hc: HeaderCarrier): Future[CacheMap] = {
 
     sessionCache.fetchAndGetEntry[FileSession](source,userId,formId).flatMap{ session =>
     sessionCache.cache[FileSession](source,userId,formId,
@@ -53,8 +62,4 @@ trait SessionCacheService {
     }
 
   }
-}
-
-object SessionCacheService extends SessionCacheService {
-  override val sessionCache: ShortLivedHttpCaching = RasShortLivedHttpCaching
 }

@@ -19,9 +19,10 @@ package uk.gov.hmrc.rasapi.repository
 import java.io.FileInputStream
 import java.nio.file.Path
 
+import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
-import play.modules.reactivemongo.MongoDbConnection
+import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.gridfs.Implicits._
 import reactivemongo.api.gridfs._
 import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
@@ -30,33 +31,26 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.models.{Chunks, ResultsFile}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-
-
-object RasRepository extends MongoDbConnection with GridFsTTLIndexing {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  private implicit val connection = mongoConnector.db
-  override val expireAfterSeconds = AppContext.resultsExpriyTime
-
-  lazy val filerepo: RasFileRepository = {
-    val repo = new RasFileRepository(connection)
-    addAllTTLs(repo.gridFSG)
-    repo
-  }
-
-  lazy val chunksRepo: RasChunksRepository = new RasChunksRepository(connection)
-
-  // $COVERAGE-ON$
-}
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
-class RasFileRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[Chunks, BSONObjectID]("rasFileStore", mongo, Chunks.format){
+class RasFilesRepository @Inject()(
+                                   val mongoComponent: ReactiveMongoComponent,
+                                   val appContext: AppContext,
+                                   implicit val ec: ExecutionContext
+                             ) extends ReactiveRepository[Chunks, BSONObjectID](
+  collectionName = "rasFileStore",
+  mongo = mongoComponent.mongoConnector.db,
+  domainFormat = Chunks.format
+) with GridFsTTLIndexing {
 
+  override val expireAfterSeconds: Long = appContext.resultsExpriyTime
   private val contentType =  "text/csv"
-  val gridFSG = new GridFS[BSONSerializationPack.type](mongo(), "resultsFiles")
+
+  val gridFSG = new GridFS[BSONSerializationPack.type](mongoComponent.mongoConnector.db(), "resultsFiles")
+
+  addAllTTLs(gridFSG)
 
   def saveFile(userId:String, envelopeId: String, filePath: Path, fileId: String): Future[ResultsFile] = {
     Logger.info("[RasFileRepository] Starting to save file")

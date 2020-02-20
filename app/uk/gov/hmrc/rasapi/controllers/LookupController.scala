@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
+import play.api.Logger
 import play.api.data.validation.ValidationError
 import play.api.libs.json.Json._
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Json}
@@ -28,10 +28,9 @@ import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.config.RunMode
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
 import uk.gov.hmrc.rasapi.metrics.Metrics
@@ -39,30 +38,30 @@ import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
 import uk.gov.hmrc.rasapi.utils.ErrorConverter
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-trait LookupController extends BaseController with HeaderValidator with RunMode with AuthorisedFunctions {
+class LookupController @Inject()(
+                                val desConnector: DesConnector,
+                                val metrics: Metrics,
+                                val auditService: AuditService,
+                                val authConnector: AuthConnector,
+                                val residencyYearResolver: ResidencyYearResolver,
+                                val appContext: AppContext,
+                                val errorConverter: ErrorConverter,
+                                implicit val ec: ExecutionContext
+                                ) extends BaseController with HeaderValidator with AuthorisedFunctions {
 
-  val desConnector: DesConnector
-  val auditService: AuditService
-  val errorConverter: ErrorConverter
-  val residencyYearResolver: ResidencyYearResolver
+  def getCurrentDate: DateTime = DateTime.now()
+  lazy val allowDefaultRUK: Boolean = appContext.allowDefaultRUK
+  lazy val STATUS_DECEASED: String = appContext.deceasedStatus
+  lazy val STATUS_MATCHING_FAILED: String = appContext.matchingFailedStatus
+  lazy val STATUS_TOO_MANY_REQUESTS: String = appContext.tooManyRequestsStatus
+  lazy val STATUS_SERVICE_UNAVAILABLE: String = appContext.serviceUnavailableStatus
+  lazy val apiV2_0Enabled : Boolean = appContext.apiV2_0Enabled
 
-  def getCurrentDate: DateTime
-  val allowDefaultRUK: Boolean
-
-  val STATUS_DECEASED: String
-  val STATUS_MATCHING_FAILED: String
-  val STATUS_TOO_MANY_REQUESTS: String
-  val STATUS_SERVICE_UNAVAILABLE: String
-
-  val apiV2_0Enabled : Boolean
 
   override val validateVersion: String => Boolean = (version: String) => version == "1.0" || (apiV2_0Enabled && version == "2.0")
-
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   implicit class VersionUtil(request: Request[_]) {
     def getVersion: ApiVersion = {
@@ -77,7 +76,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
 
   def getResidencyStatus(): Action[AnyContent] = validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
-      val apiMetrics = Metrics.responseTimer.time
+      val apiMetrics = metrics.responseTimer.time
       authorised(AuthProviders(GovernmentGateway) and (Enrolment(PSA_ENROLMENT) or Enrolment(PP_ENROLMENT))).retrieve(authorisedEnrolments) {
         enrols =>
           val id = getEnrolmentIdentifier(enrols)
@@ -106,31 +105,31 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         residencyStatus = None,
                         userId = id)
                       Logger.debug(s"[LookupController][getResidencyStatus] Individual is deceased for userId ($id).")
-                      Metrics.registry.counter(FORBIDDEN.toString)
-                      Forbidden(toJson(IndividualNotFound))
+                      metrics.registry.counter(FORBIDDEN.toString)
+                      Forbidden(toJson(IndividualNotFound(appContext.matchingFailedStatus)))
                     case STATUS_MATCHING_FAILED =>
                       auditResponse(failureReason = Some("MATCHING_FAILED"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
                       Logger.debug(s"[LookupController][getResidencyStatus] Individual not matched for userId ($id).")
-                      Metrics.registry.counter(FORBIDDEN.toString)
-                      Forbidden(toJson(IndividualNotFound))
+                      metrics.registry.counter(FORBIDDEN.toString)
+                      Forbidden(toJson(IndividualNotFound(appContext.matchingFailedStatus)))
                     case STATUS_TOO_MANY_REQUESTS =>
                       auditResponse(failureReason = Some(STATUS_TOO_MANY_REQUESTS),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
                       Logger.error(s"[LookupController][getResidencyStatus] Too Many Requests for userId ($id).")
-                      Metrics.registry.counter(TOO_MANY_REQUESTS.toString)
-                      TooManyRequests(toJson(TooManyRequestsResponse))
+                      metrics.registry.counter(TOO_MANY_REQUESTS.toString)
+                      TooManyRequests(toJson(TooManyRequestsResponse(appContext.tooManyRequestsStatus)))
                     case STATUS_SERVICE_UNAVAILABLE =>
                       auditResponse(failureReason = Some("SERVICE_UNAVAILABLE"),
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
                       Logger.debug(s"[LookupController][getResidencyStatus] Service unavailable for userId ($id).")
-                      Metrics.registry.counter(SERVICE_UNAVAILABLE.toString)
+                      metrics.registry.counter(SERVICE_UNAVAILABLE.toString)
                       ServiceUnavailable(toJson(ErrorServiceUnavailable))
                     case _ =>
                       auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
@@ -139,11 +138,10 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                         userId = id)
                       Logger.error(s"[LookupController][getResidencyStatus] Error returned from DES, error code: " +
                         s"${matchingFailed.code} for userId ($id).")
-                      Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
+                      metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                       InternalServerError(toJson(ErrorInternalServerError))
                   }
               } recover {
-
                 case th: Throwable =>
                   auditResponse(failureReason = Some(ErrorInternalServerError.errorCode),
                     nino = None,
@@ -151,7 +149,7 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
                     userId = id)
                   Logger.error(s"[LookupController][getResidencyStatus] Error occurred for userId ($id), " +
                     s"Exception message: ${th.getMessage}", th)
-                  Metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
+                  metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                   InternalServerError(toJson(ErrorInternalServerError))
               }
             },
@@ -162,11 +160,11 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
           )
       } recoverWith{
         case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
-          Metrics.registry.counter(UNAUTHORIZED.toString)
+          metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(Unauthorised)))
 
         case ex:NoActiveSession => Logger.warn("Inactive session")
-          Metrics.registry.counter(UNAUTHORIZED.toString)
+          metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(InvalidCredentials)))
 
         case e => Logger.warn(s"Internal Error ${e.getCause}" )
@@ -239,21 +237,4 @@ trait LookupController extends BaseController with HeaderValidator with RunMode 
       auditData = auditDataMap ++ Map("userIdentifier" -> userId, "requestSource" -> "API") ++ ninoMap
     )
   }
-}
-
-object LookupController extends LookupController {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val desConnector: DesConnector = DesConnector
-  override val auditService: AuditService = AuditService
-  override val authConnector: AuthConnector = RasAuthConnector
-  override val errorConverter: ErrorConverter = ErrorConverter
-  override val residencyYearResolver: ResidencyYearResolver = ResidencyYearResolver
-  override def getCurrentDate: DateTime = DateTime.now()
-  override val allowDefaultRUK: Boolean = AppContext.allowDefaultRUK
-  override val STATUS_DECEASED: String = AppContext.deceasedStatus
-  override val STATUS_MATCHING_FAILED: String = AppContext.matchingFailedStatus
-  override val STATUS_TOO_MANY_REQUESTS: String = AppContext.tooManyRequestsStatus
-  override val STATUS_SERVICE_UNAVAILABLE: String = AppContext.serviceUnavailableStatus
-  override val apiV2_0Enabled : Boolean = AppContext.apiV2_0Enabled
-  // $COVERAGE-ON$
 }

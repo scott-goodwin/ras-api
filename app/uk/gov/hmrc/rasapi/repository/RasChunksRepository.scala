@@ -16,18 +16,26 @@
 
 package uk.gov.hmrc.rasapi.repository
 
+import javax.inject.Inject
 import play.api.Logger
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.models.Chunks
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class RasChunksRepository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[Chunks, BSONObjectID]("resultsFiles.chunks", mongo, Chunks.format){
-  def getAllChunks() ={
+class RasChunksRepository @Inject()(
+                                     val mongoComponent: ReactiveMongoComponent,
+                                     implicit val ec: ExecutionContext
+                                   ) extends ReactiveRepository[Chunks, BSONObjectID](
+    collectionName = "resultsFiles.chunks",
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = Chunks.format){
+
+  def getAllChunks(): Future[Seq[Chunks]] ={
     val query = BSONDocument("files_id" -> BSONDocument("$ne" -> "1"))
     Logger.debug("********Remove chunks :Started*********")
 
@@ -41,7 +49,7 @@ class RasChunksRepository(mongo: () => DB with DBMetaCommands)(implicit ec: Exec
 
   }
 
-  def removeChunk(filesId:BSONObjectID) = {
+  def removeChunk(filesId:BSONObjectID): Future[Boolean] = {
     val query = BSONDocument("files_id" -> filesId)
     collection.remove(query).map(res=> res.writeErrors.isEmpty).recover{
       case ex:Throwable =>

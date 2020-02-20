@@ -17,57 +17,25 @@
 package uk.gov.hmrc.rasapi.config
 
 import akka.actor.ActorSystem
-import com.typesafe.config.Config
-import play.api.{Configuration, Play}
+import javax.inject.Inject
+import play.api.Configuration
 import play.api.Mode.Mode
-import play.api.libs.ws.StreamedResponse
+import play.api.libs.ws.{StreamedResponse, WSClient}
 import uk.gov.hmrc.auth.core.PlayAuthConnector
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.config.{AppName, RunMode, ServicesConfig}
-import uk.gov.hmrc.play.http.ws._
-import uk.gov.hmrc.http.hooks.HttpHook
-import uk.gov.hmrc.play.audit.http.HttpAuditing
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
+import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.Future
 
-trait WSHttp extends
-  HttpGet with WSGet with
-  HttpPut with WSPut with
-  HttpPost with WSPost with
-  HttpDelete with WSDelete with
-  HttpPatch with WSPatch with AppName with HttpAuditing {
-  override val hooks: Seq[HttpHook] = Seq(AuditingHook)
-
-  override protected def actorSystem: ActorSystem = Play.current.actorSystem
-
-  override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
-
-  override def auditConnector: AuditConnector = MicroserviceAuditConnector
-
+class WSHttp @Inject()(auditConnector: AuditConnector, wsClient: WSClient, configuration: Configuration, actorSystem: ActorSystem)
+  extends DefaultHttpClient(configuration, auditConnector, wsClient, actorSystem) {
   def buildRequestWithStream(uri: String)(implicit hc: HeaderCarrier): Future[StreamedResponse] = buildRequest(uri).stream()
 }
 
-object WSHttp extends WSHttp
-
-object MicroserviceAuditConnector extends AuditConnector with RunMode {
-  override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
-
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-}
-
-trait RasAuthConnector extends PlayAuthConnector with ServicesConfig {
-  lazy val serviceUrl = baseUrl("auth")
-  lazy val http = WSHttp
-}
-
-object RasAuthConnector extends RasAuthConnector {
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
+class RasAuthConnector @Inject()(appContext: AppContext, val http: DefaultHttpClient)
+  extends PlayAuthConnector {
+  lazy val serviceUrl: String = appContext.baseUrl("auth")
 }
 

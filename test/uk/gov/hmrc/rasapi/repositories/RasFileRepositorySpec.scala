@@ -18,20 +18,23 @@ package uk.gov.hmrc.rasapi.repositories
 
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.OneAppPerTest
+import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
 import play.api.Logger
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import RepositoriesHelper.rasFileRepository
-import RepositoriesHelper.createFile
+import RepositoriesHelper.{createFile}
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.rasapi.repository.RasFilesRepository
 
-class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerTest
+class RasFileRepositorySpec extends UnitSpec with MockitoSugar with OneAppPerSuite
   with BeforeAndAfter  {
 
   val userId: String = "A1234567"
+
+  implicit val rasFilesRepository: RasFilesRepository = app.injector.instanceOf[RasFilesRepository]
+  val rasFileRepository: RepositoriesHelper.RasFileRepositoryTest = RepositoriesHelper.rasFileRepository(rasFilesRepository)
 
   before{
     rasFileRepository.removeAll()

@@ -16,30 +16,27 @@
 
 package uk.gov.hmrc.rasapi.connectors
 
+import javax.inject.Inject
 import play.api.Mode.Mode
 import play.api.{Configuration, Logger, Play}
 import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.rasapi.config.{AppContext, WSHttp}
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-trait DesConnector extends ServicesConfig {
-
-  val auditService: AuditService
-
-  val httpPost: HttpPost = WSHttp
-  val desBaseUrl: String
-
-  val edhUrl: String
-
-  val allowNoNextYearStatus: Boolean
+class DesConnector @Inject()(
+                              httpPost: DefaultHttpClient,
+                              val auditService: AuditService,
+                              val appContext: AppContext,
+                              implicit val ec: ExecutionContext
+                            ) {
 
   val uk = "Uk"
   val scot = "Scottish"
@@ -49,26 +46,25 @@ trait DesConnector extends ServicesConfig {
   val otherUk = "otherUKResident"
 
 
-  val error_InternalServerError: String
-  val error_Deceased: String
-  val error_MatchingFailed: String
-  val error_TooManyRequests: String
-  val error_DoNotReProcess: String
-  val error_ServiceUnavailable: String
-  val desUrlHeaderEnv: String
-  val desAuthToken: String
-  val isRetryEnabled: Boolean
-  val isBulkRetryEnabled: Boolean
-
-  val retryLimit: Int
-  val retryDelay: Int
+  lazy val desBaseUrl: String = appContext.baseUrl("des")
+  lazy val edhUrl: String = desBaseUrl + appContext.edhUrl
+  lazy val error_InternalServerError: String = appContext.internalServerErrorStatus
+  lazy val error_Deceased: String = appContext.deceasedStatus
+  lazy val error_MatchingFailed: String = appContext.matchingFailedStatus
+  lazy val error_DoNotReProcess: String = appContext.doNotReProcessStatus
+  lazy val error_ServiceUnavailable: String = appContext.serviceUnavailableStatus
+  lazy val allowNoNextYearStatus: Boolean = appContext.allowNoNextYearStatus
+  lazy val retryLimit: Int = appContext.requestRetryLimit
+  lazy val desUrlHeaderEnv: String = appContext.desUrlHeaderEnv
+  lazy val desAuthToken: String = appContext.desAuthToken
+  lazy val retryDelay: Int = appContext.retryDelay
+  lazy val isRetryEnabled: Boolean = appContext.retryEnabled
+  lazy val isBulkRetryEnabled: Boolean = appContext.bulkRetryEnabled
+  lazy val error_TooManyRequests: String = appContext.tooManyRequestsStatus
 
   lazy val nonRetryableErrors = List(error_MatchingFailed, error_Deceased, error_DoNotReProcess)
 
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-
-  def canRetryRequest(isBulkRequest: Boolean) = isRetryEnabled || (isBulkRetryEnabled && isBulkRequest)
+  def canRetryRequest(isBulkRequest: Boolean): Boolean = isRetryEnabled || (isBulkRetryEnabled && isBulkRequest)
 
   def isCodeRetryable(code: String, isBulkRequest: Boolean): Boolean = {
     canRetryRequest(isBulkRequest) && !nonRetryableErrors.contains(code)
@@ -156,7 +152,8 @@ trait DesConnector extends ServicesConfig {
     }
   }
 
-  private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO, apiVersion: ApiVersion)(implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
+  private def resolveResponse(httpResponse: HttpResponse, userId: String, nino: NINO, apiVersion: ApiVersion)
+                             (implicit hc: HeaderCarrier): Either[ResidencyStatus, ResidencyStatusFailure] = {
 
     Try(httpResponse.json.as[ResidencyStatusSuccess](ResidencyStatusFormats.successFormats)) match {
       case Success(payload) =>
@@ -190,29 +187,4 @@ trait DesConnector extends ServicesConfig {
         }
     }
   }
-}
-
-object DesConnector extends DesConnector {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val auditService = AuditService
-  override val httpPost: HttpPost = WSHttp
-  override val desBaseUrl = baseUrl("des")
-  override val edhUrl: String = desBaseUrl + AppContext.edhUrl
-  override val error_InternalServerError: String = AppContext.internalServerErrorStatus
-  override val error_Deceased: String = AppContext.deceasedStatus
-  override val error_MatchingFailed: String = AppContext.matchingFailedStatus
-  override val error_DoNotReProcess: String = AppContext.doNotReProcessStatus
-  override val error_ServiceUnavailable: String = AppContext.serviceUnavailableStatus
-  override val allowNoNextYearStatus: Boolean = AppContext.allowNoNextYearStatus
-  override val retryLimit: Int = AppContext.requestRetryLimit
-  override val desUrlHeaderEnv: String = AppContext.desUrlHeaderEnv
-  override val desAuthToken: String = AppContext.desAuthToken
-  override val retryDelay: Int = AppContext.retryDelay
-  override val isRetryEnabled: Boolean = AppContext.retryEnabled
-  override val isBulkRetryEnabled: Boolean = AppContext.bulkRetryEnabled
-  override val error_TooManyRequests: String = AppContext.tooManyRequestsStatus
-  // $COVERAGE-ON$
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

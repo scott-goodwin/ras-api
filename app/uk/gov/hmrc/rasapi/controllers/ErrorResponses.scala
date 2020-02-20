@@ -53,14 +53,14 @@ case object InvalidCredentials extends ErrorResponse(
   "INVALID_CREDENTIALS",
   "Invalid OAuth token supplied for user-restricted or application-restricted resource (including expired token)")
 
-case object IndividualNotFound extends ErrorResponse(
+case class IndividualNotFound(matchingFailedStatus: String) extends ErrorResponse(
   403,
-  AppContext.matchingFailedStatus,
+  matchingFailedStatus,
   "Cannot provide a residency status for this pension scheme member.")
 
-case object TooManyRequestsResponse extends ErrorResponse(
+case class TooManyRequestsResponse(tooManyRequestsStatus: String) extends ErrorResponse(
   429,
-  AppContext.tooManyRequestsStatus,
+  tooManyRequestsStatus,
   "Request could not be sent 429 (Too Many Requests) was sent from the HoD.")
 
 case object ErrorInternalServerError extends

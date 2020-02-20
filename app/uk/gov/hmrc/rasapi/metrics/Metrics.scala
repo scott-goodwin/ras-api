@@ -17,13 +17,11 @@
 package uk.gov.hmrc.rasapi.metrics
 
 import com.codahale.metrics.{MetricRegistry, Timer}
-import uk.gov.hmrc.play.graphite.MicroserviceMetrics
+import com.kenshoo.play.metrics.{Metrics => KenshooMetrics}
+import javax.inject.Inject
 
-trait Metrics {val responseTimer : Timer}
-
-object Metrics extends Metrics with MicroserviceMetrics {
+class Metrics @Inject()(val metrics: KenshooMetrics){
   val registry: MetricRegistry = metrics.defaultRegistry
-  override val responseTimer = registry.timer("ras-api-success")
-  def register(name:String) = registry.timer(name)
-
+  val responseTimer: Timer = registry.timer("ras-api-success")
+  def register(name: String): Timer = registry.timer(name)
 }

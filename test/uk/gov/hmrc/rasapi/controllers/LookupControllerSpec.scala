@@ -33,14 +33,15 @@ import uk.gov.hmrc.api.controllers.ErrorAcceptHeaderInvalid
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.rasapi.config.RasAuthConnector
+import uk.gov.hmrc.rasapi.config.{AppContext, RasAuthConnector}
 import uk.gov.hmrc.rasapi.connectors.DesConnector
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
+import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.services.AuditService
 import uk.gov.hmrc.rasapi.utils.ErrorConverter
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with BeforeAndAfter {
 
@@ -57,6 +58,9 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
   val mockAuditService = mock[AuditService]
   val mockAuthConnector = mock[RasAuthConnector]
   val mockResidencyYearResolver = mock[ResidencyYearResolver]
+  val mockMetrics = app.injector.instanceOf[Metrics]
+  val appContext = app.injector.instanceOf[AppContext]
+  val errorConverer = app.injector.instanceOf[ErrorConverter]
 
   val expectedNino = uk.gov.hmrc.rasapi.models.Nino("LE241131B")
 
@@ -83,72 +87,85 @@ class LookupControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPe
       (JsPath \ "dateOfBirth").write[String].contramap[DateTime](date => date.toString("yyyy-MM-dd"))
     ) (unlift(IndividualDetails.unapply))
 
-  object TestLookupController extends LookupController {
-    override val desConnector = mockDesConnector
-    override val auditService: AuditService = mockAuditService
-    override val authConnector: AuthConnector = mockAuthConnector
-    override val errorConverter: ErrorConverter = ErrorConverter
-    override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
+  object TestLookupController extends LookupController(
+    mockDesConnector,
+    mockMetrics,
+    mockAuditService,
+    mockAuthConnector,
+    mockResidencyYearResolver,
+    appContext,
+    errorConverer,
+    ExecutionContext.global
+  ) {
 
     override def getCurrentDate: DateTime = new DateTime(2018, 7, 6, 0, 0, 0, 0)
 
-    override val allowDefaultRUK: Boolean = false
-    override val STATUS_DECEASED: String = "DECEASED"
-    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
-    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
-    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
-    override val apiV2_0Enabled: Boolean = true
+    override lazy val allowDefaultRUK: Boolean = false
+    override lazy val STATUS_DECEASED: String = "DECEASED"
+    override lazy val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override lazy val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
+    override lazy val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
+    override lazy val apiV2_0Enabled: Boolean = true
   }
 
-  object TestLookupControllerFeb18 extends LookupController {
-    override val desConnector = mockDesConnector
-    override val auditService: AuditService = mockAuditService
-    override val authConnector: AuthConnector = mockAuthConnector
-    override val errorConverter: ErrorConverter = ErrorConverter
-    override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
-
+  object TestLookupControllerFeb18 extends LookupController(
+    mockDesConnector,
+    mockMetrics,
+    mockAuditService,
+    mockAuthConnector,
+    mockResidencyYearResolver,
+    appContext,
+    errorConverer,
+    ExecutionContext.global
+  ) {
     override def getCurrentDate: DateTime = new DateTime(2018, 2, 15, 0, 0, 0, 0)
 
-    override val allowDefaultRUK: Boolean = true
-    override val STATUS_DECEASED: String = "DECEASED"
-    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
-    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
-    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
-    override val apiV2_0Enabled: Boolean = true
+    override lazy val allowDefaultRUK: Boolean = true
+    override lazy val STATUS_DECEASED: String = "DECEASED"
+    override lazy val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override lazy val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
+    override lazy val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
+    override lazy val apiV2_0Enabled: Boolean = true
   }
 
-  object TestLookupControllerFeb19 extends LookupController {
-    override val desConnector = mockDesConnector
-    override val auditService: AuditService = mockAuditService
-    override val authConnector: AuthConnector = mockAuthConnector
-    override val errorConverter: ErrorConverter = ErrorConverter
-    override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
-
+  object TestLookupControllerFeb19 extends LookupController(
+    mockDesConnector,
+    mockMetrics,
+    mockAuditService,
+    mockAuthConnector,
+    mockResidencyYearResolver,
+    appContext,
+    errorConverer,
+    ExecutionContext.global
+  ) {
     override def getCurrentDate: DateTime = new DateTime(2019, 2, 15, 0, 0, 0, 0)
 
-    override val allowDefaultRUK: Boolean = false
-    override val STATUS_DECEASED: String = "DECEASED"
-    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
-    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
-    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
-    override val apiV2_0Enabled: Boolean = true
+    override lazy val allowDefaultRUK: Boolean = false
+    override lazy val STATUS_DECEASED: String = "DECEASED"
+    override lazy val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override lazy val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
+    override lazy val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
+    override lazy val apiV2_0Enabled: Boolean = true
   }
 
-  object TestLookupControllerVersion1 extends LookupController {
-    override val desConnector = mockDesConnector
-    override val auditService: AuditService = mockAuditService
-    override val authConnector: AuthConnector = mockAuthConnector
-    override val errorConverter: ErrorConverter = ErrorConverter
-    override val residencyYearResolver: ResidencyYearResolver = mockResidencyYearResolver
-
+  object TestLookupControllerVersion1 extends LookupController(
+    mockDesConnector,
+    mockMetrics,
+    mockAuditService,
+    mockAuthConnector,
+    mockResidencyYearResolver,
+    appContext,
+    errorConverer,
+    ExecutionContext.global
+  ) {
     override def getCurrentDate: DateTime = new DateTime(2019, 1, 1, 0, 0, 0, 0)
 
-    override val allowDefaultRUK: Boolean = false
-    override val STATUS_DECEASED: String = "DECEASED"
-    override val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
-    override val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
-    override val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
-    override val apiV2_0Enabled: Boolean = false
+    override lazy val allowDefaultRUK: Boolean = false
+    override lazy val STATUS_DECEASED: String = "DECEASED"
+    override lazy val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
+    override lazy val STATUS_TOO_MANY_REQUESTS: String = "TOO_MANY_REQUESTS"
+    override lazy val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
+    override lazy val apiV2_0Enabled: Boolean = false
   }
 
   before {

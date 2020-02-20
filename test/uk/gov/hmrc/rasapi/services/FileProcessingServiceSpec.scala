@@ -18,7 +18,7 @@ package uk.gov.hmrc.rasapi.services
 
 import java.io.{ByteArrayInputStream, FileInputStream}
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentCaptor
@@ -33,15 +33,17 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.cache.client.CacheMap
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.connectors.{DesConnector, FileUploadConnector}
 import uk.gov.hmrc.rasapi.helpers.ResidencyYearResolver
+import uk.gov.hmrc.rasapi.metrics.Metrics
 import uk.gov.hmrc.rasapi.models._
 import uk.gov.hmrc.rasapi.repositories.RepositoriesHelper.{getAll, rasFileRepository}
 import uk.gov.hmrc.rasapi.repositories.TestFileWriter
-import uk.gov.hmrc.rasapi.repository.RasFileRepository
+import uk.gov.hmrc.rasapi.repository.RasFilesRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Random, Try}
 
 class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
@@ -55,6 +57,8 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   val mockSessionCache = mock[SessionCacheService]
   val mockResidencyYearResolver = mock[ResidencyYearResolver]
   val mockAuditService = mock[AuditService]
+  val appContext = app.injector.instanceOf[AppContext]
+  val metrics = app.injector.instanceOf[Metrics]
 
   val STATUS_DECEASED: String = "DECEASED"
   val STATUS_MATCHING_FAILED: String = "STATUS_UNAVAILABLE"
@@ -62,17 +66,19 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
   val STATUS_SERVICE_UNAVAILABLE: String = "SERVICE_UNAVAILABLE"
   val STATUS_FILE_PROCESSING_MATCHING_FAILED: String = "cannot_provide_status"
   val STATUS_FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = "problem-getting-status"
-  val rasFileRepo: RasFileRepository = rasFileRepository
+  val rasFileRepo: RasFilesRepository = rasFileRepository(app.injector.instanceOf[RasFilesRepository])
 
-  val SUT = new FileProcessingService {
-
-    override val fileUploadConnector = mockFileUploadConnector
-    override val desConnector = mockDesConnector
-    override val residencyYearResolver = mockResidencyYearResolver
-    override val auditService: AuditService = mockAuditService
-    override val sessionCacheService: SessionCacheService = mockSessionCache
-    override val fileRepo: RasFileRepository = rasFileRepo
-
+  val SUT = new FileProcessingService (
+    mockFileUploadConnector,
+    mockDesConnector,
+    mockResidencyYearResolver,
+    mockAuditService,
+    mockSessionCache,
+    rasFileRepo,
+    appContext,
+    metrics,
+    ExecutionContext.global
+  ) {
     override def getCurrentDate: DateTime = new DateTime("2018-04-04")
 
     override val allowDefaultRUK: Boolean = false
@@ -85,7 +91,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
     override val SERVICE_UNAVAILABLE: String = STATUS_SERVICE_UNAVAILABLE
   }
 
-  def getTestFilePath = {
+  def getTestFilePath: Path = {
     val successresultsArr = Array("LE241131B,Jim,Jimson,1990-02-21",
       "LE241131B,GARY,BRAVO,1990-02-21",
       "LE241131B,SIMON,DAWSON,1990-02-21",
@@ -114,15 +120,17 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val testFilePath = getTestFilePath
 
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-          override val sessionCacheService: SessionCacheService = mockSessionCache
-          override val fileRepo: RasFileRepository = rasFileRepo
-
+        val SUT = new FileProcessingService (
+          mockFileUploadConnector,
+          mockDesConnector,
+          mockResidencyYearResolver,
+          mockAuditService,
+          mockSessionCache,
+          rasFileRepo,
+          appContext,
+          metrics,
+          ExecutionContext.global
+        ) {
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
@@ -193,15 +201,17 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val testFilePath = getTestFilePath
 
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-          override val sessionCacheService: SessionCacheService = mockSessionCache
-          override val fileRepo: RasFileRepository = rasFileRepo
-
+        val SUT = new FileProcessingService (
+          mockFileUploadConnector,
+          mockDesConnector,
+          mockResidencyYearResolver,
+          mockAuditService,
+          mockSessionCache,
+          rasFileRepo,
+          appContext,
+          metrics,
+          ExecutionContext.global
+        ) {
           override def getCurrentDate: DateTime = new DateTime("2019-02-04")
 
           override val allowDefaultRUK: Boolean = true
@@ -271,15 +281,17 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val testFilePath = getTestFilePath
 
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-          override val sessionCacheService: SessionCacheService = mockSessionCache
-          override val fileRepo: RasFileRepository = rasFileRepo
-
+        val SUT = new FileProcessingService (
+          mockFileUploadConnector,
+          mockDesConnector,
+          mockResidencyYearResolver,
+          mockAuditService,
+          mockSessionCache,
+          rasFileRepo,
+          appContext,
+          metrics,
+          ExecutionContext.global
+        ) {
           override def getCurrentDate: DateTime = new DateTime("2018-06-04")
 
           override val allowDefaultRUK: Boolean = true
@@ -348,15 +360,17 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val testFilePath = getTestFilePath
 
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-          override val sessionCacheService: SessionCacheService = mockSessionCache
-          override val fileRepo: RasFileRepository = rasFileRepo
-
+        val SUT = new FileProcessingService (
+          mockFileUploadConnector,
+          mockDesConnector,
+          mockResidencyYearResolver,
+          mockAuditService,
+          mockSessionCache,
+          rasFileRepo,
+          appContext,
+          metrics,
+          ExecutionContext.global
+        ) {
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
@@ -425,15 +439,17 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         val testFilePath = getTestFilePath
 
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-          override val sessionCacheService: SessionCacheService = mockSessionCache
-          override val fileRepo: RasFileRepository = rasFileRepo
-
+        val SUT = new FileProcessingService (
+          mockFileUploadConnector,
+          mockDesConnector,
+          mockResidencyYearResolver,
+          mockAuditService,
+          mockSessionCache,
+          rasFileRepo,
+          appContext,
+          metrics,
+          ExecutionContext.global
+        ) {
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
@@ -501,15 +517,17 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
       "there is a SERVICE_UNAVAILABLE result" in {
         val testFilePath = getTestFilePath
 
-        val SUT = new FileProcessingService {
-
-          override val fileUploadConnector = mockFileUploadConnector
-          override val desConnector = mockDesConnector
-          override val residencyYearResolver = mockResidencyYearResolver
-          override val auditService: AuditService = mockAuditService
-          override val sessionCacheService: SessionCacheService = mockSessionCache
-          override val fileRepo: RasFileRepository = rasFileRepo
-
+        val SUT = new FileProcessingService (
+          mockFileUploadConnector,
+          mockDesConnector,
+          mockResidencyYearResolver,
+          mockAuditService,
+          mockSessionCache,
+          rasFileRepo,
+          appContext,
+          metrics,
+          ExecutionContext.global
+        ) {
           override def getCurrentDate: DateTime = new DateTime("2018-02-04")
 
           override val allowDefaultRUK: Boolean = true
@@ -788,7 +806,7 @@ class FileProcessingServiceSpec extends UnitSpec with OneAppPerSuite with ScalaF
 
         Thread.sleep(5000)
 
-        val res = await(rasFileRepository.fetchFile(fileId, userId))
+        val res = await(rasFileRepository(app.injector.instanceOf[RasFilesRepository]).fetchFile(fileId, userId))
         var result = new String("")
         val temp = await(res.get.data run getAll map { bytes => result = result.concat(new String(bytes)) })
         result.replaceAll("(\\r|\\n)", "") shouldBe expectedResultsFile.mkString

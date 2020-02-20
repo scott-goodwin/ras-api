@@ -29,7 +29,7 @@ import uk.gov.hmrc.http.cache.client.{CacheMap, ShortLivedHttpCaching}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.rasapi.models.{CallbackData, FileMetadata, FileSession, ResultsFileMetaData}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with MockitoSugar with BeforeAndAfter {
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -45,8 +45,10 @@ class SessionCacheServiceSpec extends UnitSpec with OneServerPerSuite with Scala
 
   val mockSessionCache = mock[ShortLivedHttpCaching]
 
-  object SUT extends SessionCacheService {
-    override val sessionCache: ShortLivedHttpCaching = mockSessionCache
+  object SUT extends SessionCacheService (
+    mockSessionCache,
+    ExecutionContext.global
+  ) {
     when(sessionCache.fetchAndGetEntry[FileSession] (any(), any(),any())
       (any(),any(), any()))
       .thenReturn(Future.successful(Some(rasSession)))

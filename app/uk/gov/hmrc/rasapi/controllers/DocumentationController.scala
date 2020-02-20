@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rasapi.controllers
 
+import javax.inject.Inject
 import play.api.http.{HttpErrorHandler, LazyHttpErrorHandler}
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.api.controllers.DocumentationController
@@ -23,14 +24,14 @@ import uk.gov.hmrc.rasapi.config.AppContext
 import uk.gov.hmrc.rasapi.views._
 
 
-class  Documentation(httpErrorHandler: HttpErrorHandler) extends DocumentationController(httpErrorHandler) {
+class Documentation @Inject()(appContext: AppContext) extends DocumentationController(LazyHttpErrorHandler) {
 
   override def documentation(version: String, endpointName: String): Action[AnyContent] = {
     super.at(s"/public/api/documentation/$version", s"${endpointName.replaceAll(" ", "-")}.xml")
   }
 
   override def definition(): Action[AnyContent] = Action {
-    Ok(txt.definition(AppContext.apiContext,AppContext.apiStatus,AppContext.endpointsEnabled,AppContext.apiV2_0Enabled))
+    Ok(txt.definition(appContext.apiContext, appContext.apiStatus, appContext.endpointsEnabled, appContext.apiV2_0Enabled))
   }
 
   def raml(version: String, file: String): Action[AnyContent] = {
@@ -38,4 +39,3 @@ class  Documentation(httpErrorHandler: HttpErrorHandler) extends DocumentationCo
   }
 }
 
-object Documentation extends Documentation(LazyHttpErrorHandler)
