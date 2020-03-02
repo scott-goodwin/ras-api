@@ -55,11 +55,11 @@ class FileProcessingService @Inject()(
   val FILE_PROCESSING_MATCHING_FAILED: String = appContext.fileProcessingMatchingFailedStatus
   val FILE_PROCESSING_INTERNAL_SERVER_ERROR: String = appContext.fileProcessingInternalServerErrorStatus
 
-  val fileProcess = "File-Processing"
-  val fileRead = "File-Upload-Read"
-  val fileResults = "File-Results"
-  val fileSave = "File-Save"
-  val STATUS_ERROR = "ERROR"
+  val fileProcess: String = "File-Processing"
+  val fileRead: String = "File-Upload-Read"
+  val fileResults: String = "File-Results"
+  val fileSave: String = "File-Save"
+  val STATUS_ERROR: String = "ERROR"
 
   def processFile(userId: String, callbackData: CallbackData, apiVersion: ApiVersion)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
     val fileMetrics = metrics.register(fileProcess).time
@@ -73,7 +73,6 @@ class FileProcessingService @Inject()(
           manipulateFile(inputFileData, userId, callbackData, apiVersion)
         }
     }
-
     fileMetrics.stop
   }
 
@@ -90,7 +89,7 @@ class FileProcessingService @Inject()(
 
     try{
       val dataIterator = inputFileData.get.toList
-      Logger.warn(s"file data size ${dataIterator.size} for user $userId")
+      Logger.info(s"[FileProcessingService][manipulateFile] File data size ${dataIterator.size} for user $userId")
       writeResultToFile(writer._2, s"National Insurance number,First name,Last name,Date of birth,$getTaxYearHeadings", userId)
       dataIterator.foreach(row =>
         if (!row.isEmpty) {
@@ -100,14 +99,14 @@ class FileProcessingService @Inject()(
       closeWriter(writer._2)
       fileResultsMetrics.stop
 
-      Logger.warn(s"File results complete, ready to save the file (fileId: ${callbackData.fileId}) for userId ($userId).")
+      Logger.info(s"[FileProcessingService][manipulateFile] File results complete, ready to save the file (fileId: ${callbackData.fileId}) for userId ($userId).")
 
       saveFile(writer._1, userId, callbackData)
 
     } catch
       {
         case ex:Throwable => {
-          Logger.error(s"error for userId ($userId) in File processing -> ${ex.getMessage}")
+          Logger.error(s"[FileProcessingService][manipulateFile] Error for userId ($userId) in File processing -> ${ex.getMessage}", ex)
           sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
           fileResultsMetrics.stop
         }
@@ -120,7 +119,7 @@ class FileProcessingService @Inject()(
 
   def saveFile(filePath: Path, userId: String, callbackData: CallbackData)(implicit hc: HeaderCarrier, request: Request[AnyContent]): Unit = {
 
-    Logger.warn("[FileProcessingService] Starting to save file...")
+    Logger.info("[FileProcessingService][saveFile] Starting to save file...")
 
     val fileSaveMetrics = metrics.register(fileSave).time
     try {
@@ -129,7 +128,7 @@ class FileProcessingService @Inject()(
 
           result match {
             case Success(file) =>
-              Logger.warn(s"Starting to save the file (${file.id}) for user ID: $userId")
+              Logger.info(s"[FileProcessingService][saveFile] Starting to save the file (${file.id}) for user ID: $userId")
 
               val resultsFileMetaData = Some(ResultsFileMetaData(file.id.toString, file.filename, file.uploadDate, file.chunkSize, file.length))
 
@@ -137,14 +136,12 @@ class FileProcessingService @Inject()(
                 case Success(metadata) =>
                   sessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, metadata)
                 case Failure(ex) =>
-                  Logger.error(s"Failed to get File Metadata for file (${file.id}), for user ID: $userId.", ex)
+                  Logger.error(s"[FileProcessingService][saveFile] Failed to get File Metadata for file (${file.id}), for user ID: $userId, message: ${ex.getMessage}", ex)
                   sessionCacheService.updateFileSession(userId, callbackData, resultsFileMetaData, None)
               }
-
-              Logger.warn(s"Completed saving the file (${file.id}) for user ID: $userId")
-
+              Logger.info(s"[FileProcessingService][saveFile] Completed saving the file (${file.id}) for user ID: $userId")
             case Failure(ex) => {
-              Logger.error(s"results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}")
+              Logger.error(s"[FileProcessingService][saveFile] results file for userId ($userId) generation/saving failed with Exception ${ex.getMessage}", ex)
               sessionCacheService.updateFileSession(userId, callbackData.copy(status = STATUS_ERROR), None, None)
             }
             //delete result  a future ind
@@ -164,5 +161,3 @@ class FileProcessingService @Inject()(
       s"$currentYear to ${currentYear + 1} residency status"
   }
 }
-
-

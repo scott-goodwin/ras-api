@@ -43,7 +43,7 @@ class RasChunksRepository @Inject()(
     val projection = BSONDocument("_id"-> 1,"files_id" -> 2)
     collection.find(query,projection).cursor[Chunks]().collect[Seq]().recover {
       case ex: Throwable =>
-        Logger.error(s"error fetching chunks  ${ex.getMessage}.")
+        Logger.error(s"[RasChunksRepository][getAllChunks] Error fetching chunks  ${ex.getMessage}.", ex)
         Seq.empty
     }
 
@@ -53,7 +53,7 @@ class RasChunksRepository @Inject()(
     val query = BSONDocument("files_id" -> filesId)
     collection.remove(query).map(res=> res.writeErrors.isEmpty).recover{
       case ex:Throwable =>
-        Logger.error(s"error removing chunk ${filesId} with the exception ${ex.getMessage}.")
+        Logger.error(s"[RasChunksRepository][removeChunk] error removing chunk ${filesId} with the exception ${ex.getMessage}.")
         false
     }
   }

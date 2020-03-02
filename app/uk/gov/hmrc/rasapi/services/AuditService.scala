@@ -39,8 +39,6 @@ class AuditService @Inject()(
       tags = hc.toAuditTags(auditType, path),
       detail = hc.toAuditDetails() ++ auditData
     )
-
     connector.sendEvent(event)
   }
-
 }

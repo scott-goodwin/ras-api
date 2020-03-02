@@ -38,4 +38,3 @@ class Documentation @Inject()(appContext: AppContext) extends DocumentationContr
     super.at(s"/public/api/conf/$version", file)
   }
 }
-

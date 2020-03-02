@@ -45,10 +45,9 @@ class FileController @Inject()(
                                 implicit val ec: ExecutionContext
                               ) extends BaseController with AuthorisedFunctions {
 
-  val fileRemove = "File-Remove"
-  val fileServe = "File-Read"
-  private val _contentType = "application/csv"
-
+  val fileRemove: String = "File-Remove"
+  val fileServe: String = "File-Read"
+  private val _contentType: String = "application/csv"
 
   def parseStringIdToBSONObjectId(id: String): Try[BSONObjectID] = BSONObjectID.parse(id)
 
@@ -60,7 +59,7 @@ class FileController @Inject()(
           val id = getEnrolmentIdentifier(enrols)
           getFile(fileName, id).map { fileData =>
             if (fileData.isDefined) {
-              Logger.debug("[FileController] [serverFile] File repo enumerator received")
+              Logger.debug("[FileController][serverFile] File repo enumerator received")
               val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(fileData.get.data.map(ByteString.fromArray)))
               apiMetrics.stop()
               Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(fileData.get.length), Some(_contentType)))
@@ -69,13 +68,13 @@ class FileController @Inject()(
                   CONTENT_TYPE -> _contentType)
             }
             else {
-              Logger.error(s"[FileController] [serverFile] Requested File not found to serve fileName is $fileName")
+              Logger.error(s"[FileController][serverFile] Requested File not found to serve fileName is $fileName")
               NotFound(toJson(ErrorNotFound))
             }
 
           }.recover {
             case ex: Throwable =>
-              Logger.error(s"[FileController] [serverFile] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
+              Logger.error(s"[FileController][serverFile] Request failed with Exception ${ex.getMessage} for userId ($id) file -> $fileName")
               InternalServerError
           }
       } recoverWith{
@@ -93,7 +92,7 @@ class FileController @Inject()(
             (parseStringIdToBSONObjectId(fileId) match {
               case Success(bsonId) => chunksRepo.removeChunk(bsonId).map { isChunkRemoved =>
                 if (isChunkRemoved) {
-                  Logger.warn(s"[FileController][remove] Chunk deletion succeeded, fileId is: ${fileId}")
+                  Logger.info(s"[FileController][remove] Chunk deletion succeeded, fileId is: ${fileId}")
                   auditService.audit(auditType = "FileDeletion",
                     path = request.path,
                     auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "true")
@@ -103,15 +102,15 @@ class FileController @Inject()(
                     path = request.path,
                     auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false")
                   )
-                  Logger.error(s"[FileController][remove] Chunk deletion failed, fileId is: ${fileId}")
+                  Logger.warn(s"[FileController][remove] Chunk deletion failed, fileId is: ${fileId}")
                 }
               }.recover {
                 case ex: Throwable => {
-                  Logger.error(s"Caught exception: ${ex.getMessage} ${ex.printStackTrace}")
+                  Logger.error(s"[FileController][remove] Exception ${ex.getMessage} was thrown", ex)
                 }
               }.map(_ => ())
               case Failure(ex) => {
-                Logger.error(s"[FileController][remove] The following fileId ($fileId) could not be converted to a BSONObjectId.")
+                Logger.error(s"[FileController][remove] Exception ${ex.getMessage} was thrown, the following fileId ($fileId) could not be converted to a BSONObjectId.", ex)
                 auditService.audit(auditType = "FileDeletion",
                   path = request.path,
                   auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false",
@@ -135,16 +134,15 @@ class FileController @Inject()(
 
   private def handleAuthFailure(implicit request: Request[_]): PartialFunction[Throwable, Future[Result]] =
     PartialFunction[Throwable, Future[Result]] {
-      case ex:InsufficientEnrolments => Logger.warn("[FileController] [handleAuthFailure] Insufficient privileges")
+      case _:InsufficientEnrolments => Logger.warn("[FileController][handleAuthFailure] Insufficient privileges")
         metrics.registry.counter(UNAUTHORIZED.toString)
 
         Future.successful(Unauthorized(toJson(Unauthorised)))
 
-      case ex: NoActiveSession => Logger.warn("[FileController] [handleAuthFailure] Inactive session")
+      case _: NoActiveSession => Logger.warn("[FileController][handleAuthFailure] Inactive session")
         metrics.registry.counter(UNAUTHORIZED.toString)
         Future.successful(Unauthorized(toJson(InvalidCredentials)))
-      case e => Logger.warn(s"[FileController] [handleAuthFailure] Internal Error ${e.getCause}" )
-
+      case ex => Logger.error(s"[FileController][handleAuthFailure] Exception ${ex.getMessage} was thrown from auth", ex)
         Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
   }
 

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.rasapi.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class ResidencyStatusResponse(success: Option[ResidencyStatusSuccess], failure: Option[ResidencyStatusFailure])
 
@@ -26,8 +26,6 @@ case class ResidencyStatusSuccess(nino: String, deathDate: Option[String], death
 case class ResidencyStatusFailure(code: String, reason: String)
 
 object ResidencyStatusFormats {
-  implicit val successFormats = Json.format[ResidencyStatusSuccess]
-  implicit val failureFormats = Json.format[ResidencyStatusFailure]
+  implicit val successFormats: OFormat[ResidencyStatusSuccess] = Json.format[ResidencyStatusSuccess]
+  implicit val failureFormats: OFormat[ResidencyStatusFailure] = Json.format[ResidencyStatusFailure]
 }
-
-

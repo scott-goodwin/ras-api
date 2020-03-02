@@ -21,15 +21,15 @@ import uk.gov.hmrc.auth.core.Enrolments
 
 package object controllers {
 
-  implicit val errorValidationWrite = new Writes[ErrorValidation] {
+  implicit val errorValidationWrite: Writes[ErrorValidation] = new Writes[ErrorValidation] {
     def writes(e: ErrorValidation): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message, "path" -> e.path)
   }
 
-  implicit val errorResponseWrites = new Writes[ErrorResponse] {
+  implicit val errorResponseWrites: Writes[ErrorResponse] = new Writes[ErrorResponse] {
     def writes(e: ErrorResponse): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message)
   }
 
-  implicit val errorResponseWithErrorsWrites = new Writes[ErrorResponseWithErrors] {
+  implicit val errorResponseWithErrorsWrites: Writes[ErrorResponseWithErrors] = new Writes[ErrorResponseWithErrors] {
     def writes(e: ErrorResponseWithErrors): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message, "errors" -> e.errors)
   }
 

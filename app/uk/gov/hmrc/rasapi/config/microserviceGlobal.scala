@@ -72,17 +72,17 @@ class RasErrorHandler @Inject()(
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = super.onClientError(request, statusCode, message).map(
     result => statusCode match {
       case NOT_FOUND =>
-        Logger.info("[onClientError] MicroserviceGlobal onHandlerNotFound called")
+        Logger.info("[RasErrorHandler] [onClientError] MicroserviceGlobal onHandlerNotFound called")
         NotFound(Json.toJson(ErrorNotFound))
       case BAD_REQUEST =>
-        Logger.info("[onClientError] MicroserviceGlobal onBadRequest called")
+        Logger.info("[RasErrorHandler] [onClientError] MicroserviceGlobal onBadRequest called")
         BadRequest(Json.toJson(BadRequestResponse))
       case _ => result
     }
   )
 
   override def onServerError(request: RequestHeader, ex: Throwable): Future[Result] = {
-    Logger.info("[onServerError] MicroserviceGlobal onError called")
+    Logger.info("[RasErrorHandler] [onServerError] MicroserviceGlobal onError called")
     super.onServerError(request, ex) map (res => {
       res.header.status match {
         case UNAUTHORIZED => Unauthorized(Json.toJson(Unauthorised))

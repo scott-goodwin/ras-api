@@ -60,7 +60,7 @@ trait GridFsTTLIndexing {
 
         if (idxToUpdate.isDefined) {
           for {
-            deleted <- collection.indexesManager.drop(idxToUpdate.get.eventualName)
+            _ <- collection.indexesManager.drop(idxToUpdate.get.eventualName)
 
             updated <- ensureLastUpdated(collection)
           } yield updated
@@ -70,12 +70,12 @@ trait GridFsTTLIndexing {
         }
       }
     }
-    Logger.info(s"Creating time to live for entries in ${collection.name} to $expireAfterSeconds seconds")
+    Logger.info(s"[GridFsTTLIndexing][addTTL] Creating time to live for entries in ${collection.name} to $expireAfterSeconds seconds")
     ensureLastUpdated(collection)
   }
 
   private def ensureLastUpdated(collection : GenericCollection[BSONSerializationPack.type])(implicit ec: scala.concurrent.ExecutionContext) = {
-    Logger.debug("Indexes ensured by creating if they doesn't exist")
+    Logger.debug("[GridFsTTLIndexing][ensureLastUpdated] Indexes ensured by creating if they doesn't exist")
     collection.indexesManager.ensure(
       Index(
         key = Seq(UploadDate -> IndexType.Ascending),
