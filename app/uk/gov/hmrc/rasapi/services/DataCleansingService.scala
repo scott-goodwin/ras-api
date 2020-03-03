@@ -32,32 +32,32 @@ class DataCleansingService @Inject()(
                                     ) {
 
   def removeOrphanedChunks(): Future[Seq[BSONObjectID]] = if(appContext.removeChunksDataExerciseEnabled){
-    Logger.info("[data-cleansing-exercise] [on-start] Starting data exercise for removing of chunks")
+    Logger.info("[data-cleansing-exercise][removeOrphanedChunks] Starting data exercise for removing of chunks")
     for {
       chunks <- chunksRepo.getAllChunks().map(_.map(_.files_id).distinct)
 
       fileInfoList <- {
-        Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Size of chunks to verify is: ${chunks.size}" )
+        Logger.info(s"[data-cleansing-exercise][removeOrphanedChunks] Size of chunks to verify is: ${chunks.size}" )
         processFutures(chunks)(fileRepo.isFileExists(_))
       }
 
       chunksDeleted <- {
         val parentFileIds = fileInfoList.filter(_.isDefined).map(rec => rec.get.id.asInstanceOf[BSONObjectID])
         val chunksToBeDeleted = chunks.diff(parentFileIds)
-        Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Size of fileId's to be deleted is: ${chunksToBeDeleted.length}")
+        Logger.info(s"[data-cleansing-exercise][removeOrphanedChunks] Size of fileId's to be deleted is: ${chunksToBeDeleted.length}")
 
         val res = processFutures(chunksToBeDeleted)(fileId => {
-          Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] fileId to be deleted is: ${fileId}")
+          Logger.warn(s"[data-cleansing-exercise][removeOrphanedChunks] fileId to be deleted is: ${fileId}")
           chunksRepo.removeChunk(fileId).map{
-            case true => Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Chunk deletion succeeded, fileId is: ${fileId}")
-            case false => Logger.warn(s"[data-cleansing-exercise] [removeOrphanedChunks] Chunk deletion failed, fileId is: ${fileId}")
+            case true => Logger.info(s"[data-cleansing-exercise][removeOrphanedChunks] Chunk deletion succeeded, fileId is: ${fileId}")
+            case false => Logger.warn(s"[data-cleansing-exercise][removeOrphanedChunks] Chunk deletion failed, fileId is: ${fileId}")
           }
         })
         Future(chunksToBeDeleted)
       }
     } yield chunksDeleted
   } else {
-    Logger.warn("[data-cleansing-exercise] [on-start] No data exercise carried")
+    Logger.info("[data-cleansing-exercise][removeOrphanedChunks] No data exercise carried")
     Future.successful(Seq.empty)
   }
 

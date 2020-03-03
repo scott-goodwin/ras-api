@@ -23,4 +23,3 @@ case class SuccessfulDesResponse(override val residencyStatus: Option[ResidencyS
 case object InternalServerErrorResponse extends DesResponse(residencyStatus = None)
 
 case object NotFoundResponse extends DesResponse(residencyStatus = None)
-

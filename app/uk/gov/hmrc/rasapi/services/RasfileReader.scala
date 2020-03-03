@@ -47,7 +47,7 @@ trait RasFileReader {
     fileUploadConnector.getFile(envelopeId, fileId, userId).map{
 
       case Some(inputStream) => Source.fromInputStream(inputStream).getLines
-      case None => Logger.error(s"File Processing: problem reading data in the file for userId ($userId).")
+      case None => Logger.error(s"[RasFileReader][readFile] File Processing: the file (${fileId}) could not be found for userId ($userId).")
         throw new FileNotFoundException
     }
   }
@@ -61,7 +61,7 @@ trait RasFileWriter {
     val file = Try(Files.createTempFile(fileId,".csv"))
     file.isSuccess match {
       case true =>  (file.get, new BufferedWriter(new FileWriter(file.get.toFile)))
-      case false => Logger.error(s"Error creating temp file for writing results for userId ($userId).")
+      case false => Logger.error(s"[RasFileReader][createFileWriter] Error creating temp file for writing results for userId ($userId).")
         throw new FileNotFoundException
     }
   }
@@ -72,7 +72,7 @@ trait RasFileWriter {
       writer.newLine()
     }
     catch {
-      case ex: Throwable => Logger.error(s"Exception in writing line to the results file ${ex.getMessage} for userId ($userId).")
+      case ex: Throwable => Logger.error(s"[RasFileReader][writeResultToFile] Exception in writing line to the results file ${ex.getMessage} for userId ($userId).", ex)
         throw new RuntimeException(s"Exception in writing line to the results file ${ex.getMessage}")
     }
     true
@@ -81,12 +81,13 @@ trait RasFileWriter {
   def closeWriter(writer:BufferedWriter):Boolean ={
     val res = Try(writer.close())
      res.recover{
-       case ex:Throwable => Logger.error(s"Failed to close the Outputstream with error ${ex.getMessage}.")
+       case ex:Throwable => Logger.error(s"[RasFileReader][writeResultToFile] Failed to close the Outputstream with error ${ex.getMessage}.", ex)
          false
      }
     true
   }
 
   def clearFile(path:Path, userId: String) :Unit =
-    if (!Files.deleteIfExists(path)) Logger.error(s"error deleting file or file ${path} doesn't exist for userId ($userId).")
+    if (!Files.deleteIfExists(path))
+      Logger.error(s"[RasFileReader][clearFile] error deleting file or file ${path} doesn't exist for userId ($userId).")
 }

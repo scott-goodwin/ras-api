@@ -38,4 +38,3 @@ class RasAuthConnector @Inject()(appContext: AppContext, val http: DefaultHttpCl
   extends PlayAuthConnector {
   lazy val serviceUrl: String = appContext.baseUrl("auth")
 }
-

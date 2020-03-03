@@ -93,7 +93,7 @@ class LookupController @Inject()(
                     nino = Some(individualDetails.nino),
                     residencyStatus = Some(residencyStatus),
                     userId = id)
-                  Logger.debug(s"[LookupController][getResidencyStatus] Residency status returned successfully for userId ($id).")
+                  Logger.info(s"[LookupController][getResidencyStatus] Residency status returned successfully for userId ($id).")
                   apiMetrics.stop()
                   Ok(toJson(residencyStatus))
 
@@ -104,7 +104,7 @@ class LookupController @Inject()(
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.debug(s"[LookupController][getResidencyStatus] Individual is deceased for userId ($id).")
+                      Logger.info(s"[LookupController][getResidencyStatus] Individual is deceased for userId ($id).")
                       metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound(appContext.matchingFailedStatus)))
                     case STATUS_MATCHING_FAILED =>
@@ -112,7 +112,7 @@ class LookupController @Inject()(
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.debug(s"[LookupController][getResidencyStatus] Individual not matched for userId ($id).")
+                      Logger.warn(s"[LookupController][getResidencyStatus] Individual not matched for userId ($id).")
                       metrics.registry.counter(FORBIDDEN.toString)
                       Forbidden(toJson(IndividualNotFound(appContext.matchingFailedStatus)))
                     case STATUS_TOO_MANY_REQUESTS =>
@@ -128,7 +128,7 @@ class LookupController @Inject()(
                         nino = Some(individualDetails.nino),
                         residencyStatus = None,
                         userId = id)
-                      Logger.debug(s"[LookupController][getResidencyStatus] Service unavailable for userId ($id).")
+                      Logger.error(s"[LookupController][getResidencyStatus] Service unavailable for userId ($id).")
                       metrics.registry.counter(SERVICE_UNAVAILABLE.toString)
                       ServiceUnavailable(toJson(ErrorServiceUnavailable))
                     case _ =>
@@ -149,28 +149,27 @@ class LookupController @Inject()(
                     userId = id)
                   Logger.error(s"[LookupController][getResidencyStatus] Error occurred for userId ($id), " +
                     s"Exception message: ${th.getMessage}", th)
-                  metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
+                   metrics.registry.counter(INTERNAL_SERVER_ERROR.toString)
                   InternalServerError(toJson(ErrorInternalServerError))
               }
             },
             errors => {
-              Logger.info(s"The errors for userId ($id) are: " + errors.toString())
+              Logger.error(s"[LookupController][getResidencyStatus] The errors for userId ($id) are: " + errors.toString())
               Future.successful(BadRequest(toJson(ErrorBadRequestResponse(errorConverter.convert(errors)))))
             }
           )
       } recoverWith{
-        case ex:InsufficientEnrolments => Logger.warn("Insufficient privileges")
+        case _:InsufficientEnrolments =>
+          Logger.warn("[LookupController][getResidencyStatus] Insufficient privileges")
           metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(Unauthorised)))
-
-        case ex:NoActiveSession => Logger.warn("Inactive session")
+        case _:NoActiveSession =>
+          Logger.warn("[LookupController][getResidencyStatus] Inactive session")
           metrics.registry.counter(UNAUTHORIZED.toString)
           Future.successful(Unauthorized(toJson(InvalidCredentials)))
-
-        case e => Logger.warn(s"Internal Error ${e.getCause}" )
+        case ex => Logger.error(s"[LookupController][getResidencyStatus] Exception ${ex.getMessage} was thrown from auth", ex)
           Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
       }
-
   }
 
   private def updateResidencyResponse(residencyStatus: ResidencyStatus): ResidencyStatus = {
@@ -193,14 +192,15 @@ class LookupController @Inject()(
             Try(onSuccess(payload)) match {
               case Success(result) => result
               case Failure(ex: Exception) =>
-                Logger.error(s"[LookupController] An error occurred in Json payload validation for userId ($userId) ${ex.getMessage}")
+                Logger.error(s"[LookupController][withValidJson] An error occurred in Json payload validation for userId ($userId) ${ex.getMessage}", ex)
                 Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
             }
           }
           case Success(JsError(errors)) =>
-            Logger.error(s"Json error in the request body")
+            Logger.warn(s"[LookupController][withValidJson] Json error in the request body")
             invalidCallback(errors)
-          case Failure(e) => Logger.error(s"[LookupController] An error occurred due to ${e.getMessage} returning " +
+          case Failure(e) =>
+            Logger.error(s"[LookupController][withValidJson] An error occurred due to ${e.getMessage} returning " +
             s"internal server error for userId ($userId).")
             Future.successful(InternalServerError(toJson(ErrorInternalServerError)))
         }
@@ -225,12 +225,13 @@ class LookupController @Inject()(
     val nextYearStatusMap: Map[String, String] = if (residencyStatus.nonEmpty) residencyStatus.get.nextYearForecastResidencyStatus
                                                     .map(nextYear => Map("NextCYStatus" -> nextYear)).getOrElse(Map())
                                                  else Map()
-    val auditDataMap: Map[String, String] = failureReason.map(reason => Map("successfulLookup" -> "false",
-                                                                            "reason" -> reason)).
-                                              getOrElse(Map(
-                                                "successfulLookup" -> "true",
-                                                "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
-                                              ) ++ nextYearStatusMap)
+    val auditDataMap: Map[String, String] = failureReason.map(
+      reason => Map("successfulLookup" -> "false", "reason" -> reason)
+    ).getOrElse(Map(
+        "successfulLookup" -> "true",
+        "CYStatus" -> residencyStatus.get.currentYearResidencyStatus
+      ) ++ nextYearStatusMap
+    )
 
     auditService.audit(auditType = "ReliefAtSourceResidency",
       path = request.path,

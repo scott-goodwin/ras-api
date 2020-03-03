@@ -31,9 +31,9 @@ class SessionCacheService @Inject()(
                                    ) {
 
 
-  private val source = "ras"
-  private val formId = "fileSession"
-  private val fileMetadata = "fileMetadata"
+  private val source: String = "ras"
+  private val formId: String = "fileSession"
+  private val fileMetadata: String = "fileMetadata"
 
   def updateFileSession(
                          userId: String,
@@ -45,21 +45,16 @@ class SessionCacheService @Inject()(
     sessionCache.fetchAndGetEntry[FileSession](source,userId,formId).flatMap{ session =>
     sessionCache.cache[FileSession](source,userId,formId,
       FileSession(Some(userFile), resultsFile, userId, session.get.uploadTimeStamp, fileMetadata) ).recover {
-        case ex: Throwable => Logger.error(s"unable to save FileSession to cache => " +
+        case ex: Throwable => Logger.error(s"[SessionCacheService][updateFileSession] unable to save FileSession to cache => " +
           s"userId ($userId) , userFile : ${userFile.toString} , resultsFile id : " +
-          s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
+          s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}", ex)
           throw new RuntimeException("Error in saving sessionCache" + ex.getMessage)
-        /*
-                Logger.warn("retrying to save cache")
-                updateRasSession(envelopeId,userFile,resultsFile)
-        */
       }
     }.recover {
-      case ex: Throwable => Logger.error(s"cannot fetch  data to cache for FileSession => " +
+      case ex: Throwable => Logger.error(s"[SessionCacheService][updateFileSession] cannot fetch  data to cache for FileSession => " +
         s"userId ($userId) , userFile : ${userFile.toString} , resultsFile id : " +
-        s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}" )
+        s"${if(resultsFile.isDefined) resultsFile.get.id}, \n Exception is ${ex.getMessage}", ex)
         throw new RuntimeException(s"Error in saving sessionCache ${ex.getMessage}")
     }
-
   }
 }
