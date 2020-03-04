@@ -154,7 +154,7 @@ class LookupController @Inject()(
               }
             },
             errors => {
-              Logger.error(s"[LookupController][getResidencyStatus] The errors for userId ($id) are: " + errors.toString())
+              Logger.warn(s"[LookupController][getResidencyStatus] The request body could not be parsed for userId ($id): " + errors.toString())
               Future.successful(BadRequest(toJson(ErrorBadRequestResponse(errorConverter.convert(errors)))))
             }
           )
