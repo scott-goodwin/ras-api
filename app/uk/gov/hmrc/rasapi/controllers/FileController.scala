@@ -110,7 +110,7 @@ class FileController @Inject()(
                 }
               }.map(_ => ())
               case Failure(ex) => {
-                Logger.error(s"[FileController][remove] Exception ${ex.getMessage} was thrown, the following fileId ($fileId) could not be converted to a BSONObjectId.", ex)
+                Logger.warn(s"[FileController][remove] Exception ${ex.getMessage} was thrown, the following fileId ($fileId) could not be converted to a BSONObjectId.")
                 auditService.audit(auditType = "FileDeletion",
                   path = request.path,
                   auditData = Map("userIdentifier" -> id, "fileId" -> fileId, "chunkDeletionSuccess" -> "false",
