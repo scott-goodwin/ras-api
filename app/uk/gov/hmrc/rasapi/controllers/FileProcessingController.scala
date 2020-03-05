@@ -55,7 +55,7 @@ class FileProcessingController @Inject()(
             case STATUS_ERROR => Logger.error(s"[FileProcessingController][statusCallback] There is a problem with the " +
               s"file for userId ($userId) ERROR (${callbackData.fileId}), the status is: ${callbackData.status} and the reason is: ${callbackData.reason.get}")
               sessionCacheService.updateFileSession(userId, callbackData, None, None)
-            case _ => Logger.error(s"[FileProcessingController][statusCallback] There is a problem with the file (${callbackData.fileId}) for userId ($userId), the status is:" +
+            case _ => Logger.warn(s"[FileProcessingController][statusCallback] There is a problem with the file (${callbackData.fileId}) for userId ($userId), the status is:" +
               s" ${callbackData.status}")
           }
           Future(Ok(""))
