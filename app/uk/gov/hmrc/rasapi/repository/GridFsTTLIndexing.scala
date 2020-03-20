@@ -17,11 +17,13 @@
 package uk.gov.hmrc.rasapi.repository
 
 import play.api.Logger
-import reactivemongo.api.BSONSerializationPack
+import reactivemongo.api.bson.collection.BSONSerializationPack
 import reactivemongo.api.collections.GenericCollection
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONLong}
+import reactivemongo.bson.DefaultBSONHandlers._
+
 
 import scala.concurrent.Future
 
@@ -49,7 +51,6 @@ trait GridFsTTLIndexing {
   }
 
   private def addTTL(collection: GenericCollection[BSONSerializationPack.type])(implicit ec: scala.concurrent.ExecutionContext): Future[Boolean] = {
-    import reactivemongo.bson.DefaultBSONHandlers._
     val indexes = collection.indexesManager.list()
     indexes.flatMap {
       idxs => {

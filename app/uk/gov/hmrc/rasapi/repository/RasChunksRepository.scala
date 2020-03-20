@@ -19,9 +19,8 @@ package uk.gov.hmrc.rasapi.repository
 import javax.inject.Inject
 import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
+import reactivemongo.play.json._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.models.Chunks
 
@@ -41,7 +40,7 @@ class RasChunksRepository @Inject()(
 
     // only fetch the id and files-id field for the result documents
     val projection = BSONDocument("_id"-> 1,"files_id" -> 2)
-    collection.find(query,projection).cursor[Chunks]().collect[Seq]().recover {
+    collection.find(query, Some(projection)).cursor[Chunks]().collect[Seq]().recover {
       case ex: Throwable =>
         Logger.error(s"[RasChunksRepository][getAllChunks] Error fetching chunks  ${ex.getMessage}.", ex)
         Seq.empty

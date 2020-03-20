@@ -21,10 +21,10 @@ import java.nio.file.Path
 
 import javax.inject.Inject
 import play.api.libs.iteratee.Enumerator
-import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.gridfs.Implicits._
 import reactivemongo.api.gridfs._
-import reactivemongo.api.{BSONSerializationPack, DB, DBMetaCommands}
+import reactivemongo.api.bson.collection.BSONSerializationPack
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.rasapi.config.AppContext

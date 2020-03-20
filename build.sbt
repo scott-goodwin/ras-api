@@ -54,7 +54,7 @@ DefaultBuildSettings.integrationTestSettings()
 
 // dependencies
 val apiPlatformlibVersion = "4.1.0-play-25"
-val playReactivemongoVersion = "6.2.0"
+val simpleReactiveMongoVersion = "7.25.0-play-25"
 val jsonEncryptionVersion = "4.5.0-play-25"
 val akkaVersion = "2.4.10"
 
@@ -64,7 +64,7 @@ libraryDependencies ++= Seq(
   "uk.gov.hmrc" %% "bootstrap-play-25" % "5.1.0",
   "uk.gov.hmrc" %% "domain" % "5.6.0-play-25",
   "uk.gov.hmrc" %% "mongo-caching" % "5.4.0",
-  "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
+  "uk.gov.hmrc" %% "simple-reactivemongo"% simpleReactiveMongoVersion,
   "uk.gov.hmrc" %% "json-encryption" % jsonEncryptionVersion,
   "uk.gov.hmrc" %% "play-hmrc-api" % apiPlatformlibVersion,
   "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
