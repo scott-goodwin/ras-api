@@ -19,7 +19,7 @@ package uk.gov.hmrc.rasapi.repository
 import javax.inject.Inject
 import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.{DB, DBMetaCommands}
+import reactivemongo.api.{Cursor, DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -27,6 +27,7 @@ import uk.gov.hmrc.rasapi.models.Chunks
 
 import scala.concurrent.{ExecutionContext, Future}
 
+@deprecated("Repository should not be needed as there should be no orphaned chunks")
 class RasChunksRepository @Inject()(
                                      val mongoComponent: ReactiveMongoComponent,
                                      implicit val ec: ExecutionContext
@@ -40,8 +41,8 @@ class RasChunksRepository @Inject()(
     Logger.debug("********Remove chunks :Started*********")
 
     // only fetch the id and files-id field for the result documents
-    val projection = BSONDocument("_id"-> 1,"files_id" -> 2)
-    collection.find(query,projection).cursor[Chunks]().collect[Seq]().recover {
+    val projection = BSONDocument("_id" -> 1, "files_id" -> 2)
+    collection.find(query,projection).cursor[Chunks]().collect[Seq](Int.MaxValue, Cursor.FailOnError()).recover {
       case ex: Throwable =>
         Logger.error(s"[RasChunksRepository][getAllChunks] Error fetching chunks  ${ex.getMessage}.", ex)
         Seq.empty
@@ -49,6 +50,7 @@ class RasChunksRepository @Inject()(
 
   }
 
+  @deprecated("should not be used - monitor to ensure")
   def removeChunk(filesId:BSONObjectID): Future[Boolean] = {
     val query = BSONDocument("files_id" -> filesId)
     collection.remove(query).map(res=> res.writeErrors.isEmpty).recover{
